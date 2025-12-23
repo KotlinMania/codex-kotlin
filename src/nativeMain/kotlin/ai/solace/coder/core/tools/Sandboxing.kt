@@ -1,23 +1,22 @@
 // port-lint: source core/src/tools/sandboxing.rs
 package ai.solace.coder.core.tools
 
+import ai.solace.coder.core.CommandSpec
+import ai.solace.coder.core.ExecEnv
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.SessionServices
 import ai.solace.coder.core.session.TurnContext
+import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.CommandSpec
 import ai.solace.coder.exec.sandbox.ExecEnv
 import ai.solace.coder.exec.sandbox.SandboxManager
-import ai.solace.coder.exec.sandbox.SandboxTransformError
-import ai.solace.coder.exec.sandbox.SandboxType
 import ai.solace.coder.protocol.AskForApproval
 import ai.solace.coder.protocol.ReviewDecision
 import ai.solace.coder.protocol.SandboxCommandAssessment
 import ai.solace.coder.protocol.SandboxPolicy
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.sync.withLock
 
 class ApprovalStore {
     private val mutex = Mutex()
@@ -39,30 +38,31 @@ class ApprovalStore {
 }
 
 suspend fun <K> withCachedApproval(
-    services: SessionServices,
-    key: K,
-    fetch: suspend () -> ReviewDecision
+        services: SessionServices,
+        key: K,
+        fetch: suspend () -> ReviewDecision
 ): ReviewDecision where K : Any {
     val store = services.toolApprovals
-    
-    store.get(key)?.let { return it }
-    
+
+    store.get(key)?.let {
+        return it
+    }
+
     val decision = fetch()
-    
+
     if (decision == ReviewDecision.ApprovedForSession) {
         store.put(key, decision)
     }
-    
+
     return decision
 }
 
-
 data class ApprovalCtx(
-    val session: Session,
-    val turn: TurnContext,
-    val callId: String,
-    val retryReason: String?,
-    val risk: SandboxCommandAssessment?
+        val session: Session,
+        val turn: TurnContext,
+        val callId: String,
+        val retryReason: String?,
+        val risk: SandboxCommandAssessment?
 )
 
 sealed class ApprovalRequirement {
@@ -72,14 +72,15 @@ sealed class ApprovalRequirement {
 }
 
 fun defaultApprovalRequirement(
-    policy: AskForApproval,
-    sandboxPolicy: SandboxPolicy
+        policy: AskForApproval,
+        sandboxPolicy: SandboxPolicy
 ): ApprovalRequirement {
-    val needsApproval = when (policy) {
-        AskForApproval.Never, AskForApproval.OnFailure -> false
-        AskForApproval.OnRequest -> sandboxPolicy != SandboxPolicy.DangerFullAccess
-        AskForApproval.UnlessTrusted -> true
-    }
+    val needsApproval =
+            when (policy) {
+                AskForApproval.Never, AskForApproval.OnFailure -> false
+                AskForApproval.OnRequest -> sandboxPolicy != SandboxPolicy.DangerFullAccess
+                AskForApproval.UnlessTrusted -> true
+            }
 
     return if (needsApproval) {
         ApprovalRequirement.NeedsApproval(null)
@@ -133,48 +134,53 @@ interface Sandboxable {
 }
 
 data class ToolCtx(
-    val session: Session,
-    val turn: TurnContext,
-    val callId: String,
-    val toolName: String
+        val session: Session,
+        val turn: TurnContext,
+        val callId: String,
+        val toolName: String
 )
 
 data class SandboxRetryData(
-    val command: List<String>,
-    val cwd: String // PathBuf -> String
+        val command: List<String>,
+        val cwd: String // PathBuf -> String
 )
 
 interface ProvidesSandboxRetryData {
     fun sandboxRetryData(): SandboxRetryData?
 }
 
-sealed class ToolError {
-    data class Rejected(val reason: String) : ToolError()
-    data class Codex(val error: CodexError) : ToolError()
+sealed class ToolError : Exception() {
+    data class Rejected(val reason: String) : ToolError() {
+        override val message: String = reason
+    }
+    data class Codex(val error: CodexError) : ToolError() {
+        override val message: String = error.toString()
+    }
 }
 
 interface ToolRuntime<Req, Out> : Approvable<Req>, Sandboxable {
     suspend fun run(
-        req: Req,
-        attempt: SandboxAttempt,
-        ctx: ToolCtx
+            req: Req,
+            attempt: SandboxAttempt,
+            ctx: ToolCtx
     ): Result<Out> // Using Result<Out> which can wrap ToolError logic or throw
 }
 
 class SandboxAttempt(
-    val sandbox: SandboxType,
-    val policy: SandboxPolicy,
-    val manager: SandboxManager,
-    val sandboxCwd: String, // Path -> String
-    val codexLinuxSandboxExe: String? // PathBuf -> String
+        val sandbox: SandboxType,
+        val policy: SandboxPolicy,
+        val manager: SandboxManager,
+        val sandboxCwd: String, // Path -> String
+        val codexLinuxSandboxExe: String? // PathBuf -> String
 ) {
     fun envFor(spec: CommandSpec): Result<ExecEnv> {
-        return manager.transform(
-            spec,
-            policy,
-            sandbox,
-            sandboxCwd,
-            codexLinuxSandboxExe
-        )
+        val res = manager.transform(spec, policy, sandbox, sandboxCwd, codexLinuxSandboxExe)
+        return if (res.isSuccess()) {
+            Result.success(res.getOrThrow())
+        } else {
+            // Convert CodexError to Exception
+            val err = res.onFailure {}.getOrNull()
+            Result.failure(Exception(err?.toString() ?: "Unknown error"))
+        }
     }
 }

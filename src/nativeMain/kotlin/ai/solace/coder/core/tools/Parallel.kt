@@ -6,17 +6,17 @@ import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.ResponseInputItem
+import kotlin.time.TimeSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.time.TimeSource
 
 /**
- * A ReadWriteMutex that allows multiple readers or a single writer.
- * Matches tokio::sync::RwLock semantics used in Rust.
+ * A ReadWriteMutex that allows multiple readers or a single writer. Matches tokio::sync::RwLock
+ * semantics used in Rust.
  */
 class ReadWriteMutex {
     private val writeMutex = Mutex()
@@ -57,32 +57,41 @@ class ReadWriteMutex {
 }
 
 class ToolCallRuntime(
-    private val router: ToolRouter,
-    private val session: Session,
-    private val turnContext: TurnContext,
-    private val tracker: SharedTurnDiffTracker
+        private val router: ToolRouter,
+        private val session: Session,
+        private val turnContext: TurnContext,
+        private val tracker: SharedTurnDiffTracker
 ) {
     private val parallelExecution = ReadWriteMutex()
 
-    suspend fun handleToolCall(
-        call: ToolCall,
-        cancellationJob: Job?
-    ): Result<ResponseInputItem> {
+    suspend fun handleToolCall(call: ToolCall, cancellationJob: Job?): Result<ResponseInputItem> {
         val supportsParallel = router.toolSupportsParallel(call.toolName)
         val started = TimeSource.Monotonic.markNow()
 
         return try {
             coroutineScope {
                 var result: Result<ResponseInputItem>? = null
-                
+
                 val job = launch {
                     if (supportsParallel) {
                         parallelExecution.read {
-                            result = router.dispatchToolCall(session, turnContext, tracker, call.copy())
+                            result =
+                                    router.dispatchToolCall(
+                                            session,
+                                            turnContext,
+                                            tracker,
+                                            call.copy()
+                                    )
                         }
                     } else {
                         parallelExecution.write {
-                            result = router.dispatchToolCall(session, turnContext, tracker, call.copy())
+                            result =
+                                    router.dispatchToolCall(
+                                            session,
+                                            turnContext,
+                                            tracker,
+                                            call.copy()
+                                    )
                         }
                     }
                 }
@@ -99,34 +108,42 @@ class ToolCallRuntime(
                 } else {
                     job.join()
                 }
-                
-                result ?: Result.failure(CodexError.Fatal("Tool execution failed to produce result"))
+
+                result
+                        ?: Result.failure(
+                                CodexError.Fatal("Tool execution failed to produce result")
+                        )
             }
         } catch (e: Exception) {
-             Result.failure(CodexError.Fatal("tool task failed to receive: ${e.message}"))
+            Result.failure(CodexError.Fatal("tool task failed to receive: ${e.message}"))
         }
     }
 
     private fun abortedResponse(call: ToolCall, secs: Float): ResponseInputItem {
         return when (val payload = call.payload) {
-            is ToolPayload.Custom -> ResponseInputItem.CustomToolCallOutput(
-                callId = call.callId,
-                output = abortMessage(call, secs)
-            )
-            is ToolPayload.Mcp -> ResponseInputItem.McpToolCallOutput(
-                callId = call.callId,
-                result = ai.solace.coder.protocol.Result(
-                    value = null,
-                    error = abortMessage(call, secs)
-                )
-            )
-            else -> ResponseInputItem.FunctionCallOutput(
-                callId = call.callId,
-                output = FunctionCallOutputPayload(
-                    content = abortMessage(call, secs),
-                    success = false // Default
-                )
-            )
+            is ToolPayload.Custom ->
+                    ResponseInputItem.CustomToolCallOutput(
+                            callId = call.callId,
+                            output = abortMessage(call, secs)
+                    )
+            is ToolPayload.Mcp ->
+                    ResponseInputItem.McpToolCallOutput(
+                            callId = call.callId,
+                            result =
+                                    ai.solace.coder.protocol.McpResult(
+                                            value = null,
+                                            error = abortMessage(call, secs)
+                                    )
+                    )
+            else ->
+                    ResponseInputItem.FunctionCallOutput(
+                            callId = call.callId,
+                            output =
+                                    FunctionCallOutputPayload(
+                                            content = abortMessage(call, secs),
+                                            success = false // Default
+                                    )
+                    )
         }
     }
 

@@ -2,12 +2,12 @@
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
 import ai.solace.coder.core.tools.ToolOutput
 import ai.solace.coder.core.tools.ToolPayload
+import kotlin.text.iterator
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -15,11 +15,10 @@ import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.buffer
 import okio.use
-import kotlin.text.iterator
 
 /**
- * Handler for the read_file tool.
- * Reads file contents with support for slice mode and indentation-aware block mode.
+ * Handler for the read_file tool. Reads file contents with support for slice mode and
+ * indentation-aware block mode.
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/read_file.rs
  */
@@ -27,66 +26,77 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
 
     override val kind: ToolKind = ToolKind.Function
 
-    override suspend fun handle(invocation: ToolInvocation): CodexResult<ToolOutput> {
+    override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
-            return CodexResult.failure(
-                CodexError.Fatal("read_file handler received unsupported payload")
+            return Result.failure(
+                    ai.solace.coder.core.tools.ToolError.Codex(
+                            CodexError.Fatal("read_file handler received unsupported payload")
+                    )
             )
         }
 
-        val args = try {
-            json.decodeFromString<ReadFileArgs>(payload.arguments)
-        } catch (e: Exception) {
-            return CodexResult.failure(
-                CodexError.Fatal("failed to parse function arguments: ${e.message}")
-            )
-        }
+        val args =
+                try {
+                    json.decodeFromString<ReadFileArgs>(payload.arguments)
+                } catch (e: Exception) {
+                    return Result.failure(
+                            ai.solace.coder.core.tools.ToolError.Codex(
+                                    CodexError.Fatal(
+                                            "failed to parse function arguments: ${e.message}"
+                                    )
+                            )
+                    )
+                }
 
         // Validate arguments
         if (args.offset == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("offset must be a 1-indexed line number")
+            return Result.failure(
+                    ai.solace.coder.core.tools.ToolError.Codex(
+                            CodexError.Fatal("offset must be a 1-indexed line number")
+                    )
             )
         }
 
         if (args.limit == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("limit must be greater than zero")
+            return Result.failure(
+                    ai.solace.coder.core.tools.ToolError.Codex(
+                            CodexError.Fatal("limit must be greater than zero")
+                    )
             )
         }
 
         val filePath = args.filePath
         if (!filePath.startsWith("/") && !filePath.matches(Regex("^[A-Za-z]:.*"))) {
-            return CodexResult.failure(
-                CodexError.Fatal("file_path must be an absolute path")
+            return Result.failure(
+                    ai.solace.coder.core.tools.ToolError.Codex(
+                            CodexError.Fatal("file_path must be an absolute path")
+                    )
             )
         }
 
         return try {
-            val content = when (args.mode) {
-                ReadMode.Slice -> readSlice(filePath, args.offset, args.limit)
-                ReadMode.Indentation -> {
-                    val indentArgs = args.indentation ?: IndentationArgs()
-                    readIndentationBlock(filePath, args.offset, args.limit, indentArgs)
-                }
-            }
-            CodexResult.success(
-                ToolOutput.Function(
-                    content = content.joinToString("\n"),
-                    success = true
-                )
+            val content =
+                    when (args.mode) {
+                        ReadMode.Slice -> readSlice(filePath, args.offset, args.limit)
+                        ReadMode.Indentation -> {
+                            val indentArgs = args.indentation ?: IndentationArgs()
+                            readIndentationBlock(filePath, args.offset, args.limit, indentArgs)
+                        }
+                    }
+            Result.success(
+                    ToolOutput.Function(content = content.joinToString("\n"), success = true)
             )
         } catch (e: Exception) {
-            CodexResult.failure(
-                CodexError.Fatal("failed to read file: ${e.message}")
+            Result.failure(
+                    ai.solace.coder.core.tools.ToolError.Codex(
+                            CodexError.Fatal("failed to read file: ${e.message}")
+                    )
             )
         }
     }
 
-    /**
-     * Read a simple slice of lines from a file.
-     */
+    /** Read a simple slice of lines from a file. */
     private fun readSlice(filePath: String, offset: Int, limit: Int): List<String> {
         val path = filePath.toPath()
         val collected = mutableListOf<String>()
@@ -112,14 +122,12 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         return collected
     }
 
-    /**
-     * Read an indentation-aware block from a file.
-     */
+    /** Read an indentation-aware block from a file. */
     private fun readIndentationBlock(
-        filePath: String,
-        offset: Int,
-        limit: Int,
-        options: IndentationArgs
+            filePath: String,
+            offset: Int,
+            limit: Int,
+            options: IndentationArgs
     ): List<String> {
         val anchorLine = options.anchorLine ?: offset
         if (anchorLine == 0) {
@@ -142,11 +150,12 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         val anchorIndent = effectiveIndents[anchorIndex]
 
         // Compute min indent based on maxLevels
-        val minIndent = if (options.maxLevels == 0) {
-            0
-        } else {
-            maxOf(0, anchorIndent - options.maxLevels * TAB_WIDTH)
-        }
+        val minIndent =
+                if (options.maxLevels == 0) {
+                    0
+                } else {
+                    maxOf(0, anchorIndent - options.maxLevels * TAB_WIDTH)
+                }
 
         // Cap requested lines
         val finalLimit = minOf(limit, guardLimit, allLines.size)
@@ -159,8 +168,8 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         val out = ArrayDeque<LineRecord>()
         out.addLast(allLines[anchorIndex])
 
-        var i = anchorIndex - 1  // up cursor
-        var j = anchorIndex + 1  // down cursor
+        var i = anchorIndex - 1 // up cursor
+        var j = anchorIndex + 1 // down cursor
         var iCounterMinIndent = 0
         var jCounterMinIndent = 0
 
@@ -231,9 +240,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         return out.map { "L${it.number}: ${it.display}" }
     }
 
-    /**
-     * Collect all lines from a file into LineRecord objects.
-     */
+    /** Collect all lines from a file into LineRecord objects. */
     private fun collectFileLines(filePath: String): List<LineRecord> {
         val path = filePath.toPath()
         val lines = mutableListOf<LineRecord>()
@@ -253,8 +260,8 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 
     /**
-     * Compute effective indentation for each line.
-     * Blank lines inherit the previous line's indentation.
+     * Compute effective indentation for each line. Blank lines inherit the previous line's
+     * indentation.
      */
     private fun computeEffectiveIndents(records: List<LineRecord>): List<Int> {
         val effective = mutableListOf<Int>()
@@ -270,9 +277,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         return effective
     }
 
-    /**
-     * Measure the indentation of a line in spaces (tabs count as TAB_WIDTH).
-     */
+    /** Measure the indentation of a line in spaces (tabs count as TAB_WIDTH). */
     private fun measureIndent(line: String): Int {
         var indent = 0
         for (char in line) {
@@ -285,9 +290,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         return indent
     }
 
-    /**
-     * Format a line for output, truncating if necessary.
-     */
+    /** Format a line for output, truncating if necessary. */
     private fun formatLine(line: String): String {
         // Remove trailing CR if present (for CRLF files)
         val trimmed = if (line.endsWith('\r')) line.dropLast(1) else line
@@ -310,55 +313,39 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 }
 
-/**
- * Arguments for the read_file tool.
- */
+/** Arguments for the read_file tool. */
 @Serializable
 private data class ReadFileArgs(
-    @SerialName("file_path")
-    val filePath: String,
-    val offset: Int = 1,
-    val limit: Int = 2000,
-    val mode: ReadMode = ReadMode.Slice,
-    val indentation: IndentationArgs? = null
+        @SerialName("file_path") val filePath: String,
+        val offset: Int = 1,
+        val limit: Int = 2000,
+        val mode: ReadMode = ReadMode.Slice,
+        val indentation: IndentationArgs? = null
 )
 
-/**
- * Read mode for the read_file tool.
- */
+/** Read mode for the read_file tool. */
 @Serializable
 enum class ReadMode {
-    @SerialName("slice")
-    Slice,
-    @SerialName("indentation")
-    Indentation
+    @SerialName("slice") Slice,
+    @SerialName("indentation") Indentation
 }
 
-/**
- * Arguments for indentation-aware reading.
- */
+/** Arguments for indentation-aware reading. */
 @Serializable
 data class IndentationArgs(
-    @SerialName("anchor_line")
-    val anchorLine: Int? = null,
-    @SerialName("max_levels")
-    val maxLevels: Int = 0,
-    @SerialName("include_siblings")
-    val includeSiblings: Boolean = false,
-    @SerialName("include_header")
-    val includeHeader: Boolean = true,
-    @SerialName("max_lines")
-    val maxLines: Int? = null
+        @SerialName("anchor_line") val anchorLine: Int? = null,
+        @SerialName("max_levels") val maxLevels: Int = 0,
+        @SerialName("include_siblings") val includeSiblings: Boolean = false,
+        @SerialName("include_header") val includeHeader: Boolean = true,
+        @SerialName("max_lines") val maxLines: Int? = null
 )
 
-/**
- * Internal representation of a line with metadata.
- */
+/** Internal representation of a line with metadata. */
 private data class LineRecord(
-    val number: Int,
-    val raw: String,
-    val display: String,
-    val indent: Int
+        val number: Int,
+        val raw: String,
+        val display: String,
+        val indent: Int
 ) {
     fun trimmed(): String = raw.trimStart()
 

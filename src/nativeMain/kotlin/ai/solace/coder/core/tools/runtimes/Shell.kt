@@ -1,57 +1,47 @@
 // port-lint: source core/src/tools/runtimes/shell.rs
 package ai.solace.coder.core.tools.runtimes
 
+import ai.solace.coder.core.Exec
+import ai.solace.coder.core.ExecExpiration
+import ai.solace.coder.core.ExecToolCallOutput
+import ai.solace.coder.core.StdoutStream
+import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.tools.Approvable
-import ai.solace.coder.core.session.SessionServices
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ApprovalRequirement
+import ai.solace.coder.core.tools.ProvidesSandboxRetryData
 import ai.solace.coder.core.tools.SandboxAttempt
+import ai.solace.coder.core.tools.SandboxOverride
+import ai.solace.coder.core.tools.SandboxRetryData
 import ai.solace.coder.core.tools.Sandboxable
 import ai.solace.coder.core.tools.SandboxablePreference
 import ai.solace.coder.core.tools.ToolCtx
 import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.core.tools.ToolRuntime
-import ai.solace.coder.core.tools.ProvidesSandboxRetryData
-import ai.solace.coder.core.tools.SandboxRetryData
-import ai.solace.coder.core.tools.SandboxOverride
-import ai.solace.coder.core.tools.withCachedApproval
-import ai.solace.coder.protocol.ReviewDecision
-import ai.solace.coder.core.ExecToolCallOutput
-import ai.solace.coder.core.ExecExpiration
-import ai.solace.coder.core.StdoutStream
-import ai.solace.coder.core.Exec
-import ai.solace.coder.core.ExecEnv
 import ai.solace.coder.core.tools.buildCommandSpec
-import ai.solace.coder.core.unified_exec.Errors.SandboxError
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.tools.withCachedApproval
+import ai.solace.coder.exec.sandbox.ExecEnv
+import ai.solace.coder.protocol.ReviewDecision
 import kotlin.time.Duration.Companion.milliseconds
 
 data class ShellRequest(
-    val command: List<String>,
-    val cwd: String,
-    val timeoutMs: Long?,
-    val env: Map<String, String>,
-    val withEscalatedPermissions: Boolean?,
-    val justification: String?,
-    val approvalRequirement: ApprovalRequirement
+        val command: List<String>,
+        val cwd: String,
+        val timeoutMs: Long?,
+        val env: Map<String, String>,
+        val withEscalatedPermissions: Boolean?,
+        val justification: String?,
+        val approvalRequirement: ApprovalRequirement
 ) : ProvidesSandboxRetryData {
     override fun sandboxRetryData(): SandboxRetryData? {
-        return SandboxRetryData(
-            command = command,
-            cwd = cwd
-        )
+        return SandboxRetryData(command = command, cwd = cwd)
     }
 }
 
-data class ShellApprovalKey(
-    val command: List<String>,
-    val cwd: String,
-    val escalated: Boolean
-)
+data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
 
-class ShellRuntime(
-    private val processExecutor: Exec
-) : ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {
+class ShellRuntime(private val processExecutor: Exec) :
+        ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {
 
     override fun sandboxPreference(): SandboxablePreference {
         return SandboxablePreference.Auto
@@ -61,11 +51,11 @@ class ShellRuntime(
         return true
     }
 
-    override fun approvalKey(req: ShellRequest): Any {
+    fun approvalKey(req: ShellRequest): Any {
         return ShellApprovalKey(
-            command = req.command,
-            cwd = req.cwd,
-            escalated = req.withEscalatedPermissions ?: false
+                command = req.command,
+                cwd = req.cwd,
+                escalated = req.withEscalatedPermissions ?: false
         )
     }
 
@@ -80,14 +70,7 @@ class ShellRuntime(
         val risk = ctx.risk
 
         return withCachedApproval(session.services, key) {
-            session.requestCommandApproval(
-                turn,
-                callId,
-                command,
-                cwd,
-                reason,
-                risk
-            )
+            session.requestCommandApproval(turn, callId, command, cwd, reason, risk)
         }
     }
 
@@ -96,9 +79,11 @@ class ShellRuntime(
     }
 
     override fun sandboxModeForFirstAttempt(req: ShellRequest): SandboxOverride {
-        val bypass = req.withEscalatedPermissions == true || 
-                     (req.approvalRequirement is ApprovalRequirement.Skip && req.approvalRequirement.bypassSandbox)
-        
+        val bypass =
+                req.withEscalatedPermissions == true ||
+                        (req.approvalRequirement is ApprovalRequirement.Skip &&
+                                req.approvalRequirement.bypassSandbox)
+
         return if (bypass) {
             SandboxOverride.BypassSandboxFirstAttempt
         } else {
@@ -107,47 +92,72 @@ class ShellRuntime(
     }
 
     override suspend fun run(
-        req: ShellRequest,
-        attempt: SandboxAttempt,
-        ctx: ToolCtx
+            req: ShellRequest,
+            attempt: SandboxAttempt,
+            ctx: ToolCtx
     ): Result<ExecToolCallOutput> {
-        val spec = buildCommandSpec(
-            req.command,
-            req.cwd,
-            req.env,
-            if (req.timeoutMs != null) ExecExpiration.Timeout(req.timeoutMs.milliseconds) else ExecExpiration.DefaultTimeout,
-            req.withEscalatedPermissions,
-            req.justification
-        ).getOrElse { return Result.failure(ToolError.Rejected(it.message ?: "Invalid command spec")) }
+        val specResult =
+                buildCommandSpec(
+                        req.command,
+                        req.cwd,
+                        req.env,
+                        if (req.timeoutMs != null)
+                                ExecExpiration.Timeout(req.timeoutMs.milliseconds)
+                        else ExecExpiration.DefaultTimeout,
+                        req.withEscalatedPermissions,
+                        req.justification
+                )
+        if (specResult.isFailure) {
+            return Result.failure(
+                    ToolError.Rejected(
+                            specResult.exceptionOrNull()?.message ?: "Invalid command spec"
+                    )
+            )
+        }
+        val spec = specResult.getOrNull()!!
 
-        val env = attempt.envFor(spec)
-            .getOrElse { return Result.failure(ToolError.Codex(it.message ?: "Unknown error")) }
+        val envResult = attempt.envFor(spec)
+        if (envResult.isFailure) {
+            return Result.failure(
+                    ToolError.Codex(
+                            CodexError.Io(envResult.exceptionOrNull()?.message ?: "Unknown error")
+                    )
+            )
+        }
+        val env = envResult.getOrNull()!!
 
         return try {
             executeEnv(env, attempt.policy, stdoutStream(ctx))
         } catch (e: Exception) {
-            Result.failure(ToolError.Codex(CodexError.Sandbox(SandboxError(e.message ?: "Execution failed"))))
+            Result.failure(
+                    ToolError.Codex(
+                            CodexError.SandboxError.ApplicationFailed(
+                                    e.message ?: "Execution failed"
+                            )
+                    )
+            )
         }
     }
 
     private fun stdoutStream(ctx: ToolCtx): StdoutStream {
         return StdoutStream(
-            subId = ctx.turn.subId,
-            callId = ctx.callId,
-            txEvent = ctx.session.getTxEvent()
+                subId = ctx.turn.subId,
+                callId = ctx.callId,
+                txEvent = ctx.session.getTxEvent()
         )
     }
-    
+
     // Helper to execute env using ProcessExecutor
     private suspend fun executeEnv(
-        env: ExecEnv, 
-        policy: ai.solace.coder.protocol.SandboxPolicy,
-        stdoutStream: StdoutStream?
+            env: ExecEnv,
+            policy: ai.solace.coder.protocol.SandboxPolicy,
+            stdoutStream: StdoutStream?
     ): Result<ExecToolCallOutput> {
-         val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
-         return when (result) {
-             is ai.solace.coder.core.error.CodexResult.Success -> Result.success(result.value)
-             is ai.solace.coder.core.error.CodexResult.Failure -> Result.failure(result.error.toException())
-         }
+        val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
+        return when (result) {
+            is ai.solace.coder.core.error.CodexResult.Success -> Result.success(result.value)
+            is ai.solace.coder.core.error.CodexResult.Failure ->
+                    Result.failure(result.error.toException())
+        }
     }
 }

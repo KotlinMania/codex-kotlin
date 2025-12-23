@@ -8,6 +8,12 @@ import kotlinx.io.buffered
 import kotlinx.io.readString
 import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
+import platform.posix.realpath
+import platform.posix.chmod
+import platform.posix.S_IRUSR
+import platform.posix.S_IWUSR
+import platform.posix.PATH_MAX
+import kotlinx.cinterop.*
 
 /**
  * Determine where Codex should store CLI auth credentials.
@@ -105,12 +111,15 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
             val jsonData = jsonFormat.encodeToString(AuthDotJson.serializer(), auth)
 
             // Write to file
-            // TODO: Set Unix file permissions to 0600 (owner read/write only)
-            // This requires platform-specific code or a library
+            // Write to file
             SystemFileSystem.sink(authFile).buffered().use { buffered ->
                 buffered.writeString(jsonData)
                 buffered.flush()
             }
+
+            // Set Unix file permissions to 0600 (owner read/write only)
+            @OptIn(ExperimentalForeignApi::class)
+            chmod(authFile.toString(), S_IRUSR or S_IWUSR)
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -278,11 +287,21 @@ private const val KEYCHAIN_SERVICE = "Codex Auth"
  * - codex-rs/core/src/auth/storage.rs - compute_store_key()
  * - Test: keyring_auth_storage_compute_store_key_for_home_directory
  */
+@OptIn(ExperimentalForeignApi::class)
 internal fun computeStoreKey(codexHome: Path): Result<String> {
     return try {
-        // TODO: Implement proper path canonicalization (resolve symlinks, make absolute)
-        // For now, use the path as-is
-        val canonical = codexHome.toString()
+        // Implement proper path canonicalization (resolve symlinks, make absolute)
+        val pathStr = codexHome.toString()
+        
+        val canonical = memScoped {
+            val buffer = allocArray<ByteVar>(PATH_MAX)
+            val result = realpath(pathStr, buffer)
+            if (result != null) {
+                result.toKString()
+            } else {
+                pathStr
+            }
+        }
 
         // Hash the path string with SHA-256
         val sha256 = Sha256MessageDigest()

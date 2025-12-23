@@ -1,12 +1,39 @@
 // port-lint: source codex-rs/core/src/sandboxing/mod.rs
 package ai.solace.coder.exec.sandbox
 
+import ai.solace.coder.core.ExecExpiration
+import ai.solace.coder.core.ExecToolCallOutput
+import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.isLikelySandboxDenied
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.protocol.SandboxPolicy
 
+/** Command specification for sandbox transformation */
+data class CommandSpec(
+        val program: String,
+        val args: List<String>,
+        val cwd: String,
+        val env: Map<String, String>,
+        val expiration: ExecExpiration,
+        val withEscalatedPermissions: Boolean?,
+        val justification: String?
+)
+
+/** Execution environment after sandbox transformation */
+data class ExecEnv(
+        val command: List<String>,
+        val cwd: String,
+        val env: Map<String, String>,
+        val expiration: ExecExpiration,
+        val sandbox: SandboxType,
+        val withEscalatedPermissions: Boolean?,
+        val justification: String?,
+        val arg0: String?
+)
+
 /**
- * Preference for sandbox usage by a tool.
- * Mirrors Rust's SandboxablePreference from tools/sandboxing.rs
+ * Preference for sandbox usage by a tool. Mirrors Rust's SandboxablePreference from
+ * tools/sandboxing.rs
  */
 enum class SandboxPreference {
     /** Automatically decide based on policy */
@@ -19,43 +46,388 @@ enum class SandboxPreference {
     Forbid,
 }
 
-/**
- * Manager for sandbox selection and command transformation.
- * Mirrors Rust's SandboxManager from sandboxing/mod.rs
- */
-class SandboxManager {
+/** Sandbox permissions levels */
+enum class SandboxPermissions {
+    UseDefault,
+    RequireEscalated;
 
-    /**
-     * Select the initial sandbox type for a given policy and preference.
-     *
-     * @param policy The sandbox policy (ReadOnly, WorkspaceWrite, DangerFullAccess)
-     * @param preference Tool's sandbox preference (Auto, Require, Forbid)
-     * @return The selected sandbox type for this execution
-     */
-    fun selectInitialSandbox(policy: SandboxPolicy, preference: SandboxPreference): SandboxType {
-        return when (preference) {
-            SandboxPreference.Forbid -> SandboxType.None
+    fun requiresEscalatedPermissions(): Boolean {
+        return this == RequireEscalated
+    }
 
-            SandboxPreference.Require -> {
-                // Require a platform sandbox when available
-                getPlatformSandbox() ?: SandboxType.None
-            }
-
-            SandboxPreference.Auto -> when (policy) {
-                is SandboxPolicy.DangerFullAccess -> SandboxType.None
-                else -> getPlatformSandbox() ?: SandboxType.None
+    companion object {
+        fun from(withEscalatedPermissions: Boolean): SandboxPermissions {
+            return if (withEscalatedPermissions) {
+                RequireEscalated
+            } else {
+                UseDefault
             }
         }
     }
-
-    /**
-     * Get the platform-specific sandbox type if available.
-     * TODO: Implement platform detection (macOS Seatbelt, Linux Seccomp, Windows RestrictedToken)
-     */
-    private fun getPlatformSandbox(): SandboxType? {
-        // TODO: Detect platform and return appropriate sandbox
-        // For now, return None as placeholder
-        return SandboxType.None
-    }
 }
 
+/**
+ * Manager for sandbox selection and command transformation. Mirrors Rust's SandboxManager from
+ * sandboxing/mod.rs
+ */
+class SandboxManager {
+    companion object {
+        private const val CODEX_SANDBOX_ENV_VAR = "CODEX_SANDBOX"
+        private const val CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR = "CODEX_SANDBOX_NETWORK_DISABLED"
+        private const val MACOS_PATH_TO_SEATBELT_EXECUTABLE = "/usr/bin/sandbox-exec"
+    }
+
+    /** Transform a command specification for sandboxed execution */
+    fun transform(
+            spec: CommandSpec,
+            policy: SandboxPolicy,
+            preference: SandboxType = SandboxType.None,
+            sandboxPolicyCwd: String = ".",
+            @Suppress("UNUSED_PARAMETER") codexLinuxSandboxExe: String? = null
+    ): CodexResult<ExecEnv> {
+        val mutEnv = spec.env.toMutableMap()
+
+        // Convert SandboxType back to SandboxPreference if needed, or just use SandboxType
+        val sandboxPref =
+                when (preference) {
+                    SandboxType.None -> SandboxPreference.Forbid
+                    else -> SandboxPreference.Auto
+                }
+
+        // Apply network restrictions
+        if (!policy.hasFullNetworkAccess()) {
+            mutEnv[CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR] = "1"
+        }
+
+        val mutCommand = (listOf(spec.program) + spec.args).toMutableList()
+
+        val sandboxType = selectInitialSandbox(policy, sandboxPref)
+        val (command, sandboxEnv, arg0Override) =
+                when (sandboxType) {
+                    SandboxType.None -> {
+                        Triple(mutCommand, emptyMap<String, String>(), null)
+                    }
+                    SandboxType.MacosSeatbelt -> {
+                        createSeatbeltCommand(mutCommand, policy, sandboxPolicyCwd)
+                    }
+                    SandboxType.LinuxSeccomp -> {
+                        createLinuxSandboxCommand(mutCommand, policy, sandboxPolicyCwd)
+                    }
+                    SandboxType.WindowsRestrictedToken -> {
+                        Triple(mutCommand, emptyMap<String, String>(), null)
+                    }
+                }
+
+        mutEnv.putAll(sandboxEnv)
+
+        return CodexResult.Success(
+                ExecEnv(
+                        command = command,
+                        cwd = spec.cwd,
+                        env = mutEnv,
+                        expiration = spec.expiration,
+                        sandbox = sandboxType,
+                        withEscalatedPermissions = spec.withEscalatedPermissions,
+                        justification = spec.justification,
+                        arg0 = arg0Override
+                )
+        )
+    }
+
+    /** Select initial sandbox type based on policy and preference */
+    fun selectInitialSandbox(policy: SandboxPolicy, preference: SandboxPreference): SandboxType {
+        return when (preference) {
+            SandboxPreference.Forbid -> SandboxType.None
+            SandboxPreference.Require -> {
+                getPlatformSandbox() ?: SandboxType.None
+            }
+            SandboxPreference.Auto ->
+                    when (policy) {
+                        is SandboxPolicy.DangerFullAccess -> SandboxType.None
+                        else -> getPlatformSandbox() ?: SandboxType.None
+                    }
+        }
+    }
+
+    /** Get the platform-specific sandbox type if available. */
+    private fun getPlatformSandbox(): SandboxType? {
+        // Minimal implementation: prefer macOS seatbelt when running on macOS, else none.
+        return when {
+            ai.solace.coder.core.platformIsMacOS() -> SandboxType.MacosSeatbelt
+            else -> null
+        }
+    }
+
+    /** Check if execution was likely denied by sandbox */
+    fun denied(sandbox: SandboxType, output: ExecToolCallOutput): Boolean {
+        return isLikelySandboxDenied(sandbox, output)
+    }
+
+    /** Create Seatbelt command for macOS */
+    private fun createSeatbeltCommand(
+            command: List<String>,
+            policy: SandboxPolicy,
+            sandboxPolicyCwd: String
+    ): Triple<List<String>, Map<String, String>, String?> {
+        val seatbeltEnv = mutableMapOf<String, String>()
+        seatbeltEnv[CODEX_SANDBOX_ENV_VAR] = "seatbelt"
+        val args = createSeatbeltCommandArgs(command, policy, sandboxPolicyCwd)
+        val fullCommand = mutableListOf<String>()
+        fullCommand.add(MACOS_PATH_TO_SEATBELT_EXECUTABLE)
+        fullCommand.addAll(args)
+        return Triple(fullCommand, seatbeltEnv, null)
+    }
+
+    /** Create Linux sandbox command */
+    private fun createLinuxSandboxCommand(
+            command: List<String>,
+            policy: SandboxPolicy,
+            sandboxPolicyCwd: String
+    ): Triple<List<String>, Map<String, String>, String?> {
+        // This would need the codex-linux-sandbox executable path
+        // For now, we'll create the args structure
+        val args = createLinuxSandboxCommandArgs(command, policy, sandboxPolicyCwd)
+        val fullCommand = mutableListOf("codex-linux-sandbox")
+        fullCommand.addAll(args)
+        return Triple(fullCommand, emptyMap(), "codex-linux-sandbox")
+    }
+
+    /** Create Seatbelt command arguments */
+    private fun createSeatbeltCommandArgs(
+            command: List<String>,
+            policy: SandboxPolicy,
+            sandboxPolicyCwd: String
+    ): List<String> {
+        val (fileWritePolicy, fileWriteDirParams) =
+                if (policy.hasFullDiskWriteAccess()) {
+                    Pair("(allow file-write* (regex #\"^/\"))", emptyList<Pair<String, String>>())
+                } else {
+                    val writableRoots = policy.getWritableRootsWithCwd(sandboxPolicyCwd)
+                    val writableFolderPolicies = mutableListOf<String>()
+                    val fileWriteParams = mutableListOf<Pair<String, String>>()
+
+                    for ((index, wr) in writableRoots.withIndex()) {
+                        val rootParam = "WRITABLE_ROOT_$index"
+                        fileWriteParams.add(rootParam to wr.root)
+
+                        if (wr.readOnlySubpaths.isEmpty()) {
+                            writableFolderPolicies.add("(subpath (param \"$rootParam\"))")
+                        } else {
+                            val requireParts = mutableListOf<String>()
+                            requireParts.add("(subpath (param \"$rootParam\"))")
+                            for ((subpathIndex, ro) in wr.readOnlySubpaths.withIndex()) {
+                                val roParam = "WRITABLE_ROOT_${index}_RO_$subpathIndex"
+                                requireParts.add("(require-not (subpath (param \"$roParam\")))")
+                                fileWriteParams.add(roParam to ro)
+                            }
+                            val policyComponent = "(require-all ${requireParts.joinToString(" ")} )"
+                            writableFolderPolicies.add(policyComponent)
+                        }
+                    }
+
+                    if (writableFolderPolicies.isEmpty()) {
+                        Pair("", emptyList())
+                    } else {
+                        val fileWritePolicy =
+                                "(allow file-write*\n${writableFolderPolicies.joinToString(" ")}\n)"
+                        Pair(fileWritePolicy, fileWriteParams)
+                    }
+                }
+
+        val fileReadPolicy =
+                if (policy.hasFullDiskReadAccess()) {
+                    "; allow read-only file operations\n(allow file-read*)"
+                } else {
+                    ""
+                }
+
+        val networkPolicy =
+                if (policy.hasFullNetworkAccess()) {
+                    getSeatbeltNetworkPolicy()
+                } else {
+                    ""
+                }
+
+        val basePolicy = getSeatbeltBasePolicy()
+        val fullPolicy = "$basePolicy\n$fileReadPolicy\n$fileWritePolicy\n$networkPolicy"
+
+        val dirParams = fileWriteDirParams + ai.solace.coder.core.platformGetMacosDirParams()
+
+        val seatbeltArgs = mutableListOf("-p", fullPolicy)
+        val definitionArgs = dirParams.map { (key, value) -> "-D$key=$value" }
+        seatbeltArgs.addAll(definitionArgs)
+        seatbeltArgs.add("--")
+        seatbeltArgs.addAll(command)
+
+        return seatbeltArgs
+    }
+
+    /** Create Linux sandbox command arguments */
+    private fun createLinuxSandboxCommandArgs(
+            command: List<String>,
+            policy: SandboxPolicy,
+            sandboxPolicyCwd: String
+    ): List<String> {
+        val sandboxPolicyJson = serializeSandboxPolicy(policy)
+
+        return listOf(
+                "--sandbox-policy-cwd",
+                sandboxPolicyCwd,
+                "--sandbox-policy",
+                sandboxPolicyJson,
+                "--"
+        ) + command
+    }
+
+    /** Serialize sandbox policy to JSON */
+    private fun serializeSandboxPolicy(policy: SandboxPolicy): String {
+        // This would use a JSON serialization library
+        // For now, return a placeholder
+        return policy.toString()
+    }
+
+    /** Get Seatbelt base policy Transliterated from codex-rs/core/src/seatbelt_base_policy.sbpl */
+    private fun getSeatbeltBasePolicy(): String {
+        return """
+(version 1)
+
+; inspired by Chrome's sandbox policy:
+; https://source.chromium.org/chromium/chromium/src/+/main:sandbox/policy/mac/common.sb;l=273-319;drc=7b3962fe2e5fc9e2ee58000dc8fbf3429d84d3bd
+; https://source.chromium.org/chromium/chromium/src/+/main:sandbox/policy/mac/renderer.sb;l=64;drc=7b3962fe2e5fc9e2ee58000dc8fbf3429d84d3bd
+
+; start with closed-by-default
+(deny default)
+
+; child processes inherit the policy of their parent
+(allow process-exec)
+(allow process-fork)
+(allow signal (target same-sandbox))
+
+; Allow cf prefs to work.
+(allow user-preference-read)
+
+; process-info
+(allow process-info* (target same-sandbox))
+
+(allow file-write-data
+  (require-all
+    (path "/dev/null")
+    (vnode-type CHARACTER-DEVICE)))
+
+; sysctls permitted.
+(allow sysctl-read
+  (sysctl-name "hw.activecpu")
+  (sysctl-name "hw.busfrequency_compat")
+  (sysctl-name "hw.byteorder")
+  (sysctl-name "hw.cacheconfig")
+  (sysctl-name "hw.cachelinesize_compat")
+  (sysctl-name "hw.cpufamily")
+  (sysctl-name "hw.cpufrequency_compat")
+  (sysctl-name "hw.cputype")
+  (sysctl-name "hw.l1dcachesize_compat")
+  (sysctl-name "hw.l1icachesize_compat")
+  (sysctl-name "hw.l2cachesize_compat")
+  (sysctl-name "hw.l3cachesize_compat")
+  (sysctl-name "hw.logicalcpu_max")
+  (sysctl-name "hw.machine")
+  (sysctl-name "hw.memsize")
+  (sysctl-name "hw.ncpu")
+  (sysctl-name "hw.nperflevels")
+  ; Chrome locks these CPU feature detection down a bit more tightly,
+  ; but mostly for fingerprinting concerns which isn't an issue for codex.
+  (sysctl-name-prefix "hw.optional.arm.")
+  (sysctl-name-prefix "hw.optional.armv8_")
+  (sysctl-name "hw.packages")
+  (sysctl-name "hw.pagesize_compat")
+  (sysctl-name "hw.pagesize")
+  (sysctl-name "hw.physicalcpu")
+  (sysctl-name "hw.physicalcpu_max")
+  (sysctl-name "hw.tbfrequency_compat")
+  (sysctl-name "hw.vectorunit")
+  (sysctl-name "kern.hostname")
+  (sysctl-name "kern.maxfilesperproc")
+  (sysctl-name "kern.maxproc")
+  (sysctl-name "kern.osproductversion")
+  (sysctl-name "kern.osrelease")
+  (sysctl-name "kern.ostype")
+  (sysctl-name "kern.osvariant_status")
+  (sysctl-name "kern.osversion")
+  (sysctl-name "kern.secure_kernel")
+  (sysctl-name "kern.usrstack64")
+  (sysctl-name "kern.version")
+  (sysctl-name "sysctl.proc_cputype")
+  (sysctl-name "vm.loadavg")
+  (sysctl-name-prefix "hw.perflevel")
+  (sysctl-name-prefix "kern.proc.pgrp.")
+  (sysctl-name-prefix "kern.proc.pid.")
+  (sysctl-name-prefix "net.routetable.")
+)
+
+; Allow Java to set CPU type grade when required
+(allow sysctl-write
+  (sysctl-name "kern.grade_cputype"))
+
+; IOKit
+(allow iokit-open
+  (iokit-registry-entry-class "RootDomainUserClient")
+)
+
+; needed to look up user info, see https://crbug.com/792228
+(allow mach-lookup
+  (global-name "com.apple.system.opendirectoryd.libinfo")
+)
+
+; Added on top of Chrome profile
+; Needed for python multiprocessing on MacOS for the SemLock
+(allow ipc-posix-sem)
+
+(allow mach-lookup
+  (global-name "com.apple.PowerManagement.control")
+)
+"""
+    }
+
+    /**
+     * Get Seatbelt network policy Transliterated from
+     * codex-rs/core/src/seatbelt_network_policy.sbpl
+     */
+    private fun getSeatbeltNetworkPolicy(): String {
+        return """
+; when network access is enabled, these policies are added after those in seatbelt_base_policy.sbpl
+; Ref https://source.chromium.org/chromium/chromium/src/+/main:sandbox/policy/mac/network.sb;drc=f8f264d5e4e7509c913f4c60c2639d15905a07e4
+
+(allow network-outbound)
+(allow network-inbound)
+(allow system-socket)
+
+(allow mach-lookup
+    ; Used to look up the _CS_DARWIN_USER_CACHE_DIR in the sandbox.
+    (global-name "com.apple.bsd.dirhelper")
+    (global-name "com.apple.system.opendirectoryd.membership")
+
+    ; Communicate with the security server for TLS certificate information.
+    (global-name "com.apple.SecurityServer")
+    (global-name "com.apple.networkd")
+    (global-name "com.apple.ocspd")
+    (global-name "com.apple.trustd.agent")
+
+    ; Read network configuration.
+    (global-name "com.apple.SystemConfiguration.DNSConfiguration")
+    (global-name "com.apple.SystemConfiguration.configd")
+)
+
+(allow sysctl-read
+  (sysctl-name-regex #"^net.routetable")
+)
+
+(allow file-write*
+  (subpath (param "DARWIN_USER_CACHE_DIR"))
+)
+"""
+    }
+
+    /** Get macOS directory parameters */
+    private fun getMacosDirParams(): List<Pair<String, String>> {
+        return ai.solace.coder.core.platformGetMacosDirParams()
+    }
+}

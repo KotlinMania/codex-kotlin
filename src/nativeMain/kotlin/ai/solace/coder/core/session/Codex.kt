@@ -800,6 +800,34 @@ class Session private constructor(
         stateMutex.withLock {
             state.rateLimits = newRateLimits
         }
+        sendEvent(
+            turnContext,
+            EventMsg.ResponseRateLimit(ResponseEvent.RateLimits(newRateLimits))
+        )
+    }
+
+    /**
+     * List resources from MCP server.
+     */
+    suspend fun listResources(server: String, params: ai.solace.coder.protocol.ListResourcesRequestParams?): ai.solace.coder.protocol.ListResourcesResult {
+        return services.mcpConnectionManager.listResources(server, params)
+    }
+
+    /**
+     * List resource templates from MCP server.
+     */
+    suspend fun listResourceTemplates(server: String, params: ai.solace.coder.protocol.ListResourceTemplatesRequestParams?): ai.solace.coder.protocol.ListResourceTemplatesResult {
+        return services.mcpConnectionManager.listResourceTemplates(server, params)
+    }
+
+    /**
+     * Read resource from MCP server.
+     */
+    suspend fun readResource(server: String, params: ai.solace.coder.protocol.ReadResourceRequestParams): ai.solace.coder.protocol.ReadResourceResult {
+        return services.mcpConnectionManager.readResource(server, params)
+    }
+}            state.rateLimits = newRateLimits
+        }
         sendTokenCountEvent(turnContext)
     }
 
