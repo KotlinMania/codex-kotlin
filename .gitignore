@@ -94,3 +94,6 @@ CHANGELOG.ignore.md
 # Build logs
 build_log*.txt
 /*.hprof
+
+# ast_distance build artifacts
+tools/ast_distance/build/
