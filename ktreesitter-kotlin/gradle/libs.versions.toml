@@ -1,6 +1,6 @@
 [versions]
 kotlin-stdlib = "2.3.0"
-android-gradle = {strictly = "8.11.1"}
+android-gradle = "8.11.1"
 kotest = "6.0.0"
 dokka = "2.0.0"
 

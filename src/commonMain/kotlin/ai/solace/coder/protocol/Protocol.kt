@@ -1,18 +1,16 @@
 // port-lint: source codex-rs/protocol/src/protocol.rs
 package ai.solace.coder.protocol
 
-import kotlinx.cinterop.*
+import ai.solace.coder.utils.Environment
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import platform.posix.getenv
 
 // ========== Constants ==========
 
 /** Helper function to get environment variable in a platform-agnostic way. */
-@OptIn(ExperimentalForeignApi::class)
 private fun getEnvironmentVariable(name: String): String? {
-    return getenv(name)?.toKString()
+    return Environment.get(name)
 }
 
 /** Open/close tags for special user-input blocks. */
@@ -1092,4 +1090,3 @@ data class ConversationPathResponseEvent(
         val path: String
 )
 
-@Serializable data class ParsedCommand(val program: String, val args: List<String>)
