@@ -1,8 +1,8 @@
 package ai.solace.coder.core.exec
 
+import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
-import kotlinx.coroutines.Job
 import kotlin.time.Duration.Companion.milliseconds
 
 @Serializable

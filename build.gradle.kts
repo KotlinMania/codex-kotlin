@@ -164,6 +164,8 @@ repositories {
     }
     applyDefaultHierarchyTemplate()
 
+    jvmToolchain(17)
+
     sourceSets.all {
     }
 
@@ -191,7 +193,9 @@ repositories {
 
     if (androidSdkAvailable) {
         apply(plugin = "com.android.library")
-        androidTarget()
+        androidTarget {
+            publishLibraryVariants("release")
+        }
     }
 
     sourceSets {
@@ -218,7 +222,6 @@ repositories {
         }
 
         val nativeMain by getting {
-            dependsOn(commonMain.get())
             dependencies {
                 implementation("io.ktor:ktor-client-curl:2.3.7")
 
