@@ -3,6 +3,155 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
 }
 
+// =============================================================================
+// AST Distance Tool Build Tasks
+// =============================================================================
+
+val astDistanceDir = project.file("tools/ast_distance")
+val astDistanceBuildDir = astDistanceDir.resolve("build")
+val astDistanceBinary = astDistanceBuildDir.resolve("ast_distance")
+val astDistanceOutput = project.file("tools/ast_distance")
+
+tasks.register<Exec>("configureAstTool") {
+    description = "Configure AST distance tool with CMake"
+    group = "build"
+
+    workingDir = astDistanceBuildDir
+    commandLine("cmake", "..")
+
+    doFirst {
+        astDistanceBuildDir.mkdirs()
+    }
+
+    onlyIf { !astDistanceBuildDir.resolve("Makefile").exists() }
+}
+
+tasks.register<Exec>("buildAstTool") {
+    description = "Build AST distance tool"
+    group = "build"
+
+    dependsOn("configureAstTool")
+    workingDir = astDistanceBuildDir
+    commandLine("cmake", "--build", ".", "-j8")
+
+    doLast {
+        // Copy binary to tools folder for easy access
+        if (astDistanceBinary.exists()) {
+            astDistanceBinary.copyTo(astDistanceOutput.resolve("ast_distance"), overwrite = true)
+            println("AST distance tool built: ${astDistanceOutput.resolve("ast_distance")}")
+        }
+    }
+}
+
+// =============================================================================
+// Lint Tasks
+// =============================================================================
+
+val kotlinSrcDir = project.file("src/nativeMain/kotlin")
+
+tasks.register<Exec>("portLint") {
+    description = "Run port-lint checks on Kotlin codebase"
+    group = "verification"
+
+    dependsOn("buildAstTool")
+    workingDir = astDistanceBuildDir
+
+    commandLine(
+        "./ast_distance", "--lint",
+        kotlinSrcDir.absolutePath
+    )
+
+    isIgnoreExitValue = true
+
+    doLast {
+        println("\nPort lint completed. See above for any issues.")
+    }
+}
+
+tasks.register<Exec>("portTodos") {
+    description = "Scan for TODOs in ported Kotlin code"
+    group = "verification"
+
+    dependsOn("buildAstTool")
+    workingDir = astDistanceBuildDir
+
+    commandLine(
+        "./ast_distance", "--todos",
+        kotlinSrcDir.absolutePath
+    )
+
+    isIgnoreExitValue = true
+}
+
+tasks.register<Exec>("portStats") {
+    description = "Show porting statistics"
+    group = "verification"
+
+    dependsOn("buildAstTool")
+    workingDir = astDistanceBuildDir
+
+    commandLine(
+        "./ast_distance", "--stats",
+        kotlinSrcDir.absolutePath
+    )
+
+    isIgnoreExitValue = true
+}
+
+tasks.register<Exec>("portDeep") {
+    description = "Run deep porting analysis (Rust -> Kotlin)"
+    group = "verification"
+
+    dependsOn("buildAstTool")
+    workingDir = astDistanceBuildDir
+
+    val codexRs = project.file("codex-rs")
+
+    commandLine(
+        "./ast_distance", "--deep",
+        codexRs.absolutePath, "rust",
+        kotlinSrcDir.absolutePath, "kotlin"
+    )
+
+    isIgnoreExitValue = true
+}
+
+tasks.register<Exec>("portMissing") {
+    description = "Show files missing from Kotlin port"
+    group = "verification"
+
+    dependsOn("buildAstTool")
+    workingDir = astDistanceBuildDir
+
+    val codexRs = project.file("codex-rs")
+
+    commandLine(
+        "./ast_distance", "--missing",
+        codexRs.absolutePath, "rust",
+        kotlinSrcDir.absolutePath, "kotlin"
+    )
+
+    isIgnoreExitValue = true
+}
+
+tasks.register("lint") {
+    description = "Run all lint checks (Kotlin compilation + port lints)"
+    group = "verification"
+
+    dependsOn("compileKotlinMacosArm64", "portLint")
+
+    doLast {
+        println("\n=== All lint checks completed ===")
+    }
+}
+
+tasks.register("portAnalysis") {
+    description = "Run full porting analysis (stats, TODOs, lint, deep analysis)"
+    group = "verification"
+
+    dependsOn("portStats", "portTodos", "portLint", "portDeep")
+}
+
 repositories {
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
