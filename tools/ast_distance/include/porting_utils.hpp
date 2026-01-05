@@ -432,7 +432,8 @@ public:
     }
 
     /**
-     * Scan a directory for all C++ files and analyze them.
+     * Scan a directory for source files and analyze them.
+     * Supports C++ (.hpp, .cpp, .h), Kotlin (.kt), and Rust (.rs) files.
      */
     static std::vector<FileStats> analyze_directory(const std::string& directory) {
         std::vector<FileStats> results;
@@ -443,8 +444,9 @@ public:
             std::string path = entry.path().string();
             std::string ext = entry.path().extension().string();
 
-            // Skip non-C++ files
-            if (ext != ".hpp" && ext != ".cpp" && ext != ".h") continue;
+            // Support C++, Kotlin, and Rust files
+            if (ext != ".hpp" && ext != ".cpp" && ext != ".h" &&
+                ext != ".kt" && ext != ".kts" && ext != ".rs") continue;
 
             // Skip vendor, build, tmp directories
             if (path.find("/vendor/") != std::string::npos ||
