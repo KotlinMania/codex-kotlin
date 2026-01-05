@@ -98,3 +98,10 @@ build_log*.txt
 # ast_distance build artifacts
 tools/ast_distance/build/
 tools/ast_distance/ast_distance
+
+# ast_distance temporary output files
+*.scan_output.txt
+.scan_output.txt
+all_matched.txt
+files_with_headers.txt
+tasks.json

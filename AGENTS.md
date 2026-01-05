@@ -222,3 +222,64 @@ Focus porting effort on files with:
 1. High dependent count (core infrastructure)
 2. Low similarity score (incomplete)
 3. Listed in "Top priority to complete" output
+
+---
+
+## Swarm Task Management
+
+The AST distance tool includes a task assignment system for coordinating multiple agents porting files in parallel.
+
+### Initialize Tasks
+
+Generate a task file from missing/incomplete ports:
+```bash
+./ast_distance --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file> [agents_md_path]
+```
+
+Example:
+```bash
+./ast_distance --init-tasks ../../../codex-rs rust ../../../src kotlin tasks.json ../../../AGENTS.md
+```
+
+### View Task Status
+
+```bash
+./ast_distance --tasks tasks.json
+```
+
+### Assign a Task (for Swarm Agents)
+
+Each agent requests the next highest-priority unassigned task:
+```bash
+./ast_distance --assign tasks.json agent-001
+```
+
+This command:
+- Assigns the highest-priority pending task (by dependent count)
+- Prevents duplicate assignments (one task per agent)
+- Outputs complete porting instructions including AGENTS.md guidelines
+- Updates the task file with assignment timestamp
+
+### Complete a Task
+
+After successfully porting a file:
+```bash
+./ast_distance --complete tasks.json core.error
+```
+
+### Release a Task
+
+If an agent cannot complete a task, release it back to pending:
+```bash
+./ast_distance --release tasks.json core.error
+```
+
+### Task Workflow for Swarm Agents
+
+1. **Get assignment**: `ast_distance --assign tasks.json <agent-id>`
+2. **Read source file** at the path shown
+3. **Create target file** with port-lint header
+4. **Transliterate** following the guidelines above
+5. **Verify**: `ast_distance <source.rs> rust <target.kt> kotlin` (aim for >= 0.85 similarity)
+6. **Complete**: `ast_distance --complete tasks.json <source_qualified>`
+7. **Repeat** from step 1

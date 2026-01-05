@@ -3,6 +3,7 @@
 #include "tree_lstm.hpp"
 #include "codebase.hpp"
 #include "porting_utils.hpp"
+#include "task_manager.hpp"
 #include <iostream>
 #include <filesystem>
 #include <iomanip>
@@ -50,6 +51,18 @@ void print_usage(const char* program) {
     std::cerr << "      Run lint checks (unused params, missing guards)\n\n";
     std::cerr << "  " << program << " --stats <directory>\n";
     std::cerr << "      Show file statistics (line counts, stubs, TODOs)\n\n";
+    std::cerr << "Swarm Task Management:\n";
+    std::cerr << "  " << program << " --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file>\n";
+    std::cerr << "      Generate task file from missing/incomplete ports\n\n";
+    std::cerr << "  " << program << " --tasks <task_file>\n";
+    std::cerr << "      Show task status summary\n\n";
+    std::cerr << "  " << program << " --assign <task_file> <agent_id>\n";
+    std::cerr << "      Assign highest-priority pending task to an agent\n";
+    std::cerr << "      Outputs complete porting instructions and AGENTS.md guidelines\n\n";
+    std::cerr << "  " << program << " --complete <task_file> <source_qualified>\n";
+    std::cerr << "      Mark a task as completed\n\n";
+    std::cerr << "  " << program << " --release <task_file> <source_qualified>\n";
+    std::cerr << "      Release an assigned task back to pending\n\n";
     std::cerr << "  Languages: rust, kotlin, cpp\n\n";
     std::cerr << "Port-Lint Headers:\n";
     std::cerr << "  Add a header comment to each ported file to enable accurate source tracking.\n";
@@ -520,6 +533,346 @@ void cmd_stats(const std::string& directory) {
     std::cout << "  Lint errors: " << total_lint << "\n";
 }
 
+// ============ Swarm Task Management Commands ============
+
+void cmd_init_tasks(const std::string& src_dir, const std::string& src_lang,
+                    const std::string& tgt_dir, const std::string& tgt_lang,
+                    const std::string& task_file, const std::string& agents_md = "") {
+    std::cout << "=== Initializing Task File ===\n\n";
+
+    // Scan both codebases
+    Codebase source(src_dir, src_lang);
+    source.scan();
+    source.extract_imports();
+    source.build_dependency_graph();
+
+    Codebase target(tgt_dir, tgt_lang);
+    target.scan();
+
+    CodebaseComparator comp(source, target);
+    comp.find_matches();
+
+    // Build task list from missing files
+    TaskManager tm(task_file);
+    tm.source_root = src_dir;
+    tm.target_root = tgt_dir;
+    tm.source_lang = src_lang;
+    tm.target_lang = tgt_lang;
+    tm.agents_md_path = agents_md;
+
+    // Add missing files as tasks (sorted by dependents)
+    std::vector<const SourceFile*> missing;
+    for (const auto& path : comp.unmatched_source) {
+        missing.push_back(&source.files.at(path));
+    }
+    std::sort(missing.begin(), missing.end(),
+        [](const SourceFile* a, const SourceFile* b) {
+            return a->dependent_count > b->dependent_count;
+        });
+
+    for (const auto* sf : missing) {
+        PortTask task;
+        task.source_path = sf->relative_path;
+        task.source_qualified = sf->qualified_name;
+
+        // Generate expected Kotlin path
+        std::string kt_path = sf->relative_path;
+        // Convert .rs to .kt and adjust path
+        if (kt_path.size() > 3 && kt_path.substr(kt_path.size() - 3) == ".rs") {
+            kt_path = kt_path.substr(0, kt_path.size() - 3) + ".kt";
+        }
+        // Remove src/ prefix if present
+        if (kt_path.rfind("src/", 0) == 0) {
+            kt_path = kt_path.substr(4);
+        }
+        task.target_path = kt_path;
+        task.dependent_count = sf->dependent_count;
+        task.dependency_count = sf->dependency_count;
+
+        // Build dependency list
+        for (const auto& dep : sf->imports) {
+            task.dependencies.push_back(dep.module_path);
+        }
+
+        tm.tasks.push_back(task);
+    }
+
+    tm.save();
+
+    std::cout << "Generated " << tm.tasks.size() << " tasks\n";
+    std::cout << "Task file: " << task_file << "\n";
+
+    // Show top priority tasks
+    std::cout << "\nTop 10 priority tasks:\n";
+    int count = 0;
+    for (const auto& t : tm.tasks) {
+        if (count++ >= 10) break;
+        std::cout << "  " << std::setw(30) << std::left << t.source_qualified
+                  << " deps=" << t.dependent_count << "\n";
+    }
+}
+
+void cmd_tasks(const std::string& task_file) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    int pending, assigned, completed, blocked;
+    tm.get_stats(pending, assigned, completed, blocked);
+
+    std::cout << "=== Task Status ===\n\n";
+    std::cout << "Task file: " << task_file << "\n";
+    std::cout << "Source root: " << tm.source_root << "\n";
+    std::cout << "Target root: " << tm.target_root << "\n\n";
+
+    std::cout << "Status Summary:\n";
+    std::cout << "  Pending:   " << pending << "\n";
+    std::cout << "  Assigned:  " << assigned << "\n";
+    std::cout << "  Completed: " << completed << "\n";
+    std::cout << "  Blocked:   " << blocked << "\n";
+    std::cout << "  Total:     " << tm.tasks.size() << "\n\n";
+
+    if (assigned > 0) {
+        std::cout << "Currently Assigned:\n";
+        for (const auto& t : tm.tasks) {
+            if (t.status == TaskStatus::ASSIGNED) {
+                std::cout << "  " << std::setw(30) << std::left << t.source_qualified
+                          << " -> " << t.assigned_to
+                          << " (since " << t.assigned_at << ")\n";
+            }
+        }
+        std::cout << "\n";
+    }
+
+    // Show pending tasks by priority
+    std::cout << "Pending Tasks (by priority):\n";
+    std::cout << std::setw(35) << std::left << "Source"
+              << std::setw(10) << "Deps"
+              << "Target Path\n";
+    std::cout << std::string(70, '-') << "\n";
+
+    int shown = 0;
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::PENDING) {
+            if (shown++ >= 20) {
+                std::cout << "... and " << (pending - 20) << " more\n";
+                break;
+            }
+            std::cout << std::setw(35) << std::left << t.source_qualified.substr(0, 33)
+                      << std::setw(10) << t.dependent_count
+                      << t.target_path << "\n";
+        }
+    }
+}
+
+void cmd_assign(const std::string& task_file, const std::string& agent_id) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    // Check if agent already has an assigned task
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::ASSIGNED && t.assigned_to == agent_id) {
+            std::cerr << "Agent " << agent_id << " already has an assigned task: "
+                      << t.source_qualified << "\n";
+            std::cerr << "Complete it with: ast_distance --complete " << task_file
+                      << " " << t.source_qualified << "\n";
+            std::cerr << "Or release it with: ast_distance --release " << task_file
+                      << " " << t.source_qualified << "\n";
+            return;
+        }
+    }
+
+    PortTask* task = tm.assign_next(agent_id);
+    if (!task) {
+        std::cout << "No pending tasks available.\n";
+
+        int pending, assigned, completed, blocked;
+        tm.get_stats(pending, assigned, completed, blocked);
+        std::cout << "\nStatus: " << completed << "/" << tm.tasks.size() << " completed, "
+                  << assigned << " assigned, " << pending << " pending\n";
+        return;
+    }
+
+    tm.save();
+
+    // Print full assignment details
+    tm.print_assignment(*task);
+}
+
+void cmd_complete(const std::string& task_file, const std::string& source_qualified) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    if (!tm.complete_task(source_qualified)) {
+        std::cerr << "Task not found: " << source_qualified << "\n";
+        return;
+    }
+
+    std::cout << "Marked as completed: " << source_qualified << "\n";
+
+    // Rescan to update priorities based on new state
+    std::cout << "Rescanning codebases to update priorities...\n";
+
+    if (tm.source_root.empty() || tm.source_lang.empty()) {
+        std::cerr << "Warning: Task file missing source/target info, cannot rescan.\n";
+        tm.save();
+        return;
+    }
+
+    // Scan both codebases
+    Codebase source(tm.source_root, tm.source_lang);
+    source.scan();
+    source.extract_imports();
+    source.build_dependency_graph();
+
+    Codebase target(tm.target_root, tm.target_lang);
+    target.scan();
+
+    CodebaseComparator comp(source, target);
+    comp.find_matches();
+
+    // Build set of currently assigned task qualified names
+    std::set<std::string> assigned_tasks;
+    std::map<std::string, std::string> assigned_to_map;
+    std::map<std::string, std::string> assigned_at_map;
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::ASSIGNED) {
+            assigned_tasks.insert(t.source_qualified);
+            assigned_to_map[t.source_qualified] = t.assigned_to;
+            assigned_at_map[t.source_qualified] = t.assigned_at;
+        }
+    }
+
+    // Build set of completed tasks
+    std::set<std::string> completed_tasks;
+    std::map<std::string, std::string> completed_at_map;
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::COMPLETED) {
+            completed_tasks.insert(t.source_qualified);
+            completed_at_map[t.source_qualified] = t.completed_at;
+        }
+    }
+
+    // Rebuild task list from missing files
+    tm.tasks.clear();
+
+    std::vector<const SourceFile*> missing;
+    for (const auto& path : comp.unmatched_source) {
+        missing.push_back(&source.files.at(path));
+    }
+    std::sort(missing.begin(), missing.end(),
+        [](const SourceFile* a, const SourceFile* b) {
+            return a->dependent_count > b->dependent_count;
+        });
+
+    for (const auto* sf : missing) {
+        // Skip files that are marked as completed (agent said they finished,
+        // but file may not have been detected yet or similarity check pending)
+        if (completed_tasks.count(sf->qualified_name)) {
+            continue;
+        }
+
+        PortTask task;
+        task.source_path = sf->relative_path;
+        task.source_qualified = sf->qualified_name;
+
+        // Generate expected Kotlin path
+        std::string kt_path = sf->relative_path;
+        if (kt_path.size() > 3 && kt_path.substr(kt_path.size() - 3) == ".rs") {
+            kt_path = kt_path.substr(0, kt_path.size() - 3) + ".kt";
+        }
+        if (kt_path.rfind("src/", 0) == 0) {
+            kt_path = kt_path.substr(4);
+        }
+        task.target_path = kt_path;
+        task.dependent_count = sf->dependent_count;
+        task.dependency_count = sf->dependency_count;
+
+        // Restore assignment status if it was assigned
+        if (assigned_tasks.count(sf->qualified_name)) {
+            task.status = TaskStatus::ASSIGNED;
+            task.assigned_to = assigned_to_map[sf->qualified_name];
+            task.assigned_at = assigned_at_map[sf->qualified_name];
+        }
+
+        for (const auto& dep : sf->imports) {
+            task.dependencies.push_back(dep.module_path);
+        }
+
+        tm.tasks.push_back(task);
+    }
+
+    // Add completed tasks back (preserving their info from original task list)
+    // Note: completed tasks may still be in unmatched_source if file hasn't been created yet,
+    // but we skipped them above. They'll be removed from pending once file actually exists.
+    for (const auto& qualified : completed_tasks) {
+        // Find in source codebase for full info
+        bool found = false;
+        for (const auto& [path, sf] : source.files) {
+            if (sf.qualified_name == qualified) {
+                PortTask task;
+                task.source_path = sf.relative_path;
+                task.source_qualified = sf.qualified_name;
+                task.dependent_count = sf.dependent_count;
+                task.status = TaskStatus::COMPLETED;
+                task.completed_at = completed_at_map[qualified];
+                tm.tasks.push_back(task);
+                found = true;
+                break;
+            }
+        }
+        // If not found in source (maybe renamed/removed), still track it
+        if (!found) {
+            PortTask task;
+            task.source_path = qualified; // Use qualified name as path fallback
+            task.source_qualified = qualified;
+            task.status = TaskStatus::COMPLETED;
+            task.completed_at = completed_at_map[qualified];
+            tm.tasks.push_back(task);
+        }
+    }
+
+    tm.save();
+
+    int pending, assigned, completed, blocked;
+    tm.get_stats(pending, assigned, completed, blocked);
+    std::cout << "Progress: " << completed << "/" << (pending + assigned + completed) << " completed\n";
+    std::cout << "Remaining: " << pending << " pending, " << assigned << " assigned\n";
+
+    // Show updated top priorities
+    std::cout << "\nUpdated top priorities:\n";
+    int shown = 0;
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::PENDING && shown++ < 5) {
+            std::cout << "  " << std::setw(30) << std::left << t.source_qualified
+                      << " deps=" << t.dependent_count << "\n";
+        }
+    }
+}
+
+void cmd_release(const std::string& task_file, const std::string& source_qualified) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    if (tm.release_task(source_qualified)) {
+        tm.save();
+        std::cout << "Released task: " << source_qualified << "\n";
+    } else {
+        std::cerr << "Task not found or not assigned: " << source_qualified << "\n";
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         print_usage(argv[0]);
@@ -556,6 +909,23 @@ int main(int argc, char* argv[]) {
 
         } else if (mode == "--stats" && argc >= 3) {
             cmd_stats(argv[2]);
+
+        // Swarm task management commands
+        } else if (mode == "--init-tasks" && argc >= 7) {
+            std::string agents_md = (argc >= 8) ? argv[7] : "";
+            cmd_init_tasks(argv[2], argv[3], argv[4], argv[5], argv[6], agents_md);
+
+        } else if (mode == "--tasks" && argc >= 3) {
+            cmd_tasks(argv[2]);
+
+        } else if (mode == "--assign" && argc >= 4) {
+            cmd_assign(argv[2], argv[3]);
+
+        } else if (mode == "--complete" && argc >= 4) {
+            cmd_complete(argv[2], argv[3]);
+
+        } else if (mode == "--release" && argc >= 4) {
+            cmd_release(argv[2], argv[3]);
 
         } else if (mode == "--dump" && argc >= 4) {
             ASTParser parser;
