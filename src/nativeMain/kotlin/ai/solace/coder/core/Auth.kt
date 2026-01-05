@@ -19,13 +19,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import kotlin.time.TimeSource
 import kotlin.time.Duration.Companion.days
-import kotlin.time.ExperimentalTime
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-@OptIn(ExperimentalTime::class)
 private val systemClock = TimeSource.Monotonic
 
 private const val TOKEN_REFRESH_INTERVAL = 8L // days
@@ -102,7 +100,6 @@ data class CodexAuth internal constructor(
     /**
      * Get token data, refreshing if necessary based on last refresh time.
      */
-    @OptIn(ExperimentalTime::class)
     suspend fun getTokenData(): Result<TokenData> {
         val authJson = getCurrentAuthJson()
             ?: return Result.failure(Exception("Token data is not available."))
@@ -222,7 +219,6 @@ data class CodexAuth internal constructor(
         /**
          * Create a dummy ChatGPT auth for testing.
          */
-        @OptIn(ExperimentalTime::class)
         fun createDummyChatGptAuthForTesting(): CodexAuth {
             val authDotJson = AuthDotJson(
                 openaiApiKey = null,
@@ -427,7 +423,6 @@ fun logout(
 /**
  * Write an auth.json that contains only the API key.
  */
-@OptIn(ExperimentalTime::class)
 fun loginWithApiKey(
     codexHome: Path,
     apiKey: String,
@@ -591,7 +586,6 @@ internal fun loadAuth(
 /**
  * Update tokens in storage and return the updated auth.json.
  */
-@OptIn(ExperimentalTime::class)
 private fun updateTokens(
     storage: AuthStorageBackend,
     idToken: String?,

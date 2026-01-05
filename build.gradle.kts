@@ -1,6 +1,6 @@
 plugins {
-    kotlin("multiplatform") version "2.2.21"
-    kotlin("plugin.serialization") version "2.2.21"
+    kotlin("multiplatform") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
 }
 
 // =============================================================================
@@ -154,14 +154,16 @@ tasks.register("portAnalysis") {
 
 repositories {
     mavenCentral()
-    maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
 }
 
-kotlin {
+    kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xreturn-value-checker=full")
+        freeCompilerArgs.add("-Xexplicit-backing-fields")
+    }
     applyDefaultHierarchyTemplate()
 
     sourceSets.all {
-        languageSettings.optIn("kotlin.time.ExperimentalTime")
     }
 
     macosArm64 {

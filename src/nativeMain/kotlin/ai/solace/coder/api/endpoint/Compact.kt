@@ -126,8 +126,8 @@ class CompactClient<A : AuthProvider>(
  * Response from compact endpoint.
  * Matches Rust CompactHistoryResponse.
  */
-@Serializable
-private data class CompactHistoryResponse(
+// @Serializable
+data class CompactHistoryResponse(
     val output: List<ResponseItem>
 )
 
