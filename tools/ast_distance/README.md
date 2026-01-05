@@ -1,155 +1,134 @@
-# ASTDistance
+# AST Distance
 
-Cross-language AST similarity measurement tool for verifying source code ports.
+Cross-language AST similarity measurement and porting analysis tool.
 
-Inspired by the [ASTERIA paper](https://arxiv.org/abs/2108.06082) which uses Tree-LSTM for binary code similarity detection, this tool measures similarity between Rust, Kotlin, and C++ source files to help verify porting accuracy.
+Inspired by the [ASTERIA paper](https://arxiv.org/abs/2108.06082) which uses Tree-LSTM for binary code similarity detection, this tool measures similarity between Rust and Kotlin source files to help verify porting accuracy.
 
 ## Features
 
 - **Tree-sitter parsing** for Rust, Kotlin, and C++ ASTs
 - **Normalized node types** that map across languages
-- **Dependency graph analysis** — find which files are most depended upon
-- **Codebase comparison** — match files across codebases with fuzzy name matching
 - **Multiple similarity metrics**:
   - Cosine similarity of node type histograms
   - Structure similarity (size, depth)
   - Jaccard similarity of node sets
   - Normalized tree edit distance
-- **Function-level comparison** with similarity matrix
-- **Porting priority ranking** — high dependents + low similarity = needs attention
+- **Codebase-level analysis**:
+  - Dependency graph building
+  - File matching by port-lint headers or name similarity
+  - Porting priority ranking
+  - Documentation gap detection
+- **Quality checks**:
+  - TODO scanning with context
+  - Lint error detection
+  - Stub file identification
 
 ## Building
 
 ```bash
 mkdir build && cd build
 cmake ..
-cmake --build . -j8
+cmake --build .
 ```
 
 ## Usage
 
-### Deep Analysis (recommended for porting projects)
+### Compare two files
 ```bash
-./ast_distance --deep <src_dir> <src_lang> <tgt_dir> <tgt_lang>
-
-# Example: Kotlin → C++
-./ast_distance --deep /path/to/kotlin kotlin /path/to/cpp cpp
-
-# Example: Rust → Kotlin
-./ast_distance --deep /path/to/rust rust /path/to/kotlin kotlin
+./ast_distance <file1> <lang1> <file2> <lang2>
 ```
 
-### Check Missing Files
+### Full codebase analysis
+```bash
+./ast_distance --deep <src_dir> <src_lang> <tgt_dir> <tgt_lang>
+```
+
+### Show missing files
 ```bash
 ./ast_distance --missing <src_dir> <src_lang> <tgt_dir> <tgt_lang>
 ```
 
-### Dependency Graph
+### Scan for TODOs
 ```bash
-./ast_distance --deps <directory> <rust|kotlin|cpp>
-./ast_distance --scan <directory> <rust|kotlin|cpp>
+./ast_distance --todos <directory>
 ```
 
-### Compare Two Files
+### Run lint checks
 ```bash
-./ast_distance <file1> <file2>
+./ast_distance --lint <directory>
 ```
 
-### Compare Functions
-```bash
-./ast_distance --compare-functions <file1> <file2>
+## Port-Lint Headers
+
+Add a header comment to each ported file to enable accurate source tracking:
+
+```kotlin
+// port-lint: source core/src/config.rs
+package com.example.config
+
+data class Config(...)
 ```
 
-### Dump AST Structure
-```bash
-./ast_distance --dump <file> <rust|kotlin|cpp>
-```
+The header must appear in the first 50 lines. When present, the tool will:
+- Match files explicitly instead of by name similarity
+- Compare documentation coverage between source and target
+- Report "Matched by header" vs "Matched by name" statistics
 
 ## Example Output
-
-### Deep Analysis
-```
-=== Deep Analysis: /src/kotlin (kotlin) -> /src/cpp (cpp) ===
-
-Scanning source codebase (kotlin)...
-  Files: 111
-  Total imports: 364
-  Most depended: flow.Channels (14 dependents)
-
-Scanning target codebase (cpp)...
-  Files: 260
-  Total imports: 1049
-
-Matched:   111 files
-Unmatched: 0 source, 149 target
-
-=== Matched Files (by porting priority) ===
-Source                   Target                   Sim    Deps  Priority
-flow.Flow                flow.Flow                0.48   13    6.8
-flow.Channels            flow.Channels            0.74   14    3.7
-...
-
-=== Porting Recommendations ===
-Incomplete ports (similarity < 60%): 52
-Top priority to complete:
-  flow.Flow                  sim=0.48 deps=13
-```
 
 ### File Comparison
 ```
 === AST Similarity Report ===
-Tree 1: size=3377, depth=23
-Tree 2: size=1102, depth=25
+Tree 1: size=148, depth=8
+Tree 2: size=162, depth=10
 
 Similarity Metrics:
-  Cosine (histogram):    0.9901
-  Structure:             0.6232
-  Jaccard:               0.3228
-  Edit Distance (norm):  0.2615
-  Combined Score:        0.5647
+  Cosine (histogram):    0.9836
+  Structure:             0.8568
+  Combined Score:        0.7737
+
+=== Documentation Comparison ===
+Doc comment count: 2 vs 2 (diff: 0)
+Doc lines:         4 vs 2 (diff: 2)
+Doc text cosine:   100.00%
 ```
 
-## Similarity Thresholds
+### Deep Analysis
+```
+=== Porting Quality Summary ===
 
-- `> 0.85` — Excellent port, likely complete
-- `0.60–0.85` — Good port, may need refinement
-- `0.40–0.60` — Partial port, significant gaps
-- `< 0.40` — Stub or very different implementation
+Matched by header:    103 / 107
+Matched by name:      4 / 107
+Total TODOs in target: 56
+Total lint errors:    356
+
+=== Porting Recommendations ===
+
+Top priority to create:
+  core.error                     deps=51
+  render.renderable              deps=19
+  state.session                  deps=18
+```
 
 ## Architecture
 
 ```
 include/
-  tree.hpp          - Tree data structure
-  tensor.hpp        - Lightweight tensor ops
-  tree_lstm.hpp     - Binary Tree-LSTM encoder
-  node_types.hpp    - Normalized AST node types (Rust/Kotlin/C++)
-  ast_parser.hpp    - Tree-sitter based parser
-  similarity.hpp    - Similarity metrics
-  imports.hpp       - Import/include extraction
-  codebase.hpp      - Directory scanning, dependency graphs
+  ast_parser.hpp      - Tree-sitter based parser
+  codebase.hpp        - Codebase scanning and comparison
+  imports.hpp         - Import/dependency extraction
+  porting_utils.hpp   - TODO/lint/header analysis
+  similarity.hpp      - Similarity metrics
+  tree.hpp            - Tree data structure
+  tree_lstm.hpp       - Binary Tree-LSTM encoder
 
 src/
-  main.cpp          - CLI tool
-  ast_parser.cpp
-  ast_normalizer.cpp
-  similarity.cpp
+  main.cpp            - CLI tool
 ```
-
-## Extending
-
-### Add a New Language
-
-1. Add tree-sitter grammar to `CMakeLists.txt` (FetchContent)
-2. Add `extern "C" { const TSLanguage* tree_sitter_<lang>(); }` to `ast_parser.hpp` and `imports.hpp`
-3. Add `<LANG>` to `enum class Language` in `ast_parser.hpp`
-4. Add `<lang>_node_to_type()` mapping in `node_types.hpp`
-5. Add import/package extraction in `imports.hpp`
-6. Update file extension checks in `codebase.hpp`
 
 ## References
 
-- [ASTERIA: Deep Learning-based AST-Encoding for Cross-platform Binary Code Similarity Detection](https://arxiv.org/abs/2108.06082)
+- [ASTERIA: Deep Learning-based AST-Encoding](https://arxiv.org/abs/2108.06082)
 - [Stanford TreeLSTM](https://github.com/stanfordnlp/treelstm)
 - [tree-sitter](https://tree-sitter.github.io/tree-sitter/)
 

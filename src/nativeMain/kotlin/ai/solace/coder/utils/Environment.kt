@@ -1,5 +1,6 @@
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 
+// port-lint: source codex-rs/core/src/environment_context.rs
 package ai.solace.coder.utils
 
 import kotlinx.cinterop.toKString

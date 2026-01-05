@@ -1,3 +1,4 @@
+// port-lint: source codex-rs/core/src/skills/loader.rs
 package ai.solace.coder.core.config
 
 import kotlinx.serialization.json.Json

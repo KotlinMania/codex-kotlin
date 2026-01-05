@@ -1,3 +1,4 @@
+// port-lint: source codex-rs/core/src/config/types.rs
 package ai.solace.coder.core.config
 
 import kotlinx.serialization.SerialName

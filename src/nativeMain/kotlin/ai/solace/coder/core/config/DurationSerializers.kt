@@ -1,3 +1,4 @@
+// port-lint: source codex-rs/mcp-server/src/codex_tool_config.rs
 package ai.solace.coder.core.config
 
 import kotlin.time.Duration
