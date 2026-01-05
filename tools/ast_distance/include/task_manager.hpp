@@ -4,6 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <map>
 #include <set>
 #include <chrono>
@@ -11,8 +12,49 @@
 #include <filesystem>
 #include <algorithm>
 #include <regex>
+#include <sys/file.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 namespace ast_distance {
+
+/**
+ * RAII file lock for preventing race conditions in concurrent task assignment.
+ * Uses flock() for advisory locking on Unix systems.
+ */
+class FileLock {
+public:
+    explicit FileLock(const std::string& path) : fd_(-1), locked_(false) {
+        lock_path_ = path + ".lock";
+        fd_ = open(lock_path_.c_str(), O_CREAT | O_RDWR, 0666);
+        if (fd_ >= 0) {
+            // Try to acquire exclusive lock (blocking)
+            if (flock(fd_, LOCK_EX) == 0) {
+                locked_ = true;
+            }
+        }
+    }
+
+    ~FileLock() {
+        if (fd_ >= 0) {
+            if (locked_) {
+                flock(fd_, LOCK_UN);
+            }
+            close(fd_);
+        }
+    }
+
+    bool is_locked() const { return locked_; }
+
+    // Prevent copying
+    FileLock(const FileLock&) = delete;
+    FileLock& operator=(const FileLock&) = delete;
+
+private:
+    int fd_;
+    bool locked_;
+    std::string lock_path_;
+};
 
 /**
  * Task status for porting work items.
@@ -198,8 +240,24 @@ public:
     /**
      * Assign the highest-priority pending task to an agent.
      * Returns nullptr if no tasks available.
+     *
+     * THREAD-SAFE: Uses file locking to prevent race conditions when
+     * multiple agents try to grab tasks simultaneously.
      */
     PortTask* assign_next(const std::string& agent_id) {
+        // Acquire exclusive lock on the task file
+        FileLock lock(task_file_path);
+        if (!lock.is_locked()) {
+            std::cerr << "Warning: Could not acquire lock on task file\n";
+            return nullptr;
+        }
+
+        // Reload fresh data from disk (another agent may have modified it)
+        if (!load()) {
+            std::cerr << "Warning: Could not reload task file\n";
+            return nullptr;
+        }
+
         // Sort by dependent_count descending (highest priority first)
         std::vector<PortTask*> pending;
         for (auto& t : tasks) {
@@ -220,18 +278,38 @@ public:
         task->assigned_to = agent_id;
         task->assigned_at = current_timestamp();
 
+        // Save immediately while still holding lock
+        if (!save()) {
+            std::cerr << "Warning: Could not save task file after assignment\n";
+            // Revert the in-memory change
+            task->status = TaskStatus::PENDING;
+            task->assigned_to.clear();
+            task->assigned_at.clear();
+            return nullptr;
+        }
+
         return task;
     }
 
     /**
      * Mark a task as completed.
+     * THREAD-SAFE: Uses file locking.
      */
     bool complete_task(const std::string& source_qualified) {
+        FileLock lock(task_file_path);
+        if (!lock.is_locked()) {
+            std::cerr << "Warning: Could not acquire lock for complete_task\n";
+            return false;
+        }
+
+        // Reload fresh data
+        if (!load()) return false;
+
         for (auto& t : tasks) {
             if (t.source_qualified == source_qualified) {
                 t.status = TaskStatus::COMPLETED;
                 t.completed_at = current_timestamp();
-                return true;
+                return save();
             }
         }
         return false;
@@ -239,14 +317,24 @@ public:
 
     /**
      * Release an assigned task back to pending.
+     * THREAD-SAFE: Uses file locking.
      */
     bool release_task(const std::string& source_qualified) {
+        FileLock lock(task_file_path);
+        if (!lock.is_locked()) {
+            std::cerr << "Warning: Could not acquire lock for release_task\n";
+            return false;
+        }
+
+        // Reload fresh data
+        if (!load()) return false;
+
         for (auto& t : tasks) {
             if (t.source_qualified == source_qualified && t.status == TaskStatus::ASSIGNED) {
                 t.status = TaskStatus::PENDING;
                 t.assigned_to.clear();
                 t.assigned_at.clear();
-                return true;
+                return save();
             }
         }
         return false;

@@ -105,3 +105,4 @@ tools/ast_distance/ast_distance
 all_matched.txt
 files_with_headers.txt
 tasks.json
+tasks.json.lock
