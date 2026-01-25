@@ -1,8 +1,6 @@
 // port-lint: source core/src/tools/sandboxing.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.CommandSpec
-import ai.solace.coder.core.ExecEnv
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.SessionServices
@@ -11,6 +9,7 @@ import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.CommandSpec
 import ai.solace.coder.exec.sandbox.ExecEnv
 import ai.solace.coder.exec.sandbox.SandboxManager
+import ai.solace.coder.exec.sandbox.SandboxPreference
 import ai.solace.coder.protocol.AskForApproval
 import ai.solace.coder.protocol.ReviewDecision
 import ai.solace.coder.protocol.SandboxCommandAssessment
@@ -18,40 +17,32 @@ import ai.solace.coder.protocol.SandboxPolicy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class ApprovalStore {
-    private val mutex = Mutex()
-    private val map = mutableMapOf<String, ReviewDecision>()
+// ApprovalStore is imported from ai.solace.coder.core.session.Turn
 
-    suspend fun <K> get(key: K): ReviewDecision? where K : Any {
-        return mutex.withLock {
-            val s = key.toString()
-            map[s]
-        }
-    }
-
-    suspend fun <K> put(key: K, value: ReviewDecision) where K : Any {
-        mutex.withLock {
-            val s = key.toString()
-            map[s] = value
-        }
-    }
-}
-
+/**
+ * Helper to get cached approval or fetch a new one.
+ * Simplified to work with the boolean-based ApprovalStore in Turn.kt.
+ */
 suspend fun <K> withCachedApproval(
         services: SessionServices,
         key: K,
         fetch: suspend () -> ReviewDecision
 ): ReviewDecision where K : Any {
     val store = services.toolApprovals
+    val keyStr = key.toString()
 
-    store.get(key)?.let {
-        return it
+    // Check if already approved
+    store.isApproved(keyStr)?.let { approved ->
+        return if (approved) ReviewDecision.ApprovedForSession else ReviewDecision.Denied
     }
 
     val decision = fetch()
 
-    if (decision == ReviewDecision.ApprovedForSession) {
-        store.put(key, decision)
+    // Cache approval decision
+    if (decision == ReviewDecision.ApprovedForSession || decision == ReviewDecision.Approved) {
+        store.setApproval(keyStr, true)
+    } else if (decision == ReviewDecision.Denied) {
+        store.setApproval(keyStr, false)
     }
 
     return decision

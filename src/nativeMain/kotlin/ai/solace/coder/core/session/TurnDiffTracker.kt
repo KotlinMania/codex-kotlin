@@ -243,16 +243,16 @@ private enum class FileMode {
 /**
  * Information about a changed file.
  */
-data class ChangedFile(
-    val path: String,
-    val originalPath: String?,
-    val changeType: ChangeType
+actual data class ChangedFile(
+    actual val path: String,
+    actual val originalPath: String?,
+    actual val changeType: ChangeType
 )
 
 /**
  * Type of file change.
  */
-enum class ChangeType {
+actual enum class ChangeType {
     Added,
     Modified,
     Deleted,
@@ -264,26 +264,26 @@ enum class ChangeType {
  *
  * Ported from Rust codex-rs/core/src/tools/context.rs SharedTurnDiffTracker
  */
-class SharedTurnDiffTracker {
+actual class SharedTurnDiffTracker {
     private val tracker = TurnDiffTracker()
 
-    suspend fun onPatchBegin(changes: Map<String, FileChange>) {
+    actual suspend fun onPatchBegin(changes: Map<String, FileChange>) {
         tracker.onPatchBegin(changes)
     }
 
-    suspend fun computeUnifiedDiff(): String {
+    actual suspend fun computeUnifiedDiff(): String {
         return tracker.computeUnifiedDiff()
     }
 
-    suspend fun getChangedFiles(): List<ChangedFile> {
+    actual suspend fun getChangedFiles(): List<ChangedFile> {
         return tracker.getChangedFiles()
     }
 
-    suspend fun clear() {
+    actual suspend fun clear() {
         tracker.clear()
     }
 
-    suspend fun hasChanges(): Boolean {
+    actual suspend fun hasChanges(): Boolean {
         return tracker.hasChanges()
     }
 }

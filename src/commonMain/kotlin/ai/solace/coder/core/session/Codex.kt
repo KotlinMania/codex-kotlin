@@ -2073,24 +2073,8 @@ suspend fun runTask(
 // Helper Types and Functions
 // =============================================================================
 
-/**
- * Shared turn diff tracker for tracking file diffs during a turn.
- */
-class SharedTurnDiffTracker {
-    private val diffs = mutableListOf<String>()
-
-    fun addDiff(diff: String) {
-        diffs.add(diff)
-    }
-
-    fun getUnifiedDiff(): Result<String?> {
-        return if (diffs.isEmpty()) {
-            Result.success(null)
-        } else {
-            Result.success(diffs.joinToString("\n"))
-        }
-    }
-}
+// SharedTurnDiffTracker is defined as expect class in TurnDiffTrackerExpect.kt
+// and actual class in nativeMain/TurnDiffTracker.kt
 
 /**
  * Processed response item from a turn.
@@ -2279,6 +2263,16 @@ class ReadinessFlag private constructor() {
     }
 
     fun isReady(): Boolean = ready
+
+    /**
+     * Wait until the flag is ready.
+     * TODO: Implement proper async wait with coroutine suspension
+     */
+    suspend fun waitReady() {
+        while (!ready) {
+            kotlinx.coroutines.delay(10)
+        }
+    }
 
     companion object {
         fun new(): ReadinessFlag = ReadinessFlag()

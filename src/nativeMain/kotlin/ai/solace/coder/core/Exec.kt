@@ -79,7 +79,7 @@ class Exec {
                                     justification = params.justification
                             )
 
-                    val transformResult = sandboxManager.transform(spec, sandboxPolicy, sandboxCwd)
+                    val transformResult = sandboxManager.transform(spec, sandboxPolicy, SandboxType.None, sandboxCwd)
                     if (transformResult.isFailure()) {
                         return@withContext CodexResult.failure(
                                 CodexError.Io("Process setup failed")

@@ -2,12 +2,12 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.SandboxError
 import ai.solace.coder.core.exec.ExecToolCallOutput
-import ai.solace.coder.core.function_tool.FunctionCallError
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
-import ai.solace.coder.core.tools.sandboxing.ToolError
+import ai.solace.coder.core.session.SharedTurnDiffTracker
+import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.protocol.EventMsg
 import ai.solace.coder.protocol.ExecCommandBeginEvent
 import ai.solace.coder.protocol.ExecCommandEndEvent
@@ -17,9 +17,20 @@ import ai.solace.coder.protocol.ParsedCommand
 import ai.solace.coder.protocol.PatchApplyBeginEvent
 import ai.solace.coder.protocol.PatchApplyEndEvent
 import ai.solace.coder.protocol.TurnDiffEvent
-import ai.solace.coder.protocol.parseCommand
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration
+
+// Type aliases for compatibility
+typealias SandboxError = CodexError.SandboxError
+
+/**
+ * Parse a command list into parsed command objects.
+ * TODO: Implement proper command parsing from Rust codex-rs/core/src/exec.rs
+ */
+private fun parseCommand(command: List<String>): List<ParsedCommand> {
+    // Simple stub - returns empty list for now
+    return emptyList()
+}
 
 class ToolEventCtx(
     val session: Session,
@@ -147,9 +158,7 @@ sealed class ToolEmitter {
             is ApplyPatch -> {
                 when (stage) {
                     is ToolEventStage.Begin -> {
-                        ctx.turnDiffTracker?.withLock {
-                            it.onPatchBegin(changes)
-                        }
+                        ctx.turnDiffTracker?.onPatchBegin(changes)
                         ctx.session.sendEvent(
                             ctx.turn,
                             EventMsg.PatchApplyBegin(
@@ -249,57 +258,21 @@ sealed class ToolEmitter {
                 Pair(event, result)
             },
             onFailure = { err ->
-                when (err) {
-                    is ToolError.Codex -> {
-                        when (val inner = err.error) {
-                            is CodexError.Sandbox -> {
-                                when (val sandboxErr = inner.error) {
-                                    is SandboxError.Timeout -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
-                                    }
-                                    is SandboxError.Denied -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
-                                    }
-                                    else -> {
-                                        val message = "execution error: $err"
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                        Pair(event, result)
-                                    }
-                                }
-                            }
-                            else -> {
-                                val message = "execution error: $err"
-                                val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                                val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                        Pair(event, result)
-                            }
-                        }
-                    }
+                // Simplified error handling - ToolError structure differs from Rust
+                val message = when (err) {
                     is ToolError.Rejected -> {
-                        val msg = err.message
-                        val normalized = if (msg == "rejected by user") {
+                        if (err.message == "rejected by user") {
                             "exec command rejected by user"
                         } else {
-                            msg
+                            err.message ?: "rejected"
                         }
-                        val event = ToolEventStage.Failure(ToolEventFailure.Message(normalized))
-                        val result = Result.failure<String>(FunctionCallError.RespondToModel(normalized))
-                        Pair(event, result)
                     }
-                    else -> {
-                         val message = "execution error: $err"
-                         val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                         val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                         Pair(event, result)
-                    }
+                    is ToolError.Codex -> "execution error: ${err.error}"
+                    else -> "execution error: $err"
                 }
+                val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
+                val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
+                Pair(event, result)
             }
         )
         emit(ctx, event)
@@ -406,7 +379,7 @@ suspend fun emitExecEnd(
                 stderr = execResult.stderr,
                 aggregatedOutput = execResult.aggregatedOutput,
                 exitCode = execResult.exitCode,
-                duration = execResult.duration,
+                duration = execResult.duration.toString(),
                 formattedOutput = execResult.formattedOutput
             )
         )
@@ -435,10 +408,8 @@ suspend fun emitPatchEnd(
     )
 
     ctx.turnDiffTracker?.let { tracker ->
-        val unifiedDiff = tracker.withLock {
-            it.getUnifiedDiff()
-        }
-        if (unifiedDiff != null) {
+        val unifiedDiff = tracker.computeUnifiedDiff()
+        if (unifiedDiff.isNotEmpty()) {
             ctx.session.sendEvent(
                 ctx.turn,
                 EventMsg.TurnDiff(TurnDiffEvent(unifiedDiff))

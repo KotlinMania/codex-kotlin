@@ -2,7 +2,6 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.FunctionCallError
-import ai.solace.coder.core.session.ToolSpec
 import ai.solace.coder.protocol.ResponseInputItem
 
 /**

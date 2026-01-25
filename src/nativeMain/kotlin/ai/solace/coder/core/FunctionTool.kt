@@ -10,9 +10,9 @@ sealed class FunctionCallError : Exception() {
     /**
      * Error message to send back to the model.
      */
-    data class RespondToModel(val message: String) : FunctionCallError() {
-        override val message: String get() = this.message
-        override fun toString(): String = message
+    data class RespondToModel(val text: String) : FunctionCallError() {
+        override val message: String get() = text
+        override fun toString(): String = text
     }
 
     /**

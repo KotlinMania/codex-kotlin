@@ -7,24 +7,10 @@ import ai.solace.coder.protocol.CallToolResult
 import ai.solace.coder.protocol.FunctionCallOutputContentItem
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.McpResult
-
-...
-
-            is Mcp -> {
-                val protoResult =
-                        result.fold(
-                                onSuccess = { McpResult(value = it) },
-                                onFailure = {
-                                    McpResult(error = it.message ?: "Unknown error")
-                                }
-                        )
-                ResponseInputItem.McpToolCallOutput(callId = callId, result = protoResult)
-            }
 import ai.solace.coder.protocol.ResponseInputItem
 import ai.solace.coder.protocol.ShellToolCallParams
-import kotlinx.coroutines.sync.Mutex
-
-typealias SharedTurnDiffTracker = Mutex // Placeholder or actual type if available
+import ai.solace.coder.core.session.SharedTurnDiffTracker
+import ai.solace.coder.core.exec.ExecToolCallOutput
 
 data class ToolInvocation(
         val session: Session,
@@ -62,7 +48,7 @@ sealed class ToolOutput {
 
     data class Mcp(val result: Result<CallToolResult>) : ToolOutput()
 
-    data class Exec(val output: ai.solace.coder.core.ExecToolCallOutput) : ToolOutput()
+    data class Exec(val output: ExecToolCallOutput) : ToolOutput()
 
     data class ImageAttachment(val path: String, val message: String) : ToolOutput()
 
@@ -102,11 +88,11 @@ sealed class ToolOutput {
                 }
             }
             is Mcp -> {
-                val protoResult =
+                val protoResult: McpResult<CallToolResult, String> =
                         result.fold(
-                                onSuccess = { McpResult(value = it) },
-                                onFailure = {
-                                    McpResult(error = it.message ?: "Unknown error")
+                                onSuccess = { McpResult(value = it, error = null) },
+                                onFailure = { err ->
+                                    McpResult(value = null, error = err.message ?: "Unknown error")
                                 }
                         )
                 ResponseInputItem.McpToolCallOutput(callId = callId, result = protoResult)

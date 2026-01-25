@@ -26,7 +26,7 @@ enum class Stage {
 /**
  * Unique features toggled via configuration.
  */
-enum class Feature(
+actual enum class Feature(
     val key: String,
     val stage: Stage,
     val defaultEnabled: Boolean
@@ -109,7 +109,7 @@ data class LegacyFeatureUsage(
 /**
  * Holds the effective set of enabled features.
  */
-class Features private constructor(
+actual class Features private constructor(
     private val enabled: MutableSet<Feature>,
     private val legacyUsages: MutableSet<LegacyFeatureUsage>
 ) {
@@ -118,12 +118,12 @@ class Features private constructor(
     /**
      * Check if a feature is enabled.
      */
-    fun enabled(feature: Feature): Boolean = enabled.contains(feature)
+    actual fun enabled(feature: Feature): Boolean = enabled.contains(feature)
 
     /**
      * Enable a feature.
      */
-    fun enable(feature: Feature): Features {
+    actual fun enable(feature: Feature): Features {
         enabled.add(feature)
         return this
     }
@@ -131,7 +131,7 @@ class Features private constructor(
     /**
      * Disable a feature.
      */
-    fun disable(feature: Feature): Features {
+    actual fun disable(feature: Feature): Features {
         enabled.remove(feature)
         return this
     }
@@ -185,18 +185,18 @@ class Features private constructor(
     /**
      * Get list of enabled features.
      */
-    fun enabledFeatures(): List<Feature> = enabled.toList()
+    actual fun enabledFeatures(): List<Feature> = enabled.toList()
 
     /**
      * Copy this features instance.
      */
-    fun copy(): Features = Features(enabled.toMutableSet(), legacyUsages.toMutableSet())
+    actual fun copy(): Features = Features(enabled.toMutableSet(), legacyUsages.toMutableSet())
 
-    companion object {
+    actual companion object {
         /**
          * Create a Features instance with default values.
          */
-        fun withDefaults(): Features {
+        actual fun withDefaults(): Features {
             val features = Features()
             for (feature in Feature.entries) {
                 if (feature.defaultEnabled) {

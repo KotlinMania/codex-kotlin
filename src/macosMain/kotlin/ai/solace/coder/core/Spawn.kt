@@ -1,5 +1,6 @@
 package ai.solace.coder.core
 
+import ai.solace.coder.exec.process.SandboxType
 import kotlinx.cinterop.*
 import platform.posix.*
 import platform.Foundation.*

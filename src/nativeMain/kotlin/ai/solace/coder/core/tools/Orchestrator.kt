@@ -2,15 +2,27 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.SandboxError
+import ai.solace.coder.core.error.CodexError.SandboxError
 import ai.solace.coder.core.error.getErrorMessageUi
 import ai.solace.coder.core.exec.ExecToolCallOutput
-import ai.solace.coder.core.exec.SandboxType
+import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.SandboxManager
+import ai.solace.coder.exec.sandbox.SandboxPreference
 import ai.solace.coder.protocol.AskForApproval
 import ai.solace.coder.protocol.ReviewDecision
 import ai.solace.coder.protocol.SandboxPolicy
 import ai.solace.coder.core.session.TurnContext
+
+/**
+ * Convert SandboxablePreference to SandboxPreference.
+ */
+private fun SandboxablePreference.toSandboxPreference(): SandboxPreference {
+    return when (this) {
+        SandboxablePreference.Auto -> SandboxPreference.Auto
+        SandboxablePreference.Require -> SandboxPreference.Require
+        SandboxablePreference.Forbid -> SandboxPreference.Forbid
+    }
+}
 
 class ToolOrchestrator {
     private val sandbox = SandboxManager()
@@ -22,7 +34,7 @@ class ToolOrchestrator {
         turnCtx: TurnContext,
         approvalPolicy: AskForApproval
     ): Result<Out> where T : ToolRuntime<Req, Out>, Req : ProvidesSandboxRetryData {
-        val otel = turnCtx.client.getOtelEventManager()
+        val otel = turnCtx.client?.getOtelEventManager()
         val otelTn = toolCtx.toolName
         val otelCi = toolCtx.callId
         // val otelUser = ToolDecisionSource.User
@@ -76,7 +88,7 @@ class ToolOrchestrator {
         // 2) First attempt under the selected sandbox.
         val initialSandbox = when (tool.sandboxModeForFirstAttempt(req)) {
             SandboxOverride.BypassSandboxFirstAttempt -> SandboxType.None
-            SandboxOverride.NoOverride -> sandbox.selectInitial(turnCtx.sandboxPolicy, tool.sandboxPreference())
+            SandboxOverride.NoOverride -> sandbox.selectInitialSandbox(turnCtx.sandboxPolicy, tool.sandboxPreference().toSandboxPreference())
         }
 
         val initialAttempt = SandboxAttempt(
@@ -94,9 +106,12 @@ class ToolOrchestrator {
             onFailure = { err ->
                 // Check if it is a Sandbox Denied error
                 // In Kotlin we might need to check exception type or wrap it
-                if (err is ToolErrorException && err.error is ToolError.Codex && err.error.error is CodexError.Sandbox && err.error.error.error is SandboxError.Denied) {
-                    val deniedError = err.error.error.error as SandboxError.Denied
-                    val output = deniedError.output
+                // Simplified: Check for sandbox denied errors
+                val isSandboxDenied = err is ToolErrorException &&
+                    err.error is ToolError.Codex &&
+                    (err.error as ToolError.Codex).error is SandboxError.Denied
+                if (isSandboxDenied) {
+                    // SandboxError.Denied has only message, not output
 
                     if (!tool.escalateOnFailure()) {
                         return Result.failure(err)
@@ -121,7 +136,8 @@ class ToolOrchestrator {
                             )
                         }
 
-                        val reasonMsg = buildDenialReasonFromOutput(output)
+                        // SandboxError.Denied doesn't have output, use static message
+                        val reasonMsg = "command failed; retry without sandbox?"
                         val approvalCtx = ApprovalCtx(
                             session = toolCtx.session,
                             turn = turnCtx,
