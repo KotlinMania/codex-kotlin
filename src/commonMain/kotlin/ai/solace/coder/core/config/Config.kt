@@ -2,9 +2,9 @@
 package ai.solace.coder.core.config
 
 import ai.solace.coder.core.auth.AuthCredentialsStoreMode
-import ai.solace.coder.core.ForcedLoginMethod
+import ai.solace.coder.core.auth.ForcedLoginMethod
 import ai.solace.coder.core.model.ModelFamily
-import kotlinx.io.files.Path
+import okio.Path
 import kotlinx.serialization.json.JsonElement
 
 data class Config(

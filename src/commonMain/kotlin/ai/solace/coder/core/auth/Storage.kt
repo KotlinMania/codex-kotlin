@@ -1,40 +1,17 @@
 // port-lint: source codex-rs/core/src/auth/storage.rs
 package ai.solace.coder.core.auth
 
-import ai.solace.coder.core.AuthDotJson
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.buffered
-import kotlinx.io.readString
-import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
-import platform.posix.realpath
-import platform.posix.chmod
-import platform.posix.S_IRUSR
-import platform.posix.S_IWUSR
-import platform.posix.PATH_MAX
-import kotlinx.cinterop.*
-
-/**
- * Determine where Codex should store CLI auth credentials.
- * Mirrors Rust's AuthCredentialsStoreMode enum from auth/storage.rs
- */
-enum class AuthCredentialsStoreMode {
-    /** Persist credentials in CODEX_HOME/auth.json */
-    File,
-
-    /** Persist credentials in the keyring. Fail if unavailable. */
-    Keychain,
-
-    /** Use keyring when available; otherwise, fall back to a file in CODEX_HOME */
-    Auto
-}
+import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
+import okio.buffer
 
 /**
  * Get the auth.json file path within codex_home.
  */
 internal fun getAuthFile(codexHome: Path): Path {
-    return Path(codexHome.toString(), "auth.json")
+    return codexHome / "auth.json"
 }
 
 /**
@@ -43,12 +20,14 @@ internal fun getAuthFile(codexHome: Path): Path {
  */
 internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
     val authFile = getAuthFile(codexHome)
+    val fs = FileSystem.SYSTEM
     return try {
-        SystemFileSystem.delete(authFile)
-        Result.success(true)
-    } catch (_: kotlinx.io.IOException) {
-        // File doesn't exist
-        Result.success(false)
+        if (fs.exists(authFile)) {
+            fs.delete(authFile)
+            Result.success(true)
+        } else {
+            Result.success(false)
+        }
     } catch (e: Exception) {
         Result.failure(e)
     }
@@ -70,13 +49,14 @@ interface AuthStorageBackend {
  */
 class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
 
-    /**
-     * Attempt to read and parse the auth.json file.
-     */
     fun tryReadAuthJson(authFile: Path): Result<AuthDotJson> {
+        val fs = FileSystem.SYSTEM
         return try {
-            val contents = SystemFileSystem.source(authFile).buffered().use { buffered ->
-                buffered.readString()
+            val source = fs.source(authFile).buffer()
+            val contents = try {
+                source.readUtf8()
+            } finally {
+                source.close()
             }
             val authDotJson = Json.decodeFromString<AuthDotJson>(contents)
             Result.success(authDotJson)
@@ -87,9 +67,10 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
 
     override fun load(): Result<AuthDotJson?> {
         val authFile = getAuthFile(codexHome)
+        val fs = FileSystem.SYSTEM
 
         // Check if file exists
-        if (!SystemFileSystem.exists(authFile)) {
+        if (!fs.exists(authFile)) {
             return Result.success(null)
         }
 
@@ -98,12 +79,13 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
 
     override fun save(auth: AuthDotJson): Result<Unit> {
         val authFile = getAuthFile(codexHome)
+        val fs = FileSystem.SYSTEM
 
         return try {
             // Create parent directory if it doesn't exist
             val parent = authFile.parent
-            if (parent != null && !SystemFileSystem.exists(parent)) {
-                SystemFileSystem.createDirectories(parent)
+            if (parent != null && !fs.exists(parent)) {
+                fs.createDirectories(parent)
             }
 
             // Serialize to pretty JSON
@@ -111,15 +93,16 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
             val jsonData = jsonFormat.encodeToString(AuthDotJson.serializer(), auth)
 
             // Write to file
-            // Write to file
-            SystemFileSystem.sink(authFile).buffered().use { buffered ->
-                buffered.writeString(jsonData)
-                buffered.flush()
+            val sink = fs.sink(authFile).buffer()
+            try {
+                sink.writeUtf8(jsonData)
+                sink.flush()
+            } finally {
+                sink.close()
             }
 
-            // Set Unix file permissions to 0600 (owner read/write only)
-            @OptIn(ExperimentalForeignApi::class)
-            chmod(authFile.toString(), S_IRUSR or S_IWUSR)
+            // TODO: Set Unix file permissions to 0600 if on Unix.
+            // Okio 3.x doesn't support chmod in common code yet.
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -276,31 +259,17 @@ private const val KEYCHAIN_SERVICE = "Codex Auth"
  *
  * Mirrors Rust's compute_store_key from auth/storage.rs
  *
- * TODO: Implement proper path canonicalization
- * Currently uses path as-is. Should resolve symlinks and make absolute.
- *
- * Expected test results:
- * - Input: "~/.codex" (after canonicalization to full path)
- * - Output: "cli|940db7b1d0e4eb40"
- *
  * Reference:
  * - codex-rs/core/src/auth/storage.rs - compute_store_key()
  * - Test: keyring_auth_storage_compute_store_key_for_home_directory
  */
-@OptIn(ExperimentalForeignApi::class)
 internal fun computeStoreKey(codexHome: Path): Result<String> {
     return try {
-        // Implement proper path canonicalization (resolve symlinks, make absolute)
-        val pathStr = codexHome.toString()
-        
-        val canonical = memScoped {
-            val buffer = allocArray<ByteVar>(PATH_MAX)
-            val result = realpath(pathStr, buffer)
-            if (result != null) {
-                result.toKString()
-            } else {
-                pathStr
-            }
+        val fs = FileSystem.SYSTEM
+        val canonical = try {
+            fs.canonicalize(codexHome).toString()
+        } catch (e: Exception) {
+            codexHome.toString()
         }
 
         // Hash the path string with SHA-256

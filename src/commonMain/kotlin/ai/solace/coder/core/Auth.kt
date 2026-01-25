@@ -1,19 +1,17 @@
 // port-lint: source codex-rs/core/src/auth.rs
 package ai.solace.coder.core
 
-import ai.solace.coder.core.auth.AuthCredentialsStoreMode
-import ai.solace.coder.core.auth.AuthStorageBackend
-import ai.solace.coder.core.auth.FileAuthStorage
-import ai.solace.coder.core.auth.createAuthStorage
+import ai.solace.coder.core.auth.*
+import ai.solace.coder.core.error.RefreshTokenFailedReason
+import ai.solace.coder.core.error.RefreshTokenFailedError
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.cinterop.toKString
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.io.files.Path
-import kotlinx.serialization.Contextual
+import okio.Path
+import okio.Path.Companion.toPath
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
@@ -47,15 +45,6 @@ const val CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY"
 // ============================================================================
 // Core Types
 // ============================================================================
-
-/**
- * Authentication mode for API access.
- * Mirrors codex_app_server_protocol::AuthMode
- */
-enum class AuthMode {
-    ApiKey,
-    ChatGPT
-}
 
 @ConsistentCopyVisibility
 data class CodexAuth internal constructor(
@@ -151,6 +140,7 @@ data class CodexAuth internal constructor(
                 }
                 Result.success(tokenData.accessToken)
             }
+            AuthMode.None -> Result.success("")
         }
     }
 
@@ -236,7 +226,7 @@ data class CodexAuth internal constructor(
                 apiKey = null,
                 authDotJsonMutex = Mutex(),
                 cachedAuthDotJson = authDotJson,
-                storage = FileAuthStorage(Path("")),
+                storage = FileAuthStorage("".toPath()),
                 client = HttpClient()
             )
         }
@@ -250,7 +240,7 @@ data class CodexAuth internal constructor(
                 apiKey = apiKey,
                 authDotJsonMutex = Mutex(),
                 cachedAuthDotJson = null,
-                storage = FileAuthStorage(Path("")),
+                storage = FileAuthStorage("".toPath()),
                 client = client
             )
         }
@@ -268,134 +258,14 @@ data class CodexAuth internal constructor(
 }
 
 // ============================================================================
-// Error Types
-// ============================================================================
-
-/**
- * Error types for refresh token operations.
- * Mirrors Rust's RefreshTokenError enum.
- */
-sealed class RefreshTokenError(message: String) : Exception(message) {
-    class Permanent(val reason: RefreshTokenFailedReason, message: String) : RefreshTokenError(message)
-    class Transient(message: String) : RefreshTokenError(message)
-
-    fun failedReason(): RefreshTokenFailedReason? {
-        return when (this) {
-            is Permanent -> reason
-            is Transient -> null
-        }
-    }
-}
-
-enum class RefreshTokenFailedReason {
-    Expired,
-    Exhausted,
-    Revoked,
-    Other
-}
-
-data class RefreshTokenFailedError(
-    val reason: RefreshTokenFailedReason,
-    override val message: String
-) : Exception(message)
-
-// ============================================================================
-// Token Data & Storage Types
-// ============================================================================
-
-/**
- * Plan type classification from ID token.
- */
-sealed class PlanType {
-    data class Known(val plan: KnownPlan) : PlanType()
-    data class Unknown(val value: String) : PlanType()
-
-    companion object {
-        fun fromString(value: String): PlanType {
-            val knownPlan = when (value.lowercase()) {
-                "free" -> KnownPlan.Free
-                "plus" -> KnownPlan.Plus
-                "pro" -> KnownPlan.Pro
-                "team" -> KnownPlan.Team
-                "business" -> KnownPlan.Business
-                "enterprise" -> KnownPlan.Enterprise
-                "edu" -> KnownPlan.Edu
-                else -> null
-            }
-            return if (knownPlan != null) {
-                Known(knownPlan)
-            } else {
-                Unknown(value)
-            }
-        }
-    }
-}
-
-enum class KnownPlan {
-    Free, Plus, Pro, Team, Business, Enterprise, Edu
-}
-
-/**
- * Account plan type for external API.
- * Maps to codex_protocol::account::PlanType
- */
-enum class AccountPlanType {
-    Free, Plus, Pro, Team, Business, Enterprise, Edu, Unknown
-}
-
-/**
- * ID token information parsed from JWT.
- */
-@Serializable
-data class IdTokenInfo(
-    val email: String? = null,
-    @Contextual
-    val chatgptPlanType: PlanType? = null,
-    val chatgptAccountId: String? = null,
-    val rawJwt: String = ""
-)
-
-/**
- * Token data from auth.json.
- */
-@Serializable
-data class TokenData(
-    var idToken: IdTokenInfo = IdTokenInfo(),
-    var accessToken: String = "",
-    var refreshToken: String = "",
-    val accountId: String? = null
-)
-
-/**
- * Auth.json file structure.
- */
-@Serializable
-data class AuthDotJson(
-    @SerialName("OPENAI_API_KEY")
-    val openaiApiKey: String? = null,
-    val tokens: TokenData? = null,
-    @SerialName("last_refresh")
-    val lastRefresh: Long? = null  // Store as epoch milliseconds
-)
-
-/**
- * Forced login method configuration.
- */
-enum class ForcedLoginMethod {
-    Api,
-    Chatgpt
-}
-
-// ============================================================================
 // Public API Functions
-// ============================================================================
 // ============================================================================
 
 /**
  * Read OpenAI API key from environment.
  */
 fun readOpenaiApiKeyFromEnv(): String? {
-    return getEnvironmentVariable(OPENAI_API_KEY_ENV_VAR)
+    return ai.solace.coder.utils.Environment.get(OPENAI_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
 }
@@ -404,7 +274,7 @@ fun readOpenaiApiKeyFromEnv(): String? {
  * Read Codex API key from environment.
  */
 fun readCodexApiKeyFromEnv(): String? {
-    return getEnvironmentVariable(CODEX_API_KEY_ENV_VAR)
+    return ai.solace.coder.utils.Environment.get(CODEX_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
 }
@@ -462,7 +332,7 @@ fun loadAuthDotJson(
 /**
  * Enforce login restrictions from config.
  */
-suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
+suspend fun enforceLoginRestrictions(config: AuthConfig): Result<Unit> {
     val auth = loadAuth(
         config.codexHome,
         enableCodexApiKeyEnv = true,
@@ -480,10 +350,12 @@ suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
             ForcedLoginMethod.Api -> when (auth.mode) {
                 AuthMode.ApiKey -> null
                 AuthMode.ChatGPT -> "API key login is required, but ChatGPT is currently being used. Logging out."
+                AuthMode.None -> null
             }
             ForcedLoginMethod.Chatgpt -> when (auth.mode) {
                 AuthMode.ChatGPT -> null
                 AuthMode.ApiKey -> "ChatGPT login is required, but an API key is currently being used. Logging out."
+                AuthMode.None -> null
             }
         }
 
@@ -529,7 +401,7 @@ suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
 // Internal Functions
 // ============================================================================
 
-private fun logoutWithMessage(
+private suspend fun logoutWithMessage(
     codexHome: Path,
     message: String,
     authCredentialsStoreMode: AuthCredentialsStoreMode
@@ -634,7 +506,7 @@ private suspend fun tryRefreshToken(
         scope = "openid profile email"
     )
 
-    val endpoint = getEnvironmentVariable(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
+    val endpoint = ai.solace.coder.utils.Environment.get(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
         ?: REFRESH_TOKEN_URL
 
     return try {
@@ -742,57 +614,6 @@ private fun tryParseErrorMessage(body: String): String {
     return body
 }
 
-/**
- * Parse ID token JWT and extract claims.
- *
- * Uses the io.github.kotlinmania.jwt library to decode the JWT without verification.
- * Extracts claims from the payload:
- * - email
- * - https://api.openai.com/auth.chatgpt_plan_type
- * - https://api.openai.com/auth.chatgpt_account_id
- *
- * Note: Signature verification is NOT performed.
- * This is only for extracting user info from trusted tokens.
- *
- * Reference: codex-rs/core/src/token_data.rs - parse_id_token()
- */
-private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
-    return try {
-        // Decode JWT without verification
-        val decoded = io.github.kotlinmania.jwt.JWT.decode(jwt)
-
-        // Extract email
-        val email = decoded.getClaim("email").asString()
-
-        // Extract OpenAI auth claims
-        val authClaim = decoded.getClaim("https://api.openai.com/auth")
-        val authMap = authClaim.asMap()
-
-        val planTypeStr = authMap?.get("chatgpt_plan_type") as? String
-        val planType = planTypeStr?.let { PlanType.fromString(it) }
-
-        val accountId = authMap?.get("chatgpt_account_id") as? String
-
-        Result.success(
-            IdTokenInfo(
-                email = email,
-                chatgptPlanType = planType,
-                chatgptAccountId = accountId,
-                rawJwt = jwt
-            )
-        )
-    } catch (e: io.github.kotlinmania.jwt.exceptions.JWTDecodeException) {
-        Result.failure(Exception("Failed to decode JWT: ${e.message}", e))
-    } catch (e: Exception) {
-        Result.failure(Exception("JWT parsing failed: ${e.message}", e))
-    }
-}
-
-/**
- * Create auth storage backend.
- */
-
-
 @Serializable
 private data class RefreshRequest(
     @SerialName("client_id")
@@ -821,14 +642,6 @@ private data class RefreshResponse(
 /**
  * Central manager providing a single source of truth for auth.json derived
  * authentication data.
- *
- * It loads once (or on preference change) and then hands out cloned `CodexAuth`
- * values so the rest of the program has a consistent snapshot.
- *
- * External modifications to `auth.json` will NOT be observed until `reload()`
- * is called explicitly.
- *
- * Mirrors Rust's AuthManager from core/src/auth.rs
  */
 class AuthManager private constructor(
     private val codexHome: Path,
@@ -866,10 +679,6 @@ class AuthManager private constructor(
 
     /**
      * Attempt to refresh the current auth token (if any).
-     *
-     * On success, reloads the auth state from disk so other components
-     * observe the refreshed token. If the token refresh fails in a permanent
-     * (non-transient) way, logs out to clear invalid auth state.
      */
     suspend fun refreshToken(): Result<String?> {
         val currentAuth = auth() ?: return Result.success(null)
@@ -890,13 +699,9 @@ class AuthManager private constructor(
 
     /**
      * Log out by deleting the on-disk auth.json (if present).
-     *
-     * Returns Ok(true) if a file was removed, Ok(false) if no auth file existed.
-     * On success, reloads the in-memory auth cache so callers immediately
-     * observe the unauthenticated state.
      */
     suspend fun logout(): Result<Boolean> {
-        val result = logout(codexHome, authCredentialsStoreMode)
+        val result = ai.solace.coder.core.logout(codexHome, authCredentialsStoreMode)
         // Always reload to clear any cached auth (even if file absent)
         reload()
         return result
@@ -912,10 +717,7 @@ class AuthManager private constructor(
 
     companion object {
         /**
-         * Create a new manager loading the initial auth using the provided
-         * preferred auth method. Errors loading auth are swallowed; `auth()` will
-         * simply return `None` in that case so callers can treat it as an
-         * unauthenticated state.
+         * Create a new manager loading the initial auth.
          */
         operator fun invoke(
             codexHome: Path,
@@ -936,7 +738,7 @@ class AuthManager private constructor(
          */
         fun fromAuthForTesting(auth: CodexAuth): AuthManager {
             return AuthManager(
-                codexHome = Path(""),
+                codexHome = "".toPath(),
                 enableCodexApiKeyEnv = false,
                 authCredentialsStoreMode = AuthCredentialsStoreMode.File,
                 initialAuth = auth
@@ -944,28 +746,3 @@ class AuthManager private constructor(
         }
     }
 }
-
-// ============================================================================
-// Platform-specific stubs
-// ============================================================================
-
-/**
- * Get environment variable value.
- *
- * Uses platform.posix.getenv for Native platforms (macOS/Linux/Windows).
- * For more complex multiplatform scenarios, consider creating expect/actual.
- */
-@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-private fun getEnvironmentVariable(name: String): String? {
-    return platform.posix.getenv(name)?.toKString()
-}
-
-// Placeholder for Config type
-// TODO: Port from core/src/config.rs
-data class Config(
-    val codexHome: Path,
-    val cliAuthCredentialsStoreMode: AuthCredentialsStoreMode,
-    val forcedLoginMethod: ForcedLoginMethod?,
-    val forcedChatgptWorkspaceId: String?
-)
-

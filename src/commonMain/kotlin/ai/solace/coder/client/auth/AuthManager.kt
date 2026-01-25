@@ -81,7 +81,12 @@ class AuthManager(
                 // 3. Update storage with new tokens
                 // 4. Return the new access token
                 CodexResult.failure(
-                    CodexError.RefreshTokenFailed("Token refresh not implemented")
+                    CodexError.RefreshTokenFailed(
+                        ai.solace.coder.core.error.RefreshTokenFailedError(
+                            ai.solace.coder.core.error.RefreshTokenFailedReason.Other,
+                            "Token refresh not implemented"
+                        )
+                    )
                 )
             }
             AuthMode.None -> CodexResult.success(null)

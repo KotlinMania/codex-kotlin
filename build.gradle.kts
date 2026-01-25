@@ -218,6 +218,9 @@ kotlin {
 
                 // Tree-sitter parsing library bindings
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
+
+                // JWT library (from Maven Central)
+                implementation("io.github.kotlinmania:jwt-kotlin:0.1.0")
             }
         }
 
@@ -248,9 +251,6 @@ kotlin {
                 implementation("io.github.kotlinmania:kasuari-kotlin:0.1.0")
                 implementation("io.github.kotlinmania:roff-kotlin:0.1.0")
                 implementation("io.github.kotlinmania:cansi-kotlin:0.1.0")
-
-                // JWT library (from Maven Central)
-                implementation("io.github.kotlinmania:jwt-kotlin:0.1.0")
             }
         }
         

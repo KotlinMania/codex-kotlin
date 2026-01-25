@@ -11,15 +11,15 @@ import ai.solace.coder.api.endpoint.streamingMode
 import ai.solace.coder.api.common.CompactionInput
 import ai.solace.coder.api.common.Prompt as ApiPrompt
 import ai.solace.coder.api.common.Reasoning
-import ai.solace.coder.api.common.ResponseEvent
 import ai.solace.coder.api.common.ResponseStream as ApiResponseStream
 import ai.solace.coder.api.common.createTextParamForRequest
+import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.error.ApiError
 import ai.solace.coder.api.provider.WireApi
 import ai.solace.coder.api.telemetry.RequestTelemetry
 import ai.solace.coder.api.telemetry.SseTelemetry
 import ai.solace.coder.core.AuthManager
-import ai.solace.coder.core.AuthMode
+import ai.solace.coder.core.auth.AuthMode
 import ai.solace.coder.core.CodexAuth
 import ai.solace.coder.core.config.Config
 import ai.solace.coder.core.error.CodexErr
