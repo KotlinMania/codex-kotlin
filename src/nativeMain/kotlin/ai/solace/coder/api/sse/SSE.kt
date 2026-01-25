@@ -26,30 +26,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
-/**
- * Response stream wrapper around a channel.
- */
-class ChannelResponseStream(
-    private val channel: Channel<Result<ResponseEvent>>
-) {
-    /**
-     * Receive the next event, or null if stream ended.
-     */
-    suspend fun next(): Result<ResponseEvent>? {
-        return try {
-            channel.receive()
-        } catch (e: ClosedReceiveChannelException) {
-            null
-        }
-    }
-
-    /**
-     * Close the stream.
-     */
-    fun close() {
-        channel.close()
-    }
-}
+// ChannelResponseStream is defined in commonMain/api/sse/Responses.kt
+// and implements the ResponseStream interface
 
 /**
  * Spawn a chat stream parser from an HTTP response.
@@ -113,29 +91,7 @@ suspend fun spawnResponsesStream(
     return ChannelResponseStream(channel)
 }
 
-/**
- * Load an SSE stream from a test fixture file.
- */
-fun streamFromFixture(
-    path: String,
-    idleTimeout: Duration,
-    scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
-): ChannelResponseStream {
-    val channel = Channel<Result<ResponseEvent>>(1600)
-
-    scope.launch {
-        try {
-            // Read fixture file and process as SSE
-            // Note: In Kotlin Native, file I/O needs platform-specific implementation
-            // For now, we provide a stub that can be implemented per-platform
-            channel.send(Result.failure(ApiError.Stream("Fixture loading not implemented for this platform")))
-        } finally {
-            channel.close()
-        }
-    }
-
-    return ChannelResponseStream(channel)
-}
+// streamFromFixture is defined in commonMain/api/sse/Responses.kt
 
 // ============================================================================
 // Internal SSE parsing for Responses API
@@ -153,13 +109,13 @@ private data class SseError(
 )
 
 @Serializable
-private data class ResponseCompleted(
+private data class NativeResponseCompleted(
     val id: String,
-    val usage: ResponseCompletedUsage? = null
+    val usage: NativeResponseCompletedUsage? = null
 )
 
 @Serializable
-private data class ResponseCompletedUsage(
+private data class NativeResponseCompletedUsage(
     @kotlinx.serialization.SerialName("input_tokens")
     val inputTokens: Long,
     @kotlinx.serialization.SerialName("input_tokens_details")
@@ -184,7 +140,7 @@ private data class OutputTokensDetails(
     val reasoningTokens: Long = 0
 )
 
-private fun ResponseCompletedUsage.toTokenUsage(): TokenUsage {
+private fun NativeResponseCompletedUsage.toTokenUsage(): TokenUsage {
     return TokenUsage(
         inputTokens = inputTokens,
         cachedInputTokens = inputTokensDetails?.cachedTokens ?: 0,
@@ -195,7 +151,7 @@ private fun ResponseCompletedUsage.toTokenUsage(): TokenUsage {
 }
 
 @Serializable
-private data class SseEvent(
+private data class NativeSseEventJson(
     val type: String,
     val response: JsonElement? = null,
     val item: JsonElement? = null,
@@ -216,7 +172,7 @@ internal suspend fun processSse(
     telemetry: SseTelemetry?
 ) {
     val bodyChannel = response.bodyAsChannel()
-    var responseCompleted: ResponseCompleted? = null
+    var responseCompleted: NativeResponseCompleted? = null
     var responseError: ApiError? = null
     val json = Json { ignoreUnknownKeys = true }
     val timeSource = TimeSource.Monotonic
@@ -245,7 +201,7 @@ internal suspend fun processSse(
 
         // Parse JSON
         val event = try {
-            json.decodeFromString<SseEvent>(data)
+            json.decodeFromString<NativeSseEventJson>(data)
         } catch (e: Exception) {
             // Skip malformed events
             continue
@@ -320,7 +276,7 @@ internal suspend fun processSse(
             "response.completed" -> {
                 val respVal = event.response ?: continue
                 try {
-                    responseCompleted = json.decodeFromJsonElement<ResponseCompleted>(respVal)
+                    responseCompleted = json.decodeFromJsonElement<NativeResponseCompleted>(respVal)
                 } catch (e: Exception) {
                     responseError = ApiError.Stream("failed to parse ResponseCompleted: ${e.message}")
                 }

@@ -5,6 +5,7 @@ import ai.solace.coder.core.exec.ExecExpiration
 import ai.solace.coder.core.exec.ExecToolCallOutput
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.isLikelySandboxDenied
+import ai.solace.coder.core.sandboxing.SandboxPermissions
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.protocol.SandboxPolicy
 
@@ -46,25 +47,7 @@ enum class SandboxPreference {
     Forbid,
 }
 
-/** Sandbox permissions levels */
-enum class SandboxPermissions {
-    UseDefault,
-    RequireEscalated;
-
-    fun requiresEscalatedPermissions(): Boolean {
-        return this == RequireEscalated
-    }
-
-    companion object {
-        fun from(withEscalatedPermissions: Boolean): SandboxPermissions {
-            return if (withEscalatedPermissions) {
-                RequireEscalated
-            } else {
-                UseDefault
-            }
-        }
-    }
-}
+// SandboxPermissions moved to commonMain: ai.solace.coder.core.sandboxing.SandboxPermissions
 
 /**
  * Manager for sandbox selection and command transformation. Mirrors Rust's SandboxManager from

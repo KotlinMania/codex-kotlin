@@ -15,6 +15,7 @@ import ai.solace.coder.api.common.ResponseStream as ApiResponseStream
 import ai.solace.coder.api.common.createTextParamForRequest
 import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.error.ApiError
+import ai.solace.coder.client.error.TransportError
 import ai.solace.coder.api.provider.WireApi
 import ai.solace.coder.api.telemetry.RequestTelemetry
 import ai.solace.coder.api.telemetry.SseTelemetry
@@ -22,7 +23,7 @@ import ai.solace.coder.core.AuthManager
 import ai.solace.coder.core.auth.AuthMode
 import ai.solace.coder.core.CodexAuth
 import ai.solace.coder.core.config.Config
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt
@@ -116,9 +117,9 @@ class ModelClient(
     private suspend fun streamChatCompletions(prompt: Prompt): Result<ApiResponseStream> {
         if (prompt.outputSchema != null) {
             return Result.failure(
-                CodexErr.UnsupportedOperation(
+                CodexError.UnsupportedOperation(
                     "output_schema is not supported for Chat Completions API"
-                )
+                ).toException()
             )
         }
 
@@ -308,8 +309,8 @@ class ModelClient(
 
         // Build extra headers for subagent
         val configureHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {
-            if (sessionSource is SessionSource.SubAgent) {
-                // TODO: Extract SubAgentSource value once SessionSource is a sealed class
+            if (sessionSource == SessionSource.SubAgent) {
+                // TODO: Extract SubAgentSource value once SessionSource carries data
                 val subagent = "review" // Placeholder
                 headers.append("x-openai-subagent", subagent)
             }
@@ -355,13 +356,12 @@ private fun mapResponseStream(
     otelEventManager: OtelEventManager
 ): ResponseStream {
     // TODO: Implement full stream mapping with telemetry events
-    // For now, return a placeholder
     return ResponseStream(
         flow {
             // Poll the API stream and emit events
-            var result = apiStream.next()
-            while (result.isSuccess && result.getOrNull() != null) {
-                val event = result.getOrNull()!!
+            var result: Result<ResponseEvent>? = apiStream.next()
+            while (result != null && result.isSuccess) {
+                val event = result.getOrNull() ?: break
 
                 // Handle completion events for telemetry
                 if (event is ResponseEvent.Completed) {
@@ -380,8 +380,8 @@ private fun mapResponseStream(
                 result = apiStream.next()
             }
 
-            // Handle errors
-            if (result.isFailure) {
+            // Handle errors (result is non-null but failed)
+            if (result != null && result.isFailure) {
                 val error = result.exceptionOrNull() ?: Exception("Unknown error")
                 otelEventManager.seeEventCompletedFailed(error)
                 emit(Result.failure(error))
@@ -404,11 +404,11 @@ private suspend fun handleUnauthorized(
     }
 
     if (authManager != null && auth != null && auth.mode == AuthMode.ChatGPT) {
-        return when (val refreshResult = authManager.refreshToken()) {
-            is Result.Success -> Result.success(Unit)
-            is Result.Failure -> Result.failure(
-                CodexErr.RefreshTokenFailed(refreshResult.error.message ?: "Unknown error")
-            )
+        val refreshResult = authManager.refreshToken()
+        return if (refreshResult.isSuccess) {
+            Result.success(Unit)
+        } else {
+            Result.failure(refreshResult.exceptionOrNull() ?: Exception("Unknown refresh error"))
         }
     }
 
@@ -416,7 +416,7 @@ private suspend fun handleUnauthorized(
 }
 
 private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception {
-    return ApiError.Transport("HTTP ${status.value}: Unauthorized")
+    return ApiError.Transport(TransportError.Http(status, body = "Unauthorized"))
 }
 
 private fun isUnauthorizedError(result: Result<*>): Boolean {
@@ -432,13 +432,13 @@ private class ApiTelemetry(
 ) : RequestTelemetry, SseTelemetry {
 
     override fun onRequest(
-        attempt: Long,
+        attempt: Int,
         status: HttpStatusCode?,
-        error: Exception?,
+        error: Throwable?,
         duration: Duration
     ) {
         otelEventManager.recordApiRequest(
-            attempt = attempt,
+            attempt = attempt.toLong(),
             status = status?.value,
             errorMessage = error?.message,
             duration = duration
@@ -446,9 +446,11 @@ private class ApiTelemetry(
     }
 
     override fun onSsePoll(
-        result: Result<*>,
+        hasData: Boolean,
         duration: Duration
     ) {
+        // Convert hasData boolean to a result for the underlying logger
+        val result: Result<Unit> = if (hasData) Result.success(Unit) else Result.failure(Exception("No data"))
         otelEventManager.logSseEvent(result, duration)
     }
 }

@@ -106,7 +106,7 @@ fun tryParseWordOnlyCommandsSequence(tree: Tree, src: String): List<List<String>
     return commands
 }
 
-fun extractBashCommand(command: List<String>): Pair<String, String>? {
+actual fun extractBashCommand(command: List<String>): Pair<String, String>? {
     if (command.size != 3) {
         return null
     }
@@ -132,7 +132,7 @@ fun extractBashCommand(command: List<String>): Pair<String, String>? {
  * `zsh -lc "..."` invocation when the script only contains word-only commands
  * joined by safe operators.
  */
-fun parseShellLcPlainCommands(command: List<String>): List<List<String>>? {
+actual fun parseShellLcPlainCommands(command: List<String>): List<List<String>>? {
     val (_, script) = extractBashCommand(command) ?: return null
 
     val tree = tryParseShell(script) ?: return null

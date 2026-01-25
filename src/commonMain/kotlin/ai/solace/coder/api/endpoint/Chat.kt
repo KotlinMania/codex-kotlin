@@ -76,10 +76,23 @@ enum class AggregateMode {
 class AggregatedStream private constructor(
     private val inner: ResponseStream,
     private val mode: AggregateMode,
-) {
+) : ResponseStream {
     private val cumulative = StringBuilder()
     private val cumulativeReasoning = StringBuilder()
     private val pending = ArrayDeque<ResponseEvent>()
+
+    /**
+     * Implements ResponseStream interface.
+     * Returns null on end-of-stream, otherwise a Result with the next event.
+     */
+    override suspend fun next(): Result<ResponseEvent>? {
+        val result = pollNext()
+        return when {
+            result.isFailure -> Result.failure(result.exceptionOrNull()!!)
+            result.getOrNull() == null -> null
+            else -> Result.success(result.getOrNull()!!)
+        }
+    }
 
     /**
      * Poll the next event from the aggregated stream.

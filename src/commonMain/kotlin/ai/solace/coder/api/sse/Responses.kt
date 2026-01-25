@@ -71,6 +71,13 @@ class ChannelResponseStream(
             null
         }
     }
+
+    /**
+     * Close the stream.
+     */
+    fun close() {
+        rxEvent.close()
+    }
 }
 
 @Serializable
