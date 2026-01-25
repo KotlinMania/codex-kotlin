@@ -3,7 +3,7 @@ package ai.solace.coder.api.endpoint
 
 import ai.solace.coder.api.AuthProvider
 import ai.solace.coder.api.common.Prompt
-import ai.solace.coder.api.common.ResponseEvent
+import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.common.ResponseStream
 import ai.solace.coder.api.provider.Provider
 import ai.solace.coder.api.provider.WireApi
@@ -97,11 +97,11 @@ class AggregatedStream private constructor(
 
         // Poll inner stream in a loop, aggregating as we go
         while (true) {
-            val result = inner.next()
+            val result = inner.next() ?: return Result.success(null)
 
             // Handle errors and end-of-stream
             if (result.isFailure) {
-                return result
+                return Result.failure(result.exceptionOrNull()!!)
             }
 
             val event = result.getOrNull() ?: return Result.success(null)
