@@ -59,7 +59,7 @@ private fun reorderPathExtForStubs(envMap: MutableMap<String, String>) {
     val exts = default.split(';').filter { it.isNotEmpty() }
     val extsNorm = exts.map { it.uppercase() }
     val want = listOf(".BAT", ".CMD")
-    
+
     val front = mutableListOf<String>()
     for (w in want) {
         val idx = extsNorm.indexOf(w)
@@ -67,12 +67,12 @@ private fun reorderPathExtForStubs(envMap: MutableMap<String, String>) {
             front.add(exts[idx])
         }
     }
-    
+
     val rest = exts.filterIndexed { i, _ ->
         val up = extsNorm[i]
         up != ".BAT" && up != ".CMD"
     }
-    
+
     val combined = front + rest
     envMap["PATHEXT"] = combined.joinToString(";")
 }
@@ -110,10 +110,10 @@ fun applyNoNetworkToEnv(envMap: MutableMap<String, String>) {
 
     // Block interactive network tools
     val base = ensureDenybin(listOf("ssh", "scp"), null)
-    
+
     // In Rust, it removes curl/wget stubs. Here we would do the same if we had FS access.
     // TODO: Implement actual file removal.
-    
+
     prependPath(envMap, base)
     reorderPathExtForStubs(envMap)
 }
