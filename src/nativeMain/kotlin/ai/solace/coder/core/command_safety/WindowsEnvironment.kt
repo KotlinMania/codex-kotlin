@@ -2,9 +2,6 @@
 package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.utils.Environment
-import kotlinx.cinterop.ExperimentalForeignApi
-import platform.posix.exit
-import kotlin.collections.set
 
 /**
  * Normalizes null device references in environment variables to Windows 'NUL'.
