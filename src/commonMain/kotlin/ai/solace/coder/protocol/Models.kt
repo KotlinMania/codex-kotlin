@@ -523,6 +523,28 @@ data class ReadResourceResult(
         @kotlinx.serialization.SerialName("mime_type") val mimeType: String? = null
 )
 
+/**
+ * MCP Resource type representing a resource from an MCP server.
+ */
+@Serializable
+data class Resource(
+        val uri: String,
+        val name: String,
+        val description: String? = null,
+        @kotlinx.serialization.SerialName("mimeType") val mimeType: String? = null
+)
+
+/**
+ * MCP ResourceTemplate type representing a resource template from an MCP server.
+ */
+@Serializable
+data class ResourceTemplate(
+        @kotlinx.serialization.SerialName("uriTemplate") val uriTemplate: String,
+        val name: String,
+        val description: String? = null,
+        @kotlinx.serialization.SerialName("mimeType") val mimeType: String? = null
+)
+
 @Serializable
 data class ListResourcesResult(
         val resources: List<Resource>,

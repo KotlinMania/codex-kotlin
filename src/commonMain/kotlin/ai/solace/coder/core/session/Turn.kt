@@ -2,10 +2,14 @@
 package ai.solace.coder.core.session
 
 import ai.solace.coder.client.auth.AuthManager
+import ai.solace.coder.exec.shell.Shell
+import ai.solace.coder.exec.shell.ShellDetector
+import ai.solace.coder.mcp.connection.McpConnectionManager
 import ai.solace.coder.protocol.ReviewDecision
-import ai.solace.coder.utils.concurrent.CancellationToken
 import ai.solace.coder.protocol.TurnAbortReason
 import ai.solace.coder.protocol.ResponseInputItem
+import ai.solace.coder.protocol.RolloutItem
+import ai.solace.coder.utils.concurrent.CancellationToken
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -252,3 +256,143 @@ sealed class UserInput {
 }
 
 // TurnAbortReason is imported from ai.solace.coder.protocol
+
+// =============================================================================
+// ActiveTurnHolder - Mutex wrapper for nullable ActiveTurn
+// Ported from Rust codex-rs/core/src/codex.rs active_turn: Mutex<Option<ActiveTurn>>
+// =============================================================================
+
+/**
+ * Thread-safe holder for the current active turn.
+ * Provides mutex-protected access to the nullable ActiveTurn.
+ */
+class ActiveTurnHolder {
+    private val mutex = Mutex()
+    private var value: ActiveTurn? = null
+
+    /**
+     * Execute a block while holding the lock, passing the current turn.
+     */
+    suspend fun <T> withLock(block: suspend (ActiveTurn?) -> T): T {
+        return mutex.withLock { block(value) }
+    }
+
+    /**
+     * Get the current active turn (requires lock).
+     */
+    suspend fun get(): ActiveTurn? = mutex.withLock { value }
+
+    /**
+     * Set the current active turn (requires lock).
+     */
+    suspend fun set(turn: ActiveTurn?) {
+        mutex.withLock { value = turn }
+    }
+}
+
+// =============================================================================
+// SessionServices - Services available to the session
+// Ported from Rust codex-rs/core/src/state/service.rs
+// =============================================================================
+
+/**
+ * Services available during a session.
+ *
+ * Ported from Rust codex-rs/core/src/state/service.rs SessionServices
+ */
+data class SessionServices(
+    val mcpConnectionManager: ai.solace.coder.mcp.connection.McpConnectionManager,
+    val mcpStartupCancellationToken: CancellationToken,
+    val unifiedExecManager: UnifiedExecSessionManager,
+    val notifier: UserNotifier,
+    val rollout: RolloutRecorder?,
+    val userShell: ai.solace.coder.exec.shell.Shell,
+    val showRawAgentReasoning: Boolean,
+    val authManager: AuthManager,
+    val toolApprovals: ApprovalStore
+)
+
+/**
+ * Stores tool approval decisions.
+ * Ported from Rust codex-rs/core/src/tools/sandboxing.rs ApprovalStore
+ */
+class ApprovalStore {
+    private val approvals = mutableMapOf<String, Boolean>()
+
+    fun isApproved(key: String): Boolean? = approvals[key]
+
+    fun setApproval(key: String, approved: Boolean) {
+        approvals[key] = approved
+    }
+
+    fun clear() {
+        approvals.clear()
+    }
+}
+
+/**
+ * Manages unified exec sessions.
+ * Ported from Rust codex-rs/core/src/unified_exec.rs
+ */
+class UnifiedExecSessionManager {
+    suspend fun terminateAllSessions() {
+        // TODO: Implement session termination
+    }
+}
+
+/**
+ * User notification service.
+ * Ported from Rust codex-rs/core/src/user_notification.rs
+ */
+class UserNotifier(private val config: NotifyConfig?) {
+    fun notify(notification: UserNotification) {
+        // TODO: Implement notification
+    }
+}
+
+/**
+ * Notification configuration.
+ */
+data class NotifyConfig(
+    val enabled: Boolean = true
+)
+
+/**
+ * User notification types.
+ */
+sealed class UserNotification {
+    data class AgentTurnComplete(
+        val threadId: String,
+        val turnId: String,
+        val cwd: String,
+        val inputMessages: List<String>,
+        val lastAssistantMessage: String?
+    ) : UserNotification()
+}
+
+/**
+ * Rollout recorder for session history.
+ * Ported from Rust codex-rs/core/src/rollout.rs
+ */
+class RolloutRecorder private constructor(
+    val rolloutPath: String
+) {
+    suspend fun recordItems(items: List<ai.solace.coder.protocol.RolloutItem>) {
+        // TODO: Implement rollout recording
+    }
+
+    suspend fun flush() {
+        // TODO: Implement flush
+    }
+
+    suspend fun shutdown() {
+        // TODO: Implement shutdown
+    }
+
+    companion object {
+        fun new(config: Any, conversationId: String): RolloutRecorder? {
+            // TODO: Implement rollout recorder creation
+            return RolloutRecorder("/tmp/rollout-$conversationId.jsonl")
+        }
+    }
+}

@@ -103,6 +103,16 @@ class ContextManager {
     fun contents(): List<ResponseItem> = items.toList()
 
     /**
+     * Create a copy of this ContextManager with the same history and token info.
+     */
+    fun copy(): ContextManager {
+        val clone = ContextManager()
+        clone.items.addAll(this.items)
+        clone.tokenInfo = this.tokenInfo?.copy()
+        return clone
+    }
+
+    /**
      * Normalize history to ensure call/output pairs are matched.
      */
     private fun normalizeHistory() {

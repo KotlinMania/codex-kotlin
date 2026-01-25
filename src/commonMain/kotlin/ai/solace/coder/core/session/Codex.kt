@@ -13,14 +13,16 @@ import ai.solace.coder.core.features.Features
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.model.findFamilyForModel
-import ai.solace.coder.core.tools.ProcessedResponseItem
-import ai.solace.coder.core.tools.ToolCall
-import ai.solace.coder.core.tools.ToolCallProcessor
-import ai.solace.coder.core.tools.ToolCallRuntime
-import ai.solace.coder.core.tools.ToolRegistry
-import ai.solace.coder.core.tools.ToolRouter
-import ai.solace.coder.core.tools.ApplyPatchToolType
-import ai.solace.coder.exec.sandbox.ApprovalStore
+// ProcessedResponseItem is defined locally in this file
+// Tool imports - TODO: Create tool module when porting tools
+// import ai.solace.coder.core.tools.ToolCall
+// import ai.solace.coder.core.tools.ToolCallProcessor
+// import ai.solace.coder.core.tools.ToolCallRuntime
+// import ai.solace.coder.core.tools.ToolRegistry
+// import ai.solace.coder.core.tools.ToolRouter
+import ai.solace.coder.core.model.ApplyPatchToolType
+import ai.solace.coder.core.state.SessionState
+import ai.solace.coder.core.config.Config
 import ai.solace.coder.protocol.SandboxCommandAssessment
 import ai.solace.coder.protocol.SandboxRiskLevel
 import ai.solace.coder.exec.shell.Shell
@@ -111,8 +113,7 @@ import kotlin.time.measureTime
 import ai.solace.coder.utils.git.GhostSnapshotReport
 import ai.solace.coder.utils.git.GitToolingError
 import ai.solace.coder.utils.git.ShellGitOperations
-import ai.solace.coder.utils.readiness.ReadinessFlag
-import ai.solace.coder.utils.readiness.ReadinessToken
+// ReadinessFlag and ReadinessToken are defined locally in this file
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -170,6 +171,126 @@ Be concise, structured, and focused on helping the next LLM seamlessly continue 
  * Ported from Rust codex-rs/core/templates/compact/summary_prefix.md
  */
 private const val SUMMARY_PREFIX = """Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:"""
+
+// =============================================================================
+// Helper Functions - Ported from Rust codex-rs/core/src/codex.rs
+// =============================================================================
+
+/**
+ * Get user instructions from config.
+ * Ported from Rust codex-rs/core/src/codex.rs get_user_instructions
+ */
+private fun getUserInstructions(config: Config): String? {
+    return config.userInstructions
+}
+
+/**
+ * Determine the exec policy for the given features.
+ * Ported from Rust codex-rs/core/src/exec_policy.rs exec_policy_for
+ */
+private fun execPolicyFor(features: Features, codexHome: okio.Path): ExecPolicy {
+    // Simplified implementation - return default policy
+    return ExecPolicy()
+}
+
+/**
+ * Collect user messages from history for compaction.
+ * Ported from Rust codex-rs/core/src/compact.rs collect_user_messages
+ */
+private fun collectUserMessages(history: List<ResponseItem>): List<String> {
+    return history.filterIsInstance<ResponseItem.Message>()
+        .filter { it.role == "user" }
+        .flatMap { msg ->
+            msg.content.filterIsInstance<ContentItem.InputText>().map { it.text }
+        }
+}
+
+/**
+ * Build compacted history from user messages.
+ * Ported from Rust codex-rs/core/src/compact.rs build_compacted_history
+ */
+private fun buildCompactedHistory(
+    turnContext: TurnContext,
+    history: List<ResponseItem>,
+    userMessages: List<String>,
+    summary: String
+): List<ResponseItem> {
+    // Simplified implementation - return summary as single message
+    val summaryItem = ResponseItem.Message(
+        role = "assistant",
+        content = listOf(ContentItem.OutputText(text = summary)),
+        id = "compaction-summary"
+    )
+    return listOf(summaryItem)
+}
+
+// =============================================================================
+// Extension Functions for Response Items
+// =============================================================================
+
+/**
+ * Convert UserInput to ResponseInputItem.
+ */
+private fun ResponseInputItem.Companion.fromUserInput(input: List<UserInput>): List<ResponseInputItem> {
+    return input.map { item ->
+        when (item) {
+            is UserInput.Text -> ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = item.content))
+            )
+            is UserInput.Image -> ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "[Image data]"))
+            )
+            is UserInput.FileRef -> ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "[File: ${item.path}]"))
+            )
+        }
+    }
+}
+
+/**
+ * Convert UserInput to ResponseInputItem.
+ */
+private fun UserInput.toResponseInputItem(): ResponseInputItem {
+    return when (this) {
+        is UserInput.Text -> ResponseInputItem.Message(
+            role = "user",
+            content = listOf(ContentItem.InputText(text = content))
+        )
+        is UserInput.Image -> ResponseInputItem.Message(
+            role = "user",
+            content = listOf(ContentItem.InputText(text = "[Image data]"))
+        )
+        is UserInput.FileRef -> ResponseInputItem.Message(
+            role = "user",
+            content = listOf(ContentItem.InputText(text = "[File: $path]"))
+        )
+    }
+}
+
+/**
+ * Convert ResponseInputItem to ResponseItem.
+ */
+private fun ResponseInputItem.toResponseItem(): ResponseItem {
+    return when (this) {
+        is ResponseInputItem.Message -> ResponseItem.Message(
+            role = role,
+            content = content,
+            id = ""
+        )
+        is ResponseInputItem.FunctionCallOutput -> ResponseItem.FunctionCallOutput(
+            callId = callId,
+            output = output
+        )
+        else -> ResponseItem.Message(
+            role = "system",
+            content = listOf(ContentItem.InputText(text = "Unknown input item")),
+            id = ""
+        )
+    }
+}
 
 /**
  * The high-level interface to the Codex system.
@@ -639,7 +760,8 @@ class Session private constructor(
                         val snapshot = history.getHistory()
                         val userMessages = collectUserMessages(snapshot)
                         val rebuilt = buildCompactedHistory(
-                            buildInitialContext(turnContext),
+                            turnContext,
+                            snapshot,
                             userMessages,
                             compacted.message
                         )
@@ -706,7 +828,7 @@ class Session private constructor(
         val items = mutableListOf<ResponseItem>()
 
         turnContext.developerInstructions?.let { instructions ->
-            items.add(DeveloperInstructions(instructions).toResponseItem())
+            items.add(DeveloperInstructions(content = instructions).toResponseItem())
         }
 
         turnContext.userInstructions?.let { instructions ->
@@ -719,8 +841,7 @@ class Session private constructor(
         items.add(EnvironmentContext(
             cwd = turnContext.cwd,
             approvalPolicy = turnContext.approvalPolicy,
-            sandboxPolicy = turnContext.sandboxPolicy,
-            shell = userShell()
+            sandboxPolicy = turnContext.sandboxPolicy
         ).toResponseItem())
 
         return items
@@ -763,7 +884,7 @@ class Session private constructor(
         val estimatedTotalTokens = 0L
 
         stateMutex.withLock {
-            val existingInfo = state.tokenInfo
+            val existingInfo = state.tokenInfo()
             val newLastUsage = TokenUsage(
                 inputTokens = 0,
                 cachedInputTokens = 0,
@@ -772,7 +893,7 @@ class Session private constructor(
                 totalTokens = maxOf(estimatedTotalTokens, 0)
             )
 
-            state.tokenInfo = if (existingInfo != null) {
+            val updatedInfo = if (existingInfo != null) {
                 existingInfo.copy(
                     lastTokenUsage = newLastUsage,
                     modelContextWindow = existingInfo.modelContextWindow ?: turnContext.modelContextWindow
@@ -784,6 +905,7 @@ class Session private constructor(
                     modelContextWindow = turnContext.modelContextWindow
                 )
             }
+            state.setTokenInfo(updatedInfo)
         }
         sendTokenCountEvent(turnContext)
     }
@@ -793,12 +915,10 @@ class Session private constructor(
      */
     suspend fun updateRateLimits(turnContext: TurnContext, newRateLimits: RateLimitSnapshot) {
         stateMutex.withLock {
-            state.rateLimits = newRateLimits
+            state.setRateLimits(newRateLimits)
         }
-        sendEvent(
-            turnContext,
-            EventMsg.ResponseRateLimit(ResponseEvent.RateLimits(newRateLimits))
-        )
+        // Send token count event with the updated rate limits
+        sendTokenCountEvent(turnContext)
     }
 
     /**
@@ -827,7 +947,7 @@ class Session private constructor(
      */
     private suspend fun sendTokenCountEvent(turnContext: TurnContext) {
         val (info, rateLimits) = stateMutex.withLock {
-            Pair(state.tokenInfo, state.rateLimits)
+            state.tokenInfoAndRateLimits()
         }
         val event = EventMsg.TokenCount(TokenCountEvent(
             info = info,
@@ -842,21 +962,21 @@ class Session private constructor(
     suspend fun setTotalTokensFull(turnContext: TurnContext) {
         val contextWindow = turnContext.modelContextWindow ?: return
         stateMutex.withLock {
-            state.tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
+            state.setTokenInfo(TokenUsageInfo.fullContextWindow(contextWindow))
         }
         sendTokenCountEvent(turnContext)
     }
 
     /**
-     * Record a user input item to conversation history and also persist a
+     * Record user input items to conversation history and also persist a
      * corresponding UserMessage EventMsg to rollout.
      */
     suspend fun recordInputAndRolloutUsermsg(
         turnContext: TurnContext,
-        responseInput: ResponseInputItem
+        responseInputs: List<ResponseInputItem>
     ) {
-        val responseItem = responseInput.toResponseItem()
-        recordConversationItems(turnContext, listOf(responseItem))
+        val responseItems = responseInputs.map { it.toResponseItem() }
+        recordConversationItems(turnContext, responseItems)
 
         // Create a TurnItem.UserMessage for the user message
         val userMessageItem = UserMessageItem.new(emptyList())
@@ -1138,6 +1258,26 @@ class Session private constructor(
     }
 
     /**
+     * Notify user of task completion.
+     */
+    suspend fun notifyOnTaskComplete(
+        turnContext: TurnContext,
+        inputMessages: List<String>,
+        lastAgentMessage: String?
+    ) {
+        services.notifier.notify(
+            UserNotification.AgentTurnComplete(
+                threadId = conversationId,
+                turnId = turnContext.subId,
+                cwd = turnContext.cwd,
+                inputMessages = inputMessages,
+                lastAssistantMessage = lastAgentMessage
+            )
+        )
+        onTaskFinished(turnContext, lastAgentMessage)
+    }
+
+    /**
      * Parse an MCP tool name into server and tool parts.
      */
     suspend fun parseMcpToolName(toolName: String): Pair<String, String>? {
@@ -1284,7 +1424,7 @@ class Session private constructor(
                 toolsConfig = toolsConfig,
                 finalOutputJsonSchema = finalOutputJsonSchema,
                 codexLinuxSandboxExe = sessionConfiguration.codexLinuxSandboxExe,
-                toolCallGate = ReadinessFlag(),
+                toolCallGate = ReadinessFlag.new(),
                 execPolicy = sessionConfiguration.execPolicy,
                 truncationPolicy = TruncationPolicy.Tokens(8000)
             )
@@ -1883,3 +2023,388 @@ suspend fun runTask(
             input = turnInput,
             cancellationToken = cancellationToken.child()
         )
+
+        // Process turn result
+        turnResult.fold(
+            onSuccess = { processedItems ->
+                val (responses, lastMessage) = processItems(processedItems, sess, turnContext)
+
+                if (responses.isEmpty()) {
+                    // No more tool calls - task complete
+                    sess.notifyOnTaskComplete(
+                        turnContext,
+                        turnInputMessages,
+                        lastAgentMessage
+                    )
+                    break
+                }
+
+                // Record the responses for the next turn
+                sess.recordConversationItems(turnContext, responses.map { it.toResponseItem() })
+                lastAgentMessage = lastMessage ?: lastAgentMessage
+            },
+            onFailure = { error ->
+                when (error) {
+                    is CodexErr.TurnAborted -> {
+                        // Process any dangling artifacts
+                        processItems(error.danglingArtifacts, sess, turnContext)
+                        break
+                    }
+                    is CodexErr.Interrupted -> break
+                    else -> {
+                        println("INFO: Turn error: ${error.message}")
+                        val errorEvent = if (error is CodexErr) {
+                            error.toErrorEvent(null)
+                        } else {
+                            ErrorEvent(message = error.message ?: "Unknown error")
+                        }
+                        sess.sendEvent(turnContext, EventMsg.Error(errorEvent))
+                        break
+                    }
+                }
+            }
+        )
+    }
+
+    return lastAgentMessage
+}
+
+// =============================================================================
+// Helper Types and Functions
+// =============================================================================
+
+/**
+ * Shared turn diff tracker for tracking file diffs during a turn.
+ */
+class SharedTurnDiffTracker {
+    private val diffs = mutableListOf<String>()
+
+    fun addDiff(diff: String) {
+        diffs.add(diff)
+    }
+
+    fun getUnifiedDiff(): Result<String?> {
+        return if (diffs.isEmpty()) {
+            Result.success(null)
+        } else {
+            Result.success(diffs.joinToString("\n"))
+        }
+    }
+}
+
+/**
+ * Processed response item from a turn.
+ */
+data class ProcessedResponseItem(
+    val item: ResponseItem,
+    val response: ResponseInputItem?
+)
+
+/**
+ * Codex error types.
+ */
+sealed class CodexErr : Exception() {
+    data class TurnAborted(val danglingArtifacts: List<ProcessedResponseItem>) : CodexErr()
+    object Interrupted : CodexErr()
+    data class Stream(override val message: String, val retryDelay: kotlin.time.Duration? = null) : CodexErr()
+    object ContextWindowExceeded : CodexErr()
+    data class Fatal(override val message: String) : CodexErr()
+
+    fun toErrorEvent(callId: String?): ErrorEvent {
+        return ErrorEvent(
+            message = message ?: "Unknown error"
+        )
+    }
+}
+
+/**
+ * Process items from a turn.
+ */
+private suspend fun processItems(
+    items: List<ProcessedResponseItem>,
+    sess: Session,
+    turnContext: TurnContext
+): Pair<List<ResponseInputItem>, String?> {
+    val responses = mutableListOf<ResponseInputItem>()
+    var lastMessage: String? = null
+
+    for (processed in items) {
+        processed.response?.let { responses.add(it) }
+
+        // Extract last assistant message
+        if (processed.item is ResponseItem.Message && processed.item.role == "assistant") {
+            lastMessage = processed.item.content
+                .filterIsInstance<ContentItem.OutputText>()
+                .lastOrNull()?.text
+        }
+    }
+
+    return Pair(responses, lastMessage)
+}
+
+/**
+ * Run a single turn of the conversation.
+ * Ported from Rust codex-rs/core/src/codex.rs run_turn
+ */
+private suspend fun runTurn(
+    sess: Session,
+    turnContext: TurnContext,
+    turnDiffTracker: SharedTurnDiffTracker,
+    input: List<ResponseItem>,
+    cancellationToken: CancellationToken
+): Result<List<ProcessedResponseItem>> {
+    // TODO: Full implementation - for now return empty success
+    // This needs to call the model API and process tool calls
+    return Result.success(emptyList())
+}
+
+// =============================================================================
+// Additional Helper Types
+// =============================================================================
+
+/**
+ * Developer instructions for the session.
+ */
+data class DeveloperInstructions(
+    val content: String
+) {
+    fun toResponseItem(): ResponseItem {
+        return ResponseItem.Message(
+            role = "system",
+            content = listOf(ContentItem.InputText(text = content)),
+            id = "developer-instructions"
+        )
+    }
+}
+
+/**
+ * User instructions for the session.
+ */
+data class UserInstructions(
+    val text: String,
+    val directory: String? = null
+) {
+    fun toResponseItem(): ResponseItem {
+        val fullText = if (directory != null) {
+            "Working directory: $directory\n\n$text"
+        } else {
+            text
+        }
+        return ResponseItem.Message(
+            role = "system",
+            content = listOf(ContentItem.InputText(text = fullText)),
+            id = "user-instructions"
+        )
+    }
+}
+
+/**
+ * Environment context for a turn.
+ */
+data class EnvironmentContext(
+    val cwd: String,
+    val shellPath: String? = null,
+    val environment: Map<String, String> = emptyMap(),
+    val approvalPolicy: AskForApproval? = null,
+    val sandboxPolicy: SandboxPolicy? = null
+) {
+    /**
+     * Check if two contexts are equal except for the shell path.
+     */
+    fun equalsExceptShell(other: EnvironmentContext): Boolean {
+        return cwd == other.cwd &&
+            environment == other.environment &&
+            approvalPolicy == other.approvalPolicy &&
+            sandboxPolicy == other.sandboxPolicy
+    }
+
+    /**
+     * Convert to a response item.
+     */
+    fun toResponseItem(): ResponseItem {
+        val content = buildString {
+            append("CWD: $cwd")
+            if (shellPath != null) append("\nShell: $shellPath")
+            if (approvalPolicy != null) append("\nApproval: $approvalPolicy")
+            if (sandboxPolicy != null) append("\nSandbox: $sandboxPolicy")
+        }
+        return ResponseItem.Message(
+            role = "system",
+            content = listOf(ContentItem.InputText(text = content)),
+            id = "env-context"
+        )
+    }
+
+    companion object {
+        /**
+         * Create from a TurnContext.
+         */
+        fun from(context: TurnContext): EnvironmentContext {
+            return EnvironmentContext(
+                cwd = context.cwd,
+                shellPath = null,
+                environment = emptyMap(),
+                approvalPolicy = context.approvalPolicy,
+                sandboxPolicy = context.sandboxPolicy
+            )
+        }
+
+        /**
+         * Create a diff between two contexts.
+         */
+        fun diff(previous: TurnContext?, next: TurnContext): EnvironmentContext {
+            return EnvironmentContext(
+                cwd = next.cwd,
+                shellPath = null,
+                environment = emptyMap(),
+                approvalPolicy = next.approvalPolicy,
+                sandboxPolicy = next.sandboxPolicy
+            )
+        }
+    }
+}
+
+/**
+ * Readiness flag for coordinating async operations.
+ */
+class ReadinessFlag private constructor() {
+    private var ready = false
+
+    fun subscribe(): Result<ReadinessToken> {
+        return Result.success(ReadinessToken(this))
+    }
+
+    fun setReady() {
+        ready = true
+    }
+
+    fun isReady(): Boolean = ready
+
+    companion object {
+        fun new(): ReadinessFlag = ReadinessFlag()
+    }
+}
+
+/**
+ * Token for readiness subscription.
+ */
+class ReadinessToken(private val flag: ReadinessFlag) {
+    fun isReady(): Boolean = flag.isReady()
+}
+
+// =============================================================================
+// Task Types
+// =============================================================================
+
+/**
+ * Regular task for processing user input.
+ */
+class RegularTask : SessionTask {
+    override fun kind(): TaskKind = TaskKind.Regular
+
+    override suspend fun run(
+        sessionContext: SessionTaskContext,
+        turnContext: TurnContext,
+        input: List<UserInput>,
+        cancellationToken: CancellationToken
+    ): String? {
+        return runTask(
+            sessionContext.getSession(),
+            turnContext,
+            input,
+            cancellationToken
+        )
+    }
+}
+
+/**
+ * Compact task for compacting conversation history.
+ */
+class CompactTask : SessionTask {
+    override fun kind(): TaskKind = TaskKind.Compact
+
+    override suspend fun run(
+        sessionContext: SessionTaskContext,
+        turnContext: TurnContext,
+        input: List<UserInput>,
+        cancellationToken: CancellationToken
+    ): String? {
+        // TODO: Implement compaction
+        return null
+    }
+}
+
+/**
+ * Undo task for undoing the last action.
+ */
+class UndoTask : SessionTask {
+    override fun kind(): TaskKind = TaskKind.Regular
+
+    override suspend fun run(
+        sessionContext: SessionTaskContext,
+        turnContext: TurnContext,
+        input: List<UserInput>,
+        cancellationToken: CancellationToken
+    ): String? {
+        // TODO: Implement undo
+        return null
+    }
+}
+
+/**
+ * User shell command task.
+ */
+class UserShellCommandTask(private val command: String) : SessionTask {
+    override fun kind(): TaskKind = TaskKind.Regular
+
+    override suspend fun run(
+        sessionContext: SessionTaskContext,
+        turnContext: TurnContext,
+        input: List<UserInput>,
+        cancellationToken: CancellationToken
+    ): String? {
+        // TODO: Implement user shell command execution
+        return null
+    }
+}
+
+/**
+ * Ghost snapshot task for creating background snapshots.
+ */
+class GhostSnapshotTask(
+    private val token: ReadinessToken,
+    private val flag: ReadinessFlag
+) : SessionTask {
+    override fun kind(): TaskKind = TaskKind.Regular
+
+    override suspend fun run(
+        sessionContext: SessionTaskContext,
+        turnContext: TurnContext,
+        input: List<UserInput>,
+        cancellationToken: CancellationToken
+    ): String? {
+        // TODO: Implement ghost snapshot
+        return null
+    }
+}
+
+/**
+ * Discover custom prompts from the file system.
+ */
+private fun discoverCustomPrompts(): List<ai.solace.coder.protocol.CustomPrompt> {
+    // TODO: Implement custom prompt discovery
+    return emptyList()
+}
+
+/**
+ * Spawn a review thread.
+ */
+private suspend fun spawnReviewThread(
+    sess: Session,
+    config: ai.solace.coder.core.config.Config,
+    turnContext: TurnContext,
+    subId: String,
+    reviewRequest: ReviewRequest
+) {
+    // TODO: Implement review thread spawning
+}

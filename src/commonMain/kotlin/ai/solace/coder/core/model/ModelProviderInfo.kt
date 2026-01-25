@@ -162,6 +162,17 @@ data class ModelProviderInfo(
     fun streamIdleTimeout(): Duration {
         return (streamIdleTimeoutMs ?: DEFAULT_STREAM_IDLE_TIMEOUT_MS).milliseconds
     }
+
+    companion object {
+        /**
+         * Create a default ModelProviderInfo for OpenAI.
+         */
+        fun default(): ModelProviderInfo = ModelProviderInfo(
+            name = "OpenAI",
+            wireApi = WireApi.Responses,
+            requiresOpenAiAuth = true
+        )
+    }
 }
 
 /**
