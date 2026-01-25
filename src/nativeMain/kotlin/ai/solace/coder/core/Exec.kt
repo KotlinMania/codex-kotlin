@@ -3,65 +3,21 @@ package ai.solace.coder.core
 
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.exec.ExecExpiration
+import ai.solace.coder.core.exec.ExecParams
+import ai.solace.coder.core.exec.ExecToolCallOutput
+import ai.solace.coder.core.exec.SimpleProcessResult
+import ai.solace.coder.core.exec.StreamOutput
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.CommandSpec
 import ai.solace.coder.exec.sandbox.ExecEnv
 import ai.solace.coder.exec.sandbox.SandboxManager
 import ai.solace.coder.exec.shell.ShellDetector
 import ai.solace.coder.protocol.SandboxPolicy
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.measureTime
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-
-/** Configuration for process execution */
-data class ExecParams(
-        val command: List<String>,
-        val cwd: String,
-        val expiration: ExecExpiration,
-        val env: Map<String, String> = emptyMap(),
-        val withEscalatedPermissions: Boolean? = null,
-        val justification: String? = null,
-        val arg0: String? = null
-)
-
-/** Mechanism to terminate an exec invocation before it finishes naturally */
-sealed class ExecExpiration {
-    data class Timeout(val duration: kotlin.time.Duration) : ExecExpiration()
-    object DefaultTimeout : ExecExpiration()
-    data class Cancellation(val cancelToken: Job) : ExecExpiration()
-
-    companion object {
-        fun fromTimeoutMs(timeoutMs: Long?): ExecExpiration {
-            return if (timeoutMs != null) {
-                Timeout(timeoutMs.milliseconds)
-            } else {
-                DefaultTimeout
-            }
-        }
-    }
-}
-
-/** Output streams from process execution */
-data class StreamOutput<T>(val text: T, val truncatedAfterLines: UInt? = null)
-
-/** Simple process result for internal command execution (e.g., git commands) */
-data class SimpleProcessResult(val exitCode: Int, val stdout: String, val stderr: String)
-
-/** Result of process execution */
-data class ExecToolCallOutput(
-        val exitCode: Int,
-        val stdout: StreamOutput<String>,
-        val stderr: StreamOutput<String>,
-        val aggregatedOutput: StreamOutput<String>,
-        val duration: kotlin.time.Duration,
-        val timedOut: Boolean
-)
 
 /** Raw process output before UTF-8 conversion */
 private data class RawExecToolCallOutput(

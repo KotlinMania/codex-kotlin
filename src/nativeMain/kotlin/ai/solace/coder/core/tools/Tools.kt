@@ -1,10 +1,10 @@
 // port-lint: source core/src/tools/mod.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.context.TruncationPolicy
-import ai.solace.coder.core.truncate.formattedTruncateText
-import ai.solace.coder.core.truncate.truncateText
+import ai.solace.coder.core.context.formattedTruncateText
+import ai.solace.coder.core.context.truncateText
+import ai.solace.coder.core.exec.ExecToolCallOutput
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.round

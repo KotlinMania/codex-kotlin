@@ -1,8 +1,8 @@
 // port-lint: source codex-rs/core/src/sandboxing/mod.rs
 package ai.solace.coder.exec.sandbox
 
-import ai.solace.coder.core.ExecExpiration
-import ai.solace.coder.core.ExecToolCallOutput
+import ai.solace.coder.core.exec.ExecExpiration
+import ai.solace.coder.core.exec.ExecToolCallOutput
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.isLikelySandboxDenied
 import ai.solace.coder.exec.process.SandboxType

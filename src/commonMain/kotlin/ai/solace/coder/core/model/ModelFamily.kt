@@ -88,6 +88,15 @@ data class ModelFamily(
 ) {
     companion object {
         const val DEFAULT_BASE_INSTRUCTIONS = """You are a helpful AI coding assistant."""
+
+        /**
+         * Returns a default ModelFamily for generic use.
+         * Ported from Rust derive_default_model_family pattern.
+         */
+        fun default(): ModelFamily = ModelFamily(
+            slug = "default",
+            family = "default"
+        )
     }
 }
 

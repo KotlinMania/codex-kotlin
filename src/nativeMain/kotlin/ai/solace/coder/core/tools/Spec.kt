@@ -117,15 +117,16 @@ sealed class JsonSchema {
 sealed class AdditionalProperties {
     @Serializable
     data class Boolean(val value: kotlin.Boolean) : AdditionalProperties()
-    
+
     @Serializable
     data class Schema(val schema: JsonSchema) : AdditionalProperties()
-    
-    companion object {
-        fun from(b: kotlin.Boolean) = Boolean(b)
-        fun from(s: JsonSchema) = Schema(s)
-    }
 }
+
+/** Create an [AdditionalProperties] from a boolean value. */
+fun additionalPropertiesFrom(b: kotlin.Boolean): AdditionalProperties = AdditionalProperties.Boolean(b)
+
+/** Create an [AdditionalProperties] from a JSON schema. */
+fun additionalPropertiesFrom(s: JsonSchema): AdditionalProperties = AdditionalProperties.Schema(s)
 
 fun createExecCommandTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
@@ -145,7 +146,7 @@ fun createExecCommandTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("cmd"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -164,7 +165,7 @@ fun createWriteStdinTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("session_id"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -192,7 +193,7 @@ fun createShellTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("command"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -215,7 +216,7 @@ fun createShellCommandTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("command"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -231,7 +232,7 @@ fun createViewImageTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("path"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -249,7 +250,7 @@ fun createTestSyncTool(): ToolSpec {
     properties["barrier"] = JsonSchema.Object(
         properties = barrierProperties,
         required = listOf("id", "participants"),
-        additionalProperties = AdditionalProperties.from(false)
+        additionalProperties = additionalPropertiesFrom(false)
     )
 
     return ToolSpec.Function(ResponsesApiTool(
@@ -259,7 +260,7 @@ fun createTestSyncTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = null,
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -278,7 +279,7 @@ fun createGrepFilesTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("pattern"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -300,7 +301,7 @@ fun createReadFileTool(): ToolSpec {
     properties["indentation"] = JsonSchema.Object(
         properties = indentationProperties,
         required = null,
-        additionalProperties = AdditionalProperties.from(false)
+        additionalProperties = additionalPropertiesFrom(false)
     )
 
     return ToolSpec.Function(ResponsesApiTool(
@@ -310,7 +311,7 @@ fun createReadFileTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("file_path"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -329,7 +330,7 @@ fun createListDirTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("dir_path"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -346,7 +347,7 @@ fun createListMcpResourcesTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = null,
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -363,7 +364,7 @@ fun createListMcpResourceTemplatesTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = null,
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -380,7 +381,7 @@ fun createReadMcpResourceTool(): ToolSpec {
         parameters = JsonSchema.Object(
             properties = properties,
             required = listOf("server", "uri"),
-            additionalProperties = AdditionalProperties.from(false)
+            additionalProperties = additionalPropertiesFrom(false)
         )
     ))
 }
@@ -554,9 +555,9 @@ fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
             val additionalProperties = element["additionalProperties"]?.let { ap ->
                 when {
                     ap is JsonPrimitive && ap.booleanOrNull != null -> 
-                        AdditionalProperties.from(ap.boolean)
+                        additionalPropertiesFrom(ap.boolean)
                     ap is JsonObject -> 
-                        AdditionalProperties.from(convertJsonElementToJsonSchema(ap))
+                        additionalPropertiesFrom(convertJsonElementToJsonSchema(ap))
                     else -> null
                 }
             }

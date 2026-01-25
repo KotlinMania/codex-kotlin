@@ -106,3 +106,6 @@ all_matched.txt
 files_with_headers.txt
 tasks.json
 tasks.json.lock
+
+# Vendored dependencies
+tmp/

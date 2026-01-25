@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/runtimes/unified_exec.rs
 package ai.solace.coder.core.tools.runtimes
 
-import ai.solace.coder.core.ExecExpiration
+import ai.solace.coder.core.exec.ExecExpiration
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx

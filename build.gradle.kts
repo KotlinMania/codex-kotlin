@@ -8,10 +8,10 @@ plugins {
 // AST Distance Tool Build Tasks
 // =============================================================================
 
-val astDistanceDir = project.file("tools/ast_distance")
+val astDistanceDir: File = project.file("tools/ast_distance")
 val astDistanceBuildDir = astDistanceDir.resolve("build")
 val astDistanceBinary = astDistanceBuildDir.resolve("ast_distance")
-val astDistanceOutput = project.file("tools/ast_distance")
+val astDistanceOutput: File = project.file("tools/ast_distance")
 
 tasks.register<Exec>("configureAstTool") {
     description = "Configure AST distance tool with CMake"
@@ -48,7 +48,7 @@ tasks.register<Exec>("buildAstTool") {
 // Lint Tasks
 // =============================================================================
 
-val kotlinSrcDir = project.file("src/nativeMain/kotlin")
+val kotlinSrcDir: File = project.file("src/nativeMain/kotlin")
 
 tasks.register<Exec>("portLint") {
     description = "Run port-lint checks on Kotlin codebase"
@@ -157,7 +157,7 @@ repositories {
     mavenCentral()
 }
 
-    kotlin {
+kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xreturn-value-checker=full")
         freeCompilerArgs.add("-Xexplicit-backing-fields")
@@ -192,7 +192,7 @@ repositories {
         file("local.properties").exists()
 
     if (androidSdkAvailable) {
-        apply(plugin = "com.android.library")
+        project.apply(plugin = "com.android.library")
         androidTarget {
             publishLibraryVariants("release")
         }
@@ -202,16 +202,16 @@ repositories {
         commonMain {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.9.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
                 
                 // Ktor HTTP client
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
-                implementation("io.ktor:ktor-client-auth:2.3.7")
+                implementation("io.ktor:ktor-client-core:3.0.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.0.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.3")
+                implementation("io.ktor:ktor-client-auth:3.0.3")
 
                 // File I/O
                 implementation("com.squareup.okio:okio:3.9.0")
@@ -223,7 +223,7 @@ repositories {
 
         val nativeMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-curl:2.3.7")
+                implementation("io.ktor:ktor-client-curl:3.0.3")
 
                 // Character encoding support (for legacy codepage conversion)
                 // fleeksoft-io provides JDK-like IO classes for Kotlin Multiplatform

@@ -130,7 +130,7 @@ private fun splitIntoCommands(tokens: List<String>): List<List<String>>? {
             // Reject if any token embeds separators, redirection, or call operator characters.
             else -> {
                 if (token.contains('|') || token.contains(';') || token.contains('>') ||
-                    token.contains('<') || token.contains('&') || token.contains("\$(")
+                    token.contains('<') || token.contains('&') || token.contains("$(")
                 ) {
                     // Examples rejected here: "pwsh -Command 'dir|select'" and "pwsh -Command 'echo hi > out.txt'".
                     return null

@@ -201,7 +201,7 @@ class UnifiedExecSessionManager {
                         cwd = cwd,
                         env = emptyMap(), // TODO: Inherit or config
                         expiration =
-                                ai.solace.coder.core.ExecExpiration
+                                ai.solace.coder.core.exec.ExecExpiration
                                         .DefaultTimeout, // Unified execs are usually
                         // interactive/long-running?
                         withEscalatedPermissions = withEscalatedPermissions,

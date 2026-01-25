@@ -26,15 +26,18 @@ sealed class ExecExpiration {
 
     @Serializable
     data class Cancellation(val cancelToken: Job) : ExecExpiration()
+}
 
-    companion object {
-        fun fromTimeoutMs(timeoutMs: Long?): ExecExpiration {
-            return if (timeoutMs != null) {
-                Timeout(timeoutMs.milliseconds)
-            } else {
-                DefaultTimeout
-            }
-        }
+/**
+ * Create an [ExecExpiration] from a timeout in milliseconds.
+ *
+ * Ported from Rust impl ExecExpiration::from_timeout_ms
+ */
+fun execExpirationFromTimeoutMs(timeoutMs: Long?): ExecExpiration {
+    return if (timeoutMs != null) {
+        ExecExpiration.Timeout(timeoutMs.milliseconds)
+    } else {
+        ExecExpiration.DefaultTimeout
     }
 }
 

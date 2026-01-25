@@ -109,18 +109,18 @@ class UnifiedExecHandler : ToolHandler {
 
                                         Result.success(
                                                 ToolOutput.Exec(
-                                                        ai.solace.coder.core.ExecToolCallOutput(
+                                                        ai.solace.coder.core.exec.ExecToolCallOutput(
                                                                 exitCode = response.exitCode ?: -1,
                                                                 stdout =
-                                                                        ai.solace.coder.core
+                                                                        ai.solace.coder.core.exec
                                                                                 .StreamOutput(
                                                                                         response.output
                                                                                 ),
                                                                 stderr =
-                                                                        ai.solace.coder.core
+                                                                        ai.solace.coder.core.exec
                                                                                 .StreamOutput(""),
                                                                 aggregatedOutput =
-                                                                        ai.solace.coder.core
+                                                                        ai.solace.coder.core.exec
                                                                                 .StreamOutput(
                                                                                         response.output
                                                                                 ),

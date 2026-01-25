@@ -170,11 +170,13 @@ sealed class SandboxPolicy {
         }
     }
 
-    companion object {
-        fun newReadOnlyPolicy(): SandboxPolicy = ReadOnly
-        fun newWorkspaceWritePolicy(): SandboxPolicy = WorkspaceWrite()
-    }
 }
+
+/** Returns a policy with read-only disk access and no network. */
+fun newReadOnlyPolicy(): SandboxPolicy = SandboxPolicy.ReadOnly
+
+/** Returns a workspace-write policy with default settings. */
+fun newWorkspaceWritePolicy(): SandboxPolicy = SandboxPolicy.WorkspaceWrite()
 
 /** A writable root path with read-only subpaths. */
 @Serializable

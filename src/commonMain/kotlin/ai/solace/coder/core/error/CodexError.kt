@@ -1,7 +1,8 @@
 // port-lint: source core/src/error.rs
 package ai.solace.coder.core.error
 
-import ai.solace.coder.core.ExecToolCallOutput
+import ai.solace.coder.core.exec.ExecToolCallOutput
+import ai.solace.coder.core.exec.StreamOutput
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.core.context.truncateText
 import ai.solace.coder.protocol.CodexErrorInfo
@@ -498,6 +499,20 @@ sealed class CodexError {
         override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
         override fun httpStatusCodeValue(): Int? = null
         override fun toString(): String = "codex-linux-sandbox was required but not provided"
+    }
+
+    /** Linux landlock ruleset error. */
+    data class LandlockRuleset(val message: String) : CodexError() {
+        override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.SandboxError
+        override fun httpStatusCodeValue(): Int? = null
+        override fun toString(): String = message
+    }
+
+    /** Linux landlock path file descriptor error. */
+    data class LandlockPathFd(val message: String) : CodexError() {
+        override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.SandboxError
+        override fun httpStatusCodeValue(): Int? = null
+        override fun toString(): String = message
     }
 
     /** Unsupported operation. */

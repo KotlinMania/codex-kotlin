@@ -2,8 +2,9 @@
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.Exec
-import ai.solace.coder.core.ExecExpiration
-import ai.solace.coder.core.ExecParams
+import ai.solace.coder.core.exec.ExecExpiration
+import ai.solace.coder.core.exec.ExecParams
+import ai.solace.coder.core.exec.execExpirationFromTimeoutMs
 import ai.solace.coder.core.command_safety.isKnownSafeCommand
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
@@ -105,7 +106,7 @@ class ShellHandler : ToolHandler {
                         return ExecParams(
                                 command = params.command,
                                 cwd = turnContext.resolvePath(params.workdir),
-                                expiration = ExecExpiration.fromTimeoutMs(params.timeoutMs),
+                                expiration = execExpirationFromTimeoutMs(params.timeoutMs),
                                 env = createEnv(turnContext.shellEnvironmentPolicy),
                                 withEscalatedPermissions = params.withEscalatedPermissions,
                                 justification = params.justification,
@@ -232,7 +233,7 @@ class ShellCommandHandler : ToolHandler {
                         return ExecParams(
                                 command = command,
                                 cwd = turnContext.resolvePath(params.workdir),
-                                expiration = ExecExpiration.fromTimeoutMs(params.timeoutMs),
+                                expiration = execExpirationFromTimeoutMs(params.timeoutMs),
                                 env = createEnv(turnContext.shellEnvironmentPolicy),
                                 withEscalatedPermissions = params.withEscalatedPermissions,
                                 justification = params.justification,

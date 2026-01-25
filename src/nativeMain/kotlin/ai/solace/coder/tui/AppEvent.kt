@@ -9,6 +9,8 @@ import ai.solace.coder.protocol.RateLimitSnapshot
 import ai.solace.coder.protocol.ReasoningEffort
 import ai.solace.coder.protocol.SandboxPolicy
 import ai.solace.coder.protocol.FileChange
+import ai.solace.coder.protocol.SandboxCommandAssessment
+import ai.solace.coder.protocol.SandboxRiskLevel
 
 /**
  * Application-level events used by the TUI.
@@ -238,16 +240,4 @@ sealed class ApprovalRequest {
         val requestId: String,
         val message: String
     ) : ApprovalRequest()
-}
-
-data class SandboxCommandAssessment(
-    val riskLevel: SandboxRiskLevel,
-    val reason: String?
-)
-
-enum class SandboxRiskLevel {
-    Low,
-    Medium,
-    High,
-    Critical
 }

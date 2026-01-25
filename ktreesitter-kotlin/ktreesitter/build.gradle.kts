@@ -311,7 +311,7 @@ tasks.withType<DokkaGeneratePublicationTask> {
             into(tmpDir)
             filter { file ->
                 file.replaceFirst("# KTreeSitter", "# Module KTreeSitter")
-                    .replaceFirst("\$ktreesitterVersion", "\"$version\"")
+                    .replaceFirst($$"$ktreesitterVersion", "\"$version\"")
                     .replace("[x]", "&#x2611;").replace("[ ]", "&#x2610;")
             }
         }
