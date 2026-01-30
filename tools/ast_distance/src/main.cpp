@@ -1110,11 +1110,63 @@ void cmd_release(const std::string& task_file, const std::string& source_qualifi
         return;
     }
 
+    // Find the task
+    auto it = std::find_if(tm.tasks.begin(), tm.tasks.end(),
+        [&](const PortTask& t) { return t.source_qualified == source_qualified; });
+    
+    if (it == tm.tasks.end() || it->status != TaskStatus::ASSIGNED) {
+        std::cerr << "Task not found or not assigned: " << source_qualified << "\n";
+        return;
+    }
+    
+    // Check if target file exists - if so, require completion or deletion
+    std::filesystem::path target_path = std::filesystem::path(tm.target_root) / it->target_path;
+    if (std::filesystem::exists(target_path)) {
+        std::filesystem::path source_path = std::filesystem::path(tm.source_root) / it->source_path;
+        
+        // Try to compute similarity - if we can't even parse, that's a HARD FAIL
+        std::cerr << "Error: Cannot release task - target file already exists: " << target_path.string() << "\n";
+        std::cerr << "Checking similarity...\n";
+        
+        // Parse and compare
+        Language src_lang = Language::RUST;  // default
+        if (tm.source_lang == "rust") src_lang = Language::RUST;
+        else if (tm.source_lang == "kotlin") src_lang = Language::KOTLIN;
+        else if (tm.source_lang == "cpp") src_lang = Language::CPP;
+        
+        Language tgt_lang = Language::KOTLIN;  // default
+        if (tm.target_lang == "rust") tgt_lang = Language::RUST;
+        else if (tm.target_lang == "kotlin") tgt_lang = Language::KOTLIN;
+        else if (tm.target_lang == "cpp") tgt_lang = Language::CPP;
+        
+        ASTParser parser;
+        auto src_tree = parser.parse_file(source_path.string(), src_lang);
+        auto tgt_tree = parser.parse_file(target_path.string(), tgt_lang);
+        
+        if (!src_tree || !tgt_tree) {
+            std::cerr << "Error: Cannot parse files for comparison\n";
+            std::cerr << "This usually means the target file has syntax errors.\n";
+            std::cerr << "Fix the errors or delete the file to release.\n";
+            return;
+        }
+        
+        float similarity = ASTSimilarity::combined_similarity(src_tree.get(), tgt_tree.get());
+        
+        // Require >= 0.70 similarity to release
+        if (similarity < 0.70f) {
+            std::cerr << "Error: Cannot release task with low similarity: " << similarity << "\n";
+            std::cerr << "Target file exists but is incomplete (< 0.70 similarity required)\n";
+            std::cerr << "Either complete the port or delete the target file to release.\n";
+            return;
+        }
+        
+        std::cerr << "Warning: Releasing with partial port (similarity " << similarity << ")\n";
+        std::cerr << "Consider completing it instead (use --complete).\n";
+    }
+
     if (tm.release_task(source_qualified)) {
         tm.save();
         std::cout << "Released task: " << source_qualified << "\n";
-    } else {
-        std::cerr << "Task not found or not assigned: " << source_qualified << "\n";
     }
 }
 
