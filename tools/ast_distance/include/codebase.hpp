@@ -4,6 +4,7 @@
 #include "ast_parser.hpp"
 #include "similarity.hpp"
 #include "porting_utils.hpp"
+#include "port_lint.hpp"
 #include <filesystem>
 #include <map>
 #include <set>
@@ -42,6 +43,7 @@ struct SourceFile {
 
     // Porting analysis
     std::string transliterated_from;  // "Transliterated from:" header value
+    std::string port_lint_source;     // "// port-lint: source" header value
     int line_count = 0;
     int code_lines = 0;
     bool is_stub = false;
@@ -229,6 +231,11 @@ public:
         for (auto& [path, sf] : files) {
             // Extract "Transliterated from:" header
             sf.transliterated_from = PortingAnalyzer::extract_transliterated_from(sf.path);
+            
+            // Extract "// port-lint: source" header
+            if (auto source = port_lint::extract_source_annotation(sf.path)) {
+                sf.port_lint_source = *source;
+            }
 
             // Get file stats
             FileStats stats = PortingAnalyzer::analyze_file(sf.path);
@@ -528,7 +535,74 @@ public:
         std::set<std::string> matched_sources;
         std::set<std::string> matched_targets;
 
-        // First pass: Match by "Transliterated from:" header
+        // PRIORITY 1: Match by "// port-lint: source" header (most reliable)
+        // This is explicit provenance tracking from port_linter.py
+        std::vector<std::tuple<float, std::string, std::string>> port_lint_candidates;
+        
+        for (const auto& [tgt_path, tgt_file] : target.files) {
+            if (tgt_file.port_lint_source.empty()) continue;
+            
+            // port_lint_source is like: "core/src/codex.rs"
+            // Find the source file with this relative path
+            for (const auto& [src_path, src_file] : source.files) {
+                float match_score = 0.0f;
+                
+                // Check if port_lint_source matches the FULL relative path (most precise)
+                if (src_file.relative_path == tgt_file.port_lint_source) {
+                    match_score = 1.0f;  // Perfect match
+                }
+                // Check if it's a partial path match (end of path)
+                else if (src_file.relative_path.ends_with(tgt_file.port_lint_source)) {
+                    match_score = 0.95f;
+                }
+                // Check if just the filename matches
+                else if (tgt_file.port_lint_source.ends_with("/" + src_file.filename) ||
+                         tgt_file.port_lint_source == src_file.filename) {
+                    match_score = 0.8f;
+                }
+                
+                if (match_score > 0.0f) {
+                    port_lint_candidates.emplace_back(match_score, src_path, tgt_path);
+                }
+            }
+        }
+        
+        // Sort port-lint candidates by score (highest first)
+        std::sort(port_lint_candidates.begin(), port_lint_candidates.end(),
+            [](const auto& a, const auto& b) {
+                return std::get<0>(a) > std::get<0>(b);
+            });
+        
+        // Match port-lint annotated files first
+        for (const auto& [score, src_path, tgt_path] : port_lint_candidates) {
+            if (matched_sources.count(src_path) || matched_targets.count(tgt_path)) {
+                continue;  // Already matched
+            }
+            
+            const auto& src_file = source.files.at(src_path);
+            const auto& tgt_file = target.files.at(tgt_path);
+            
+            Match m;
+            m.source_path = src_path;
+            m.target_path = tgt_path;
+            m.source_qualified = src_file.qualified_name;
+            m.target_qualified = tgt_file.qualified_name;
+            m.similarity = 0.0f;
+            m.source_dependents = src_file.dependent_count;
+            m.target_dependents = tgt_file.dependent_count;
+            m.source_lines = src_file.line_count;
+            m.target_lines = tgt_file.line_count;
+            m.todo_count = tgt_file.todos.size();
+            m.lint_count = tgt_file.lint_errors.size();
+            m.is_stub = tgt_file.is_stub;
+            m.matched_by_header = true;  // port-lint counts as header match
+            
+            matches.push_back(m);
+            matched_sources.insert(src_path);
+            matched_targets.insert(tgt_path);
+        }
+
+        // PRIORITY 2: Match by "Transliterated from:" header (legacy, for older ports)
         // Target files reference source files, so look in target for headers
         // Store candidates with scores for best matching
         std::vector<std::tuple<float, std::string, std::string>> header_candidates;
