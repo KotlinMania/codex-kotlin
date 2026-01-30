@@ -119,22 +119,72 @@ If you don’t have the tool:
 - **Context:** Rust's type system and traits often carry subtle behaviors (buffering, blocking, formatting state) that are not obvious from the function signature alone.
 - **Example:** `core::fmt::Formatter` manages padding, alignment, and flags. A simple string concatenation in Kotlin is often an insufficient port if the original Rust code used these features.
 
+### Provenance Tracking (REQUIRED)
+
+**Every ported Kotlin file MUST include a port-lint header at the top:**
+
+```kotlin
+// port-lint: source <relative-path-to-rust-file>
+package ai.solace.coder.module
+```
+
+**Examples:**
+```kotlin
+// port-lint: source core/src/codex.rs
+package ai.solace.coder.core.session
+
+// port-lint: source tui/src/history_cell.rs
+package ai.solace.coder.tui
+
+// port-lint: source execpolicy-legacy/src/exec_call.rs
+package ai.solace.coder.execpolicy.legacy
+```
+
+**Purpose:**
+- Enables accurate AST comparison and similarity scoring
+- Makes file matching deterministic (no heuristic guessing)
+- Supports documentation coverage analysis
+- Tracks which Rust file each Kotlin port came from
+
+**Rules:**
+1. Header must appear in the first 50 lines (conventionally first line)
+2. Path is relative to `codex-rs/` root
+3. Use exact path including module subdirectories (e.g., `core/src/`, not just `core/`)
+4. Header is case-insensitive but prefer lowercase
+
+**Verification:**
+The AST distance tool will match files by port-lint header first, then fall back to name-based heuristics. Check coverage with:
+```bash
+./tools/ast_distance/ast_distance --deep codex-rs rust src kotlin
+# Shows "Matched by header: X / Y" statistics
+```
+
+**Suppression (rare):**
+For duplicate types or variants, you can suppress duplicate warnings:
+```kotlin
+// port-lint: ignore-duplicate
+@Serializable
+data class Foo(...)
+```
+
 ---
 
 ## AST Distance Tool
 
-A vendored cross-language AST comparison tool for analyzing port progress and identifying priority files.
+A vendored cross-language AST comparison tool for analyzing port progress and identifying priority files. **Integrated with port-lint provenance tracking.**
 
 ### Location
 ```
 tools/ast_distance/
 ├── CMakeLists.txt
 ├── README.md
+├── PORT_LINT_TESTS.md  # Test results and examples
 ├── include/
 │   ├── ast_parser.hpp      # Tree-sitter parsing for Rust/Kotlin/C++
 │   ├── codebase.hpp        # Directory scanning, dependency graphs, matching
 │   ├── imports.hpp         # Import/include extraction, package detection
 │   ├── node_types.hpp      # Normalized AST node type mappings
+│   ├── port_lint.hpp       # Port-lint header extraction and matching
 │   ├── similarity.hpp      # Cosine similarity, combined scoring
 │   └── tree.hpp            # Tree data structure
 └── src/
@@ -157,6 +207,13 @@ cmake .. && make -j8
 ```bash
 ./ast_distance --deep ../../../codex-rs rust ../../../src kotlin
 ```
+
+This will:
+1. Match files by `// port-lint: source` header (highest priority)
+2. Fall back to legacy `Transliterated from:` headers
+3. Use name-based heuristics for unmatched files
+4. Compute AST similarity scores for all matches
+5. Report statistics: "Matched by header: X / Y"
 
 **Check what's missing:**
 ```bash
