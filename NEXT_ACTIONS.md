@@ -91,3 +91,12 @@ cd tools/ast_distance
 # Get next high-priority task
 ./ast_distance --assign tasks.json <agent-id>
 ```
+## Starlark Dependency
+
+The exec-policy module requires a Kotlin port of Starlark for policy_parser.rs.
+This is being ported separately at: https://github.com/KotlinMania/starlark-kotlin
+
+Files blocked on starlark-kotlin completion:
+- src/commonMain/kotlin/ai/solace/coder/execpolicy/PolicyParser.kt
+
+Once starlark-kotlin reaches sufficient maturity, PolicyParser can be completed.
