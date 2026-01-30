@@ -7,6 +7,7 @@
 #include <iostream>
 #include <filesystem>
 #include <iomanip>
+#include <ctime>
 
 using namespace ast_distance;
 
@@ -192,6 +193,245 @@ void cmd_rank(const std::string& src_dir, const std::string& src_lang,
     comp.print_report();
 }
 
+void generate_reports(const Codebase& source, const Codebase& target,
+                      const CodebaseComparator& comp,
+                      const std::vector<CodebaseComparator::Match>& ranked,
+                      const std::vector<const SourceFile*>& missing,
+                      const std::vector<std::pair<float, const CodebaseComparator::Match*>>& doc_gaps,
+                      int incomplete_count,
+                      int total_src_doc_lines,
+                      int total_tgt_doc_lines) {
+    
+    std::cout << "\n=== Generating Reports ===\n\n";
+    
+    // Calculate statistics
+    int total_source = source.files.size();
+    int total_target = target.files.size();
+    int matched = comp.matches.size();
+    float completion_pct = (static_cast<float>(total_target) / static_cast<float>(total_source)) * 100.0f;
+    
+    // Count quality distribution
+    int excellent = 0, good = 0, critical = 0;
+    float avg_similarity = 0.0f;
+    for (const auto& m : comp.matches) {
+        avg_similarity += m.similarity;
+        if (m.similarity >= 0.85) excellent++;
+        else if (m.similarity >= 0.60) good++;
+        else critical++;
+    }
+    if (!comp.matches.empty()) {
+        avg_similarity /= comp.matches.size();
+    }
+    
+    // Get current date/time as string
+    std::time_t now = std::time(nullptr);
+    char date_buf[100];
+    std::strftime(date_buf, sizeof(date_buf), "%Y-%m-%d", std::localtime(&now));
+    
+    // 1. Generate port_status_report.md
+    {
+        std::ofstream report("port_status_report.md");
+        report << "# Code Port - Progress Report\n\n";
+        report << "**Generated:** " << date_buf << "\n";
+        report << "**Source:** " << source.root_path << "\n";
+        report << "**Target:** " << target.root_path << "\n\n";
+        
+        report << "## Executive Summary\n\n";
+        report << "| Metric | Count | Percentage |\n";
+        report << "|--------|-------|------------|\n";
+        report << "| Total source files | " << total_source << " | 100% |\n";
+        report << "| Ported to target | " << total_target << " | " 
+               << std::fixed << std::setprecision(1) << completion_pct << "% |\n";
+        report << "| Matched files | " << matched << " | "
+               << std::fixed << std::setprecision(1) 
+               << (static_cast<float>(matched) / total_source * 100.0f) << "% |\n";
+        report << "| Missing files | " << comp.unmatched_source.size() << " | "
+               << std::fixed << std::setprecision(1)
+               << (static_cast<float>(comp.unmatched_source.size()) / total_source * 100.0f) << "% |\n\n";
+        
+        report << "## Port Quality Analysis\n\n";
+        report << "**Average Similarity:** " << std::fixed << std::setprecision(2) << avg_similarity << "\n\n";
+        report << "**Quality Distribution:**\n";
+        report << "- Excellent (≥0.85): " << excellent << " files (" 
+               << std::fixed << std::setprecision(1) << (static_cast<float>(excellent) / matched * 100.0f) << "% of matched)\n";
+        report << "- Good (0.60-0.84): " << good << " files ("
+               << std::fixed << std::setprecision(1) << (static_cast<float>(good) / matched * 100.0f) << "% of matched)\n";
+        report << "- Critical (<0.60): " << critical << " files ("
+               << std::fixed << std::setprecision(1) << (static_cast<float>(critical) / matched * 100.0f) << "% of matched)\n\n";
+        
+        report << "### Excellent Ports (Similarity ≥ 0.85)\n\n";
+        report << "These files are well-ported and likely complete:\n\n";
+        int shown = 0;
+        for (const auto& m : ranked) {
+            if (m.similarity >= 0.85 && shown++ < 15) {
+                report << "- `" << m.target_qualified << "` (" << std::fixed << std::setprecision(2)
+                       << m.similarity << ", " << m.source_dependents << " deps)\n";
+            }
+        }
+        report << "\n";
+        
+        report << "### Critical Ports (Similarity < 0.60)\n\n";
+        report << "These files need significant work:\n\n";
+        for (const auto& m : ranked) {
+            if (m.similarity < 0.60) {
+                report << "- `" << m.source_qualified << "` → `" << m.target_qualified 
+                       << "` (" << std::fixed << std::setprecision(2) << m.similarity;
+                if (m.source_dependents > 0) report << ", " << m.source_dependents << " deps";
+                report << ")\n";
+            }
+        }
+        report << "\n";
+        
+        report << "## High Priority Missing Files\n\n";
+        report << "Files with highest dependency counts:\n\n";
+        int shown_missing = 0;
+        for (const auto* sf : missing) {
+            if (shown_missing++ < 20) {
+                report << shown_missing << ". **" << sf->qualified_name << "** (" 
+                       << sf->dependent_count << " deps)\n";
+            }
+        }
+        report << "\n";
+        
+        report << "## Documentation Gaps\n\n";
+        report << "**Documentation coverage:** " << total_tgt_doc_lines << " / " 
+               << total_src_doc_lines << " lines (";
+        if (total_src_doc_lines > 0) {
+            report << std::fixed << std::setprecision(0)
+                   << (100.0f * total_tgt_doc_lines / total_src_doc_lines) << "%)\n\n";
+        } else {
+            report << "N/A)\n\n";
+        }
+        
+        report << "Files with significant documentation gaps (>80%):\n\n";
+        int shown_docs = 0;
+        for (const auto& [gap, m] : doc_gaps) {
+            if (gap > 0.8f && shown_docs++ < 10) {
+                report << "- `" << m->source_qualified << "` - " 
+                       << std::fixed << std::setprecision(0) << (gap * 100) << "% gap ("
+                       << m->source_doc_lines << " → " << m->target_doc_lines << " lines)\n";
+            }
+        }
+        report << "\n";
+        
+        std::cout << "✅ Generated: port_status_report.md\n";
+    }
+    
+    // 2. Generate high_priority_ports.md
+    {
+        std::ofstream report("high_priority_ports.md");
+        report << "# High Priority Ports - Action Plan\n\n";
+        
+        report << "## Top 20 Files by Impact (Priority Score = Deps × (1 - Similarity))\n\n";
+        report << "| Rank | Source | Target | Similarity | Deps | Priority |\n";
+        report << "|------|--------|--------|------------|------|----------|\n";
+        
+        int rank = 1;
+        for (const auto& m : ranked) {
+            if (rank <= 20) {
+                float priority = m.source_dependents * (1.0f - m.similarity);
+                report << "| " << rank++ << " | `" << m.source_qualified << "` | `"
+                       << m.target_qualified << "` | " << std::fixed << std::setprecision(2)
+                       << m.similarity << " | " << m.source_dependents << " | "
+                       << std::fixed << std::setprecision(1) << priority << " |\n";
+            }
+        }
+        report << "\n";
+        
+        report << "## Critical Issues (Similarity < 0.60 with Dependencies)\n\n";
+        bool has_critical = false;
+        for (const auto& m : ranked) {
+            if (m.similarity < 0.60 && m.source_dependents > 0) {
+                if (!has_critical) {
+                    report << "These files need immediate attention:\n\n";
+                    has_critical = true;
+                }
+                report << "- **" << m.source_qualified << "** → `" << m.target_qualified << "`\n";
+                report << "  - Similarity: " << std::fixed << std::setprecision(2) << m.similarity << "\n";
+                report << "  - Dependencies: " << m.source_dependents << "\n";
+                if (m.todo_count > 0) report << "  - TODOs: " << m.todo_count << "\n";
+                if (m.lint_count > 0) report << "  - Lint issues: " << m.lint_count << "\n";
+                report << "\n";
+            }
+        }
+        if (!has_critical) {
+            report << "No critical issues with dependencies.\n\n";
+        }
+        
+        std::cout << "✅ Generated: high_priority_ports.md\n";
+    }
+    
+    // 3. Generate NEXT_ACTIONS.md
+    {
+        std::ofstream report("NEXT_ACTIONS.md");
+        report << "# Immediate Actions - High-Value Files\n\n";
+        report << "Based on AST analysis, here are the concrete next steps.\n\n";
+        
+        report << "## Summary\n\n";
+        report << "- **Current Progress:** " << std::fixed << std::setprecision(1) 
+               << completion_pct << "% (" << total_target << "/" << total_source << " files)\n";
+        report << "- **Matched Files:** " << matched << "\n";
+        report << "- **Average Similarity:** " << std::fixed << std::setprecision(2) 
+               << avg_similarity << "\n";
+        report << "- **Critical Issues:** " << critical << " files with <0.60 similarity\n\n";
+        
+        report << "## Priority 1: Fix Incomplete High-Dependency Files\n\n";
+        int p1_count = 0;
+        for (const auto& m : ranked) {
+            if (m.similarity < 0.85 && m.source_dependents >= 10 && p1_count++ < 10) {
+                report << "### " << p1_count << ". " << m.source_qualified << "\n";
+                report << "- **Similarity:** " << std::fixed << std::setprecision(2) 
+                       << m.similarity << " (needs " << std::fixed << std::setprecision(0)
+                       << ((0.85f - m.similarity) * 100.0f) << "% improvement)\n";
+                report << "- **Dependencies:** " << m.source_dependents << "\n";
+                report << "- **Priority Score:** " << std::fixed << std::setprecision(1)
+                       << (m.source_dependents * (1.0f - m.similarity)) << "\n";
+                if (m.todo_count > 0) report << "- **TODOs:** " << m.todo_count << "\n";
+                report << "- **Action:** ";
+                if (m.similarity < 0.60) report << "Deep review - likely missing major functionality\n";
+                else if (m.similarity < 0.75) report << "Review and complete missing sections\n";
+                else report << "Minor refinements needed\n";
+                report << "\n";
+            }
+        }
+        
+        report << "## Priority 2: Port Missing High-Value Files\n\n";
+        report << "Critical missing files (>10 dependencies):\n\n";
+        int p2_count = 0;
+        for (const auto* sf : missing) {
+            if (sf->dependent_count >= 10 && p2_count++ < 10) {
+                report << p2_count << ". **" << sf->qualified_name << "** (" 
+                       << sf->dependent_count << " deps)\n";
+                report << "   - Path: `" << sf->relative_path << "`\n";
+                report << "   - Essential for " << sf->dependent_count << " other files\n\n";
+            }
+        }
+        
+        report << "## Success Criteria\n\n";
+        report << "For each file to be considered \"complete\":\n";
+        report << "- **Similarity ≥ 0.85** (Excellent threshold)\n";
+        report << "- All public APIs ported\n";
+        report << "- All tests ported\n";
+        report << "- Documentation ported\n";
+        report << "- port-lint header present\n\n";
+        
+        report << "## Next Commands\n\n";
+        report << "```bash\n";
+        report << "# Initialize task queue for systematic porting\n";
+        report << "cd tools/ast_distance\n";
+        report << "./ast_distance --init-tasks ../../" << source.root_path 
+               << " " << source.language << " ../../" << target.root_path 
+               << " " << target.language << " tasks.json ../../AGENTS.md\n\n";
+        report << "# Get next high-priority task\n";
+        report << "./ast_distance --assign tasks.json <agent-id>\n";
+        report << "```\n";
+        
+        std::cout << "✅ Generated: NEXT_ACTIONS.md\n";
+    }
+    
+    std::cout << "\n📁 All reports generated successfully!\n";
+}
+
 void cmd_deep(const std::string& src_dir, const std::string& src_lang,
               const std::string& tgt_dir, const std::string& tgt_lang) {
     std::cout << "=== Deep Analysis: " << src_dir << " (" << src_lang << ") -> "
@@ -310,10 +550,11 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
         }
     }
 
+    // Prepare missing files vector for report generation
+    std::vector<const SourceFile*> missing;
     if (!comp.unmatched_source.empty()) {
         std::cout << "\nTop priority to create:\n";
         // Sort unmatched by dependents
-        std::vector<const SourceFile*> missing;
         for (const auto& path : comp.unmatched_source) {
             missing.push_back(&source.files.at(path));
         }
@@ -349,6 +590,14 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
             return (a.first * a.second->source_doc_lines) > (b.first * b.second->source_doc_lines);
         });
 
+    // Calculate total doc lines (moved out of block for report generation)
+    int total_src_doc_lines = 0;
+    int total_tgt_doc_lines = 0;
+    for (const auto& m : comp.matches) {
+        total_src_doc_lines += m.source_doc_lines;
+        total_tgt_doc_lines += m.target_doc_lines;
+    }
+
     if (doc_gaps.empty()) {
         std::cout << "No significant documentation gaps found.\n";
     } else {
@@ -376,20 +625,16 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
                       << "\n";
         }
 
-        // Summary
-        int total_src_doc_lines = 0;
-        int total_tgt_doc_lines = 0;
-        for (const auto& m : comp.matches) {
-            total_src_doc_lines += m.source_doc_lines;
-            total_tgt_doc_lines += m.target_doc_lines;
-        }
-
         std::cout << "\nDocumentation coverage: " << total_tgt_doc_lines << " / " << total_src_doc_lines
                   << " lines (" << std::fixed << std::setprecision(0)
                   << (total_src_doc_lines > 0 ? (100.0f * total_tgt_doc_lines / total_src_doc_lines) : 0)
                   << "%)\n";
         std::cout << "Files with >20% doc gap: " << doc_gaps.size() << "\n";
     }
+
+    // Generate markdown reports
+    generate_reports(source, target, comp, ranked, missing, doc_gaps, 
+                     incomplete, total_src_doc_lines, total_tgt_doc_lines);
 }
 
 void cmd_missing(const std::string& src_dir, const std::string& src_lang,
