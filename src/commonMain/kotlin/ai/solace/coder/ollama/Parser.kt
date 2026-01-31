@@ -3,10 +3,7 @@ package ai.solace.coder.ollama
 
 import kotlinx.serialization.json.*
 
-/**
- * Convert a single JSON object representing a pull update into one or more events.
- * Ported from Rust ollama/src/parser.rs
- */
+// Convert a single JSON object representing a pull update into one or more events.
 fun pullEventsFromValue(value: JsonElement): List<PullEvent> {
     val events = mutableListOf<PullEvent>()
     val obj = value.jsonObject

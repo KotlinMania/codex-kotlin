@@ -4,47 +4,55 @@
 
 | Rank | Source | Target | Similarity | Deps | Priority |
 |------|--------|--------|------------|------|----------|
-| 1 | `core.terminal` | `terminal.Terminal.native` | 0.55 | 13 | 5.8 |
-| 2 | `core.error` | `error.CodexError` | 0.89 | 50 | 5.6 |
-| 3 | `ollama.parser` | `ollama.Parser` | 0.76 | 23 | 5.5 |
-| 4 | `otel.config` | `otel.Config` | 0.89 | 45 | 5.1 |
-| 5 | `protocol.user_input` | `protocol.UserInput` | 0.75 | 20 | 5.0 |
-| 6 | `tui.style` | `tui.Style` | 0.75 | 16 | 4.1 |
-| 7 | `codex-client.request` | `requests.ResponsesRequest` | 0.57 | 9 | 3.9 |
-| 8 | `protocol.conversation_id` | `protocol.ConversationId` | 0.86 | 25 | 3.4 |
-| 9 | `tui.history_cell` | `tui.HistoryCell` | 0.71 | 11 | 3.2 |
-| 10 | `tui.app_event` | `tui.AppEvent` | 0.77 | 14 | 3.2 |
-| 11 | `state.session` | `state.SessionState` | 0.83 | 18 | 3.1 |
-| 12 | `protocol.models` | `auth.AuthModels` | 0.61 | 7 | 2.8 |
-| 13 | `tui.tui` | `tui.Tui` | 0.69 | 9 | 2.8 |
-| 14 | `tui.color` | `tui.Color` | 0.82 | 15 | 2.7 |
-| 15 | `tui.app_event_sender` | `tui.AppEventSender` | 0.83 | 12 | 2.1 |
-| 16 | `render.renderable` | `render.Renderable` | 0.90 | 19 | 2.0 |
-| 17 | `tools.context` | `tools.Context` | 0.90 | 19 | 1.9 |
-| 18 | `core.model_provider_info` | `model.ModelProviderInfo` | 0.75 | 7 | 1.7 |
-| 19 | `core.conversation_manager` | `conversation.ConversationManager` | 0.83 | 9 | 1.6 |
-| 20 | `core.parse_command` | `protocol.ParseCommand` | 0.50 | 3 | 1.5 |
+| 1 | `core.error` | `error.CodexError` | 0.85 | 50 | 7.4 |
+| 2 | `otel.config` | `otel.Config` | 0.85 | 45 | 6.9 |
+| 3 | `ollama.parser` | `ollama.Parser` | 0.73 | 23 | 6.1 |
+| 4 | `tui.history_cell` | `tui.HistoryCell` | 0.47 | 11 | 5.8 |
+| 5 | `protocol.user_input` | `protocol.UserInput` | 0.75 | 20 | 5.1 |
+| 6 | `protocol.conversation_id` | `protocol.ConversationId` | 0.81 | 25 | 4.8 |
+| 7 | `state.session` | `state.SessionState` | 0.78 | 18 | 3.9 |
+| 8 | `tools.context` | `tools.Context` | 0.80 | 19 | 3.8 |
+| 9 | `tui.key_hint` | `tui.KeyHint` | 0.68 | 11 | 3.6 |
+| 10 | `tui.style` | `tui.Style` | 0.79 | 16 | 3.4 |
+| 11 | `tui.app_event` | `tui.AppEvent` | 0.80 | 14 | 2.9 |
+| 12 | `tui.color` | `color.Color` | 0.82 | 15 | 2.7 |
+| 13 | `tui.app_event_sender` | `tui.AppEventSender` | 0.78 | 12 | 2.7 |
+| 14 | `core.features` | `features.FeaturesExpect` | 0.48 | 5 | 2.6 |
+| 15 | `render.renderable` | `render.Renderable` | 0.86 | 19 | 2.6 |
+| 16 | `core.model_provider_info` | `model.ModelProviderInfo` | 0.72 | 7 | 1.9 |
+| 17 | `core.conversation_manager` | `conversation.ConversationManager` | 0.79 | 9 | 1.9 |
+| 18 | `windows-sandbox-rs.env` | `command_safety.WindowsEnvironment` | 0.79 | 8 | 1.7 |
+| 19 | `execpolicy-legacy.exec_call` | `legacy.ExecCall` | 0.79 | 8 | 1.7 |
+| 20 | `core.terminal` | `core.Terminal` | 0.88 | 13 | 1.6 |
 
 ## Critical Issues (Similarity < 0.60 with Dependencies)
 
 These files need immediate attention:
 
-- **core.terminal** → `terminal.Terminal.native`
-  - Similarity: 0.55
-  - Dependencies: 13
+- **tui.history_cell** → `tui.HistoryCell`
+  - Similarity: 0.47
+  - Dependencies: 11
+  - Lint issues: 2
 
-- **codex-client.request** → `requests.ResponsesRequest`
-  - Similarity: 0.57
-  - Dependencies: 9
-  - TODOs: 5
-  - Lint issues: 1
+- **core.features** → `features.FeaturesExpect`
+  - Similarity: 0.48
+  - Dependencies: 5
 
-- **core.parse_command** → `protocol.ParseCommand`
-  - Similarity: 0.50
-  - Dependencies: 3
+- **core.turn_diff_tracker** → `session.TurnDiffTrackerExpect`
+  - Similarity: 0.41
+  - Dependencies: 2
 
-- **app-server.codex_message_processor** → `process.WindowsProcess`
-  - Similarity: 0.59
+- **windows-sandbox-rs.token** → `auth.IdTokenParser`
+  - Similarity: 0.43
+  - Dependencies: 2
+
+- **core.mcp_connection_manager** → `connection.McpConnectionManager`
+  - Similarity: 0.60
+  - Dependencies: 2
+  - TODOs: 3
+  - Lint issues: 7
+
+- **core.environment_context** → `utils.Environment`
+  - Similarity: 0.46
   - Dependencies: 1
-  - Lint issues: 5
 

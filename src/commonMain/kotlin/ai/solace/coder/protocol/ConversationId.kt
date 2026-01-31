@@ -17,38 +17,31 @@ import kotlinx.serialization.encoding.Encoder
  * Ported from Rust codex-rs/protocol/src/conversation_id.rs
  */
 @Serializable(with = ConversationIdSerializer::class)
+@OptIn(ExperimentalUuidApi::class)
 data class ConversationId(
-    private val uuid: String
+    private val uuid: Uuid
 ) {
     companion object {
         fun new(): ConversationId {
-            return ConversationId(generateUuidV7())
-        }
-
-        fun default(): ConversationId {
-            return ConversationId("00000000-0000-0000-0000-000000000000")
+            return ConversationId(Uuid.random())
         }
 
         fun fromString(s: String): kotlin.Result<ConversationId> {
             return runCatching {
-                // Basic UUID validation
-                if (s.length == 36 && s.count { it == '-' } == 4) {
-                    ConversationId(s)
-                } else {
-                    throw IllegalArgumentException("Invalid UUID format: $s")
-                }
+                ConversationId(Uuid.parse(s))
             }
-        }
-
-        @OptIn(ExperimentalUuidApi::class)
-        private fun generateUuidV7(): String {
-            // Use Kotlin's built-in UUID (random v4 for now, close enough for unique IDs)
-            return Uuid.random().toString()
         }
     }
 
-    override fun toString(): String = uuid
+    override fun toString(): String = uuid.toString()
 }
+
+/** Default implementation matching Rust's `impl Default`. */
+@OptIn(ExperimentalUuidApi::class)
+fun ConversationId.Companion.default(): ConversationId = ConversationId.new()
+
+/** Extension function to provide compatibility with `JsonSchema`. */
+fun ConversationId.Companion.schemaName(): String = "ConversationId"
 
 object ConversationIdSerializer : KSerializer<ConversationId> {
     override val descriptor: SerialDescriptor =

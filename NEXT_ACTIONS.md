@@ -4,68 +4,71 @@ Based on AST analysis, here are the concrete next steps.
 
 ## Summary
 
-- **Current Progress:** 36.7% (163/444 files)
-- **Matched Files:** 150
-- **Average Similarity:** 0.76
-- **Critical Issues:** 20 files with <0.60 similarity
+- **Current Progress:** 25.0% (111/444 files)
+- **Matched Files:** 108
+- **Average Similarity:** 0.74
+- **Critical Issues:** 13 files with <0.60 similarity
 
 ## Priority 1: Fix Incomplete High-Dependency Files
 
-### 1. core.terminal
-- **Similarity:** 0.55 (needs 30% improvement)
-- **Dependencies:** 13
+### 1. otel.config
+- **Similarity:** 0.85 (needs 0% improvement)
+- **Dependencies:** 45
+- **Priority Score:** 6.9
+- **Action:** Minor refinements needed
+
+### 2. ollama.parser
+- **Similarity:** 0.73 (needs 12% improvement)
+- **Dependencies:** 23
+- **Priority Score:** 6.1
+- **Action:** Review and complete missing sections
+
+### 3. tui.history_cell
+- **Similarity:** 0.47 (needs 38% improvement)
+- **Dependencies:** 11
 - **Priority Score:** 5.8
 - **Action:** Deep review - likely missing major functionality
 
-### 2. ollama.parser
-- **Similarity:** 0.76 (needs 9% improvement)
-- **Dependencies:** 23
-- **Priority Score:** 5.5
-- **Action:** Minor refinements needed
-
-### 3. protocol.user_input
+### 4. protocol.user_input
 - **Similarity:** 0.75 (needs 10% improvement)
 - **Dependencies:** 20
-- **Priority Score:** 5.0
-- **Action:** Minor refinements needed
-
-### 4. tui.style
-- **Similarity:** 0.75 (needs 10% improvement)
-- **Dependencies:** 16
-- **Priority Score:** 4.1
-- **TODOs:** 1
+- **Priority Score:** 5.1
 - **Action:** Review and complete missing sections
 
-### 5. tui.history_cell
-- **Similarity:** 0.71 (needs 14% improvement)
-- **Dependencies:** 11
-- **Priority Score:** 3.2
-- **TODOs:** 19
-- **Action:** Review and complete missing sections
-
-### 6. tui.app_event
-- **Similarity:** 0.77 (needs 8% improvement)
-- **Dependencies:** 14
-- **Priority Score:** 3.2
+### 5. protocol.conversation_id
+- **Similarity:** 0.81 (needs 4% improvement)
+- **Dependencies:** 25
+- **Priority Score:** 4.8
 - **Action:** Minor refinements needed
 
-### 7. state.session
-- **Similarity:** 0.83 (needs 2% improvement)
+### 6. state.session
+- **Similarity:** 0.78 (needs 7% improvement)
 - **Dependencies:** 18
-- **Priority Score:** 3.1
+- **Priority Score:** 3.9
 - **Action:** Minor refinements needed
 
-### 8. tui.color
-- **Similarity:** 0.82 (needs 3% improvement)
-- **Dependencies:** 15
-- **Priority Score:** 2.7
+### 7. tools.context
+- **Similarity:** 0.80 (needs 5% improvement)
+- **Dependencies:** 19
+- **Priority Score:** 3.8
 - **Action:** Minor refinements needed
 
-### 9. tui.app_event_sender
-- **Similarity:** 0.83 (needs 2% improvement)
-- **Dependencies:** 12
-- **Priority Score:** 2.1
-- **TODOs:** 2
+### 8. tui.key_hint
+- **Similarity:** 0.68 (needs 17% improvement)
+- **Dependencies:** 11
+- **Priority Score:** 3.6
+- **Action:** Review and complete missing sections
+
+### 9. tui.style
+- **Similarity:** 0.79 (needs 6% improvement)
+- **Dependencies:** 16
+- **Priority Score:** 3.4
+- **Action:** Minor refinements needed
+
+### 10. tui.app_event
+- **Similarity:** 0.80 (needs 5% improvement)
+- **Dependencies:** 14
+- **Priority Score:** 2.9
 - **Action:** Minor refinements needed
 
 ## Priority 2: Port Missing High-Value Files
@@ -91,12 +94,3 @@ cd tools/ast_distance
 # Get next high-priority task
 ./ast_distance --assign tasks.json <agent-id>
 ```
-## Starlark Dependency
-
-The exec-policy module requires a Kotlin port of Starlark for policy_parser.rs.
-This is being ported separately at: https://github.com/KotlinMania/starlark-kotlin
-
-Files blocked on starlark-kotlin completion:
-- src/commonMain/kotlin/ai/solace/coder/execpolicy/PolicyParser.kt
-
-Once starlark-kotlin reaches sufficient maturity, PolicyParser can be completed.

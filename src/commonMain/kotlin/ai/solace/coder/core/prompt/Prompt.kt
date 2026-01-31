@@ -14,7 +14,7 @@ data class Prompt(
     /** Conversation context input items. */
     val input: List<ResponseItem>,
     /** Tools available to the model. */
-    val tools: List<Any>,
+    val tools: List<ToolSpec>,
     /** Whether parallel tool calls are permitted for this prompt. */
     val parallelToolCalls: Boolean,
     /** Optional override for the built-in BASE_INSTRUCTIONS. */
@@ -27,8 +27,28 @@ data class Prompt(
      * and any overrides.
      */
     fun getFullInstructions(modelFamily: ModelFamily): String {
-        // TODO: Implement proper instruction building from base_instructions.rs
-        return baseInstructionsOverride ?: "Instructions placeholder"
+        val base = baseInstructionsOverride ?: modelFamily.baseInstructions
+
+        // When there are no custom instructions, add apply_patch_tool_instructions if:
+        // - the model needs special instructions (4.1)
+        // AND
+        // - there is no apply_patch tool present
+        val isApplyPatchToolPresent = tools.any { tool ->
+            when (tool) {
+                is ToolSpec.Function -> tool.function.name == "apply_patch"
+                is ToolSpec.Freeform -> tool.custom.name == "apply_patch"
+                else -> false
+            }
+        }
+
+        return if (baseInstructionsOverride == null &&
+            modelFamily.needsSpecialApplyPatchInstructions &&
+            !isApplyPatchToolPresent
+        ) {
+            "$base\n$APPLY_PATCH_TOOL_INSTRUCTIONS"
+        } else {
+            base
+        }
     }
 
     /**

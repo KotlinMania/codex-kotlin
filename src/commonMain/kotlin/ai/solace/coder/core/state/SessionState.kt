@@ -9,30 +9,26 @@ import ai.solace.coder.protocol.TokenUsage
 import ai.solace.coder.protocol.TokenUsageInfo
 import ai.solace.coder.protocol.ResponseItem
 
-/**
- * Persistent, session-scoped state previously stored directly on `Session`.
- */
+/** Persistent, session-scoped state previously stored directly on `Session`. */
 internal class SessionState(
     var sessionConfiguration: SessionConfiguration,
-    val history: ContextManager = ContextManager(),
+    var history: ContextManager = ContextManager(),
     var latestRateLimits: RateLimitSnapshot? = null
 ) {
-    /**
-     * Create a new session state mirroring previous `State::default()` semantics.
-     */
-    constructor(sessionConfiguration: SessionConfiguration) : this(
-        sessionConfiguration = sessionConfiguration,
-        history = ContextManager(),
-        latestRateLimits = null
-    )
+    companion object {
+        /** Create a new session state mirroring previous `State::default()` semantics. */
+        fun new(sessionConfiguration: SessionConfiguration): SessionState {
+            return SessionState(sessionConfiguration)
+        }
+    }
 
-    // History helpers
-    fun recordItems(items: List<ResponseItem>, policy: TruncationPolicy) {
+    /** History helpers */
+    fun recordItems(items: Iterable<ResponseItem>, policy: TruncationPolicy) {
         history.recordItems(items, policy)
     }
 
     fun cloneHistory(): ContextManager {
-        return history.copy()
+        return history.clone()
     }
 
     fun replaceHistory(items: List<ResponseItem>) {
@@ -43,7 +39,7 @@ internal class SessionState(
         history.setTokenInfo(info)
     }
 
-    // Token/rate limit helpers
+    /** Token/rate limit helpers */
     fun updateTokenInfoFromUsage(
         usage: TokenUsage,
         modelContextWindow: Long?
@@ -56,11 +52,11 @@ internal class SessionState(
     }
 
     fun setRateLimits(snapshot: RateLimitSnapshot) {
-        this.latestRateLimits = snapshot
+        latestRateLimits = snapshot
     }
 
     fun tokenInfoAndRateLimits(): Pair<TokenUsageInfo?, RateLimitSnapshot?> {
-        return Pair(tokenInfo(), latestRateLimits)
+        return tokenInfo() to latestRateLimits
     }
 
     fun setTokenUsageFull(contextWindow: Long) {

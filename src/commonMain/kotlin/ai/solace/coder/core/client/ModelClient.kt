@@ -27,6 +27,7 @@ import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt
+import ai.solace.coder.core.prompt.ToolSpec
 import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.protocol.ReasoningEffortConfig
 import ai.solace.coder.protocol.ReasoningSummaryConfig
@@ -506,12 +507,12 @@ private fun getModelInfo(modelFamily: ModelFamily): ModelInfo? {
     return null
 }
 
-private fun createToolsJsonForChatCompletionsApi(tools: List<Any>): List<JsonElement>? {
+private fun createToolsJsonForChatCompletionsApi(tools: List<ToolSpec>): List<JsonElement>? {
     // TODO: Port from tools/spec.rs
     return emptyList()
 }
 
-private fun createToolsJsonForResponsesApi(tools: List<Any>): List<JsonElement>? {
+private fun createToolsJsonForResponsesApi(tools: List<ToolSpec>): List<JsonElement>? {
     // TODO: Port from tools/spec.rs
     return emptyList()
 }
