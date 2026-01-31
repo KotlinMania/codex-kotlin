@@ -107,14 +107,16 @@ import ai.solace.coder.protocol.ExecCommandSource
 import ai.solace.coder.protocol.ParsedCommand
 import ai.solace.coder.core.exec.ExecParams
 import ai.solace.coder.core.exec.ExecExpiration
-import ai.solace.coder.utils.git.CreateGhostCommitOptions
-import kotlin.time.Duration
+import ai.solace.coder.core.prompt.Prompt
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.*
+import kotlinx.coroutines.CompletableDeferred
+import ai.solace.coder.core.client.ResponseStream
 import kotlin.time.measureTime
 import ai.solace.coder.utils.git.GhostSnapshotReport
 import ai.solace.coder.utils.git.GitToolingError
 import ai.solace.coder.utils.git.ShellGitOperations
 // ReadinessFlag and ReadinessToken are defined locally in this file
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -640,8 +642,136 @@ class Session private constructor(
         command: List<String>,
         failureMessage: String?
     ): SandboxCommandAssessment? {
-        // TODO: Implement command assessment
-        return null
+        val client = turnContext.client ?: return null
+        
+        // This is a port of codex-rs/core/src/sandboxing/assessment.rs
+        // Note: Askama template rendering is replaced with string templates.
+
+        val sandboxSummary = summarizeSandboxPolicy(turnContext.sandboxPolicy)
+        val roots = sandboxRootsForPrompt(turnContext.sandboxPolicy, turnContext.cwd)
+        val platform = "macos" // Simplified for now, should use a multiplatform platform check
+
+        val filesystemRoots = if (roots.isEmpty()) null else roots.joinToString(", ")
+
+        val systemPrompt = """
+            You are a security analyst evaluating shell commands that were blocked by a sandbox. Given the provided metadata, summarize the command's likely intent and assess the risk to help the user decide whether to approve command execution. Return strictly valid JSON with the keys:
+            - description (concise summary of command intent and potential effects, no more than one sentence, use present tense)
+            - risk_level ("low", "medium", or "high")
+            Risk level examples:
+            - low: read-only inspections, listing files, printing configuration, fetching artifacts from trusted sources
+            - medium: modifying project files, installing dependencies
+            - high: deleting or overwriting data, exfiltrating secrets, escalating privileges, or disabling security controls
+            If information is insufficient, choose the most cautious risk level supported by the evidence.
+            Respond with JSON only, without markdown code fences or extra commentary.
+        """.trimIndent()
+
+        val userPrompt = """
+            Command metadata:
+            Platform: $platform
+            Sandbox policy: $sandboxSummary
+            ${filesystemRoots?.let { "Filesystem roots: $it" } ?: ""}
+            Working directory: ${turnContext.cwd}
+            Command argv: ${command.joinToString(", ", "[", "]") { "\"$it\"" }}
+            Command (joined): ${command.joinToString(" ")}
+            ${failureMessage?.let { "Sandbox failure message: $it" } ?: ""}
+        """.trimIndent()
+
+        val prompt = Prompt(
+            input = listOf(
+                ResponseItem.Message(
+                    role = "user",
+                    content = listOf(ContentItem.InputText(userPrompt))
+                )
+            ),
+            tools = emptyList(),
+            parallelToolCalls = false,
+            baseInstructionsOverride = systemPrompt,
+            outputSchema = buildJsonObject {
+                put("type", "object")
+                putJsonArray("required") { add("description"); add("risk_level") }
+                putJsonObject("properties") {
+                    putJsonObject("description") {
+                        put("type", "string")
+                        put("minLength", 1)
+                        put("maxLength", 500)
+                    }
+                    putJsonObject("risk_level") {
+                        put("type", "string")
+                        putJsonArray("enum") { add("low"); add("medium"); add("high") }
+                    }
+                }
+                put("additionalProperties", false)
+            }
+        )
+
+        val assessmentResult = try {
+            withTimeout(15000) {
+                var lastJson: String? = null
+                val streamResult: Result<ResponseStream> = client.stream(prompt)
+                streamResult.onSuccess { stream ->
+                    stream.events.collect { result: Result<ResponseEvent> ->
+                        result.onSuccess { event: ResponseEvent ->
+                            when (event) {
+                                is ResponseEvent.OutputItemDone -> {
+                                    val text = responseItemText(event.item)
+                                    if (text != null) {
+                                        lastJson = text
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+                lastJson
+            }
+        } catch (e: Exception) {
+            null
+        }
+
+        return assessmentResult?.trim()?.let { raw ->
+            try {
+                Json.decodeFromString<SandboxCommandAssessment>(raw)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    private fun summarizeSandboxPolicy(policy: SandboxPolicy): String {
+        return when (policy) {
+            is SandboxPolicy.DangerFullAccess -> "danger-full-access"
+            is SandboxPolicy.ReadOnly -> "read-only"
+            is SandboxPolicy.WorkspaceWrite -> {
+                val network = if (policy.networkAccess) "network" else "no-network"
+                "workspace-write (network_access=$network)"
+            }
+        }
+    }
+
+    private fun sandboxRootsForPrompt(policy: SandboxPolicy, cwd: String): List<String> {
+        val roots = mutableListOf(cwd)
+        if (policy is SandboxPolicy.WorkspaceWrite) {
+            roots.addAll(policy.writableRoots)
+        }
+        return roots.distinct().sorted()
+    }
+
+    private fun responseItemText(item: ResponseItem): String? {
+        return when (item) {
+            is ResponseItem.Message -> {
+                val buffers = item.content.mapNotNull { segment ->
+                    when (segment) {
+                        is ContentItem.InputText -> segment.text.takeIf { it.isNotEmpty() }
+                        is ContentItem.OutputText -> segment.text.takeIf { it.isNotEmpty() }
+                        else -> null
+                    }
+                }
+                if (buffers.isEmpty()) null else buffers.joinToString("\n")
+            }
+            is ResponseItem.FunctionCallOutput -> item.output.content
+            else -> null
+        }
     }
 
     /**

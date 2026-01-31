@@ -37,7 +37,7 @@ import io.ktor.client.*
 import io.ktor.http.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.*
 import kotlin.time.Duration
 
 /**
@@ -458,7 +458,6 @@ private class ApiTelemetry(
 
 /**
  * Core ResponseStream wrapper.
- * TODO: This should be defined in core, not here.
  */
 data class ResponseStream(
     val events: Flow<Result<ResponseEvent>>
@@ -508,13 +507,29 @@ private fun getModelInfo(modelFamily: ModelFamily): ModelInfo? {
 }
 
 private fun createToolsJsonForChatCompletionsApi(tools: List<ToolSpec>): List<JsonElement>? {
-    // TODO: Port from tools/spec.rs
-    return emptyList()
+    val responsesApiToolsJson = createToolsJsonForResponsesApi(tools) ?: return null
+    return responsesApiToolsJson.mapNotNull { tool ->
+        val toolObj = tool as? JsonObject ?: return@mapNotNull null
+        val type = toolObj["type"] as? JsonPrimitive ?: return@mapNotNull null
+        
+        if (type.content != "function") {
+            return@mapNotNull null
+        }
+
+        val functionMap = toolObj.toMutableMap()
+        functionMap.remove("type")
+        
+        buildJsonObject {
+            put("type", "function")
+            put("function", JsonObject(functionMap))
+        }
+    }
 }
 
 private fun createToolsJsonForResponsesApi(tools: List<ToolSpec>): List<JsonElement>? {
-    // TODO: Port from tools/spec.rs
-    return emptyList()
+    if (tools.isEmpty()) return null
+    val json = Json { encodeDefaults = true }
+    return tools.map { json.encodeToJsonElement(ToolSpec.serializer(), it) }
 }
 
 private fun authProviderFromAuth(auth: CodexAuth?, provider: ModelProviderInfo): AuthProvider? {
