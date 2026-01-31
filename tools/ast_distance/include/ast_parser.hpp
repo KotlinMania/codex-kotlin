@@ -28,6 +28,54 @@ enum class Language {
 };
 
 /**
+ * Statistics about identifiers (function names, variable names, etc.)
+ * Used for Phase 3: Token histogram analysis to detect naming divergences.
+ */
+struct IdentifierStats {
+    std::map<std::string, int> identifier_freq;  // Frequency of each identifier
+    int total_identifiers = 0;
+
+    void add_identifier(const std::string& name) {
+        if (!name.empty()) {
+            identifier_freq[name]++;
+            total_identifiers++;
+        }
+    }
+
+    /**
+     * Compute cosine similarity of identifier frequencies with another IdentifierStats.
+     * Detects naming divergences: collect() vs gather() will have low similarity.
+     */
+    float identifier_cosine_similarity(const IdentifierStats& other) const {
+        if (identifier_freq.empty() || other.identifier_freq.empty()) {
+            return 0.0f;
+        }
+
+        // Build union of all identifiers
+        std::set<std::string> all_ids;
+        for (const auto& [id, _] : identifier_freq) all_ids.insert(id);
+        for (const auto& [id, _] : other.identifier_freq) all_ids.insert(id);
+
+        // Compute dot product and norms
+        double dot = 0.0, norm1 = 0.0, norm2 = 0.0;
+        for (const auto& id : all_ids) {
+            int freq1 = 0, freq2 = 0;
+            auto it1 = identifier_freq.find(id);
+            auto it2 = other.identifier_freq.find(id);
+            if (it1 != identifier_freq.end()) freq1 = it1->second;
+            if (it2 != other.identifier_freq.end()) freq2 = it2->second;
+
+            dot += freq1 * freq2;
+            norm1 += freq1 * freq1;
+            norm2 += freq2 * freq2;
+        }
+
+        if (norm1 < 1e-8 || norm2 < 1e-8) return 0.0f;
+        return static_cast<float>(dot / (std::sqrt(norm1) * std::sqrt(norm2)));
+    }
+};
+
+/**
  * Statistics about comments/documentation in source code.
  */
 struct CommentStats {
@@ -226,6 +274,54 @@ public:
     }
 
     /**
+     * Extract identifier statistics from source code.
+     * Phase 3: Token histogram for detecting naming divergences.
+     */
+    IdentifierStats extract_identifiers(const std::string& source, Language lang) {
+        IdentifierStats stats;
+
+        // Set language
+        const TSLanguage* ts_lang;
+        switch (lang) {
+            case Language::RUST: ts_lang = tree_sitter_rust(); break;
+            case Language::KOTLIN: ts_lang = tree_sitter_kotlin(); break;
+            case Language::CPP: ts_lang = tree_sitter_cpp(); break;
+        }
+
+        if (!ts_parser_set_language(parser_, ts_lang)) {
+            return stats;
+        }
+
+        // Parse
+        TSTree* ts_tree = ts_parser_parse_string(
+            parser_, nullptr, source.c_str(), source.length());
+
+        if (!ts_tree) {
+            return stats;
+        }
+
+        TSNode root = ts_tree_root_node(ts_tree);
+        extract_identifiers_recursive(root, source, stats);
+
+        ts_tree_delete(ts_tree);
+        return stats;
+    }
+
+    /**
+     * Extract identifier statistics from a file.
+     */
+    IdentifierStats extract_identifiers_from_file(const std::string& filepath, Language lang) {
+        std::ifstream file(filepath);
+        if (!file.is_open()) {
+            return IdentifierStats{};
+        }
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        return extract_identifiers(buffer.str(), lang);
+    }
+
+    /**
      * Parse and extract only function bodies for comparison.
      */
     std::vector<std::pair<std::string, TreePtr>> extract_functions(
@@ -374,11 +470,43 @@ private:
         }
     }
 
+    void extract_identifiers_recursive(TSNode node, const std::string& source, IdentifierStats& stats) {
+        const char* type_str = ts_node_type(node);
+        std::string node_type(type_str);
+
+        // Check if this is an identifier node
+        // Different languages use different node type names for identifiers
+        bool is_identifier = (node_type == "identifier" ||
+                             node_type == "simple_identifier" ||
+                             node_type == "type_identifier" ||
+                             node_type == "field_identifier" ||
+                             node_type == "property_identifier");
+
+        if (is_identifier) {
+            uint32_t start = ts_node_start_byte(node);
+            uint32_t end = ts_node_end_byte(node);
+            if (end > start && end <= source.length()) {
+                std::string identifier = source.substr(start, end - start);
+                // Filter out very common/boilerplate identifiers
+                if (identifier.length() > 1 && identifier != "it" && identifier != "this") {
+                    stats.add_identifier(identifier);
+                }
+            }
+        }
+
+        // Recurse into children
+        uint32_t child_count = ts_node_child_count(node);
+        for (uint32_t i = 0; i < child_count; ++i) {
+            TSNode child = ts_node_child(node, i);
+            extract_identifiers_recursive(child, source, stats);
+        }
+    }
+
     TreePtr convert_node(TSNode node, const std::string& source, Language lang) {
         const char* type_str = ts_node_type(node);
 
         // Normalize node type
-        NodeType normalized_type;
+        NodeType normalized_type = NodeType::UNKNOWN;
         switch (lang) {
             case Language::RUST: normalized_type = rust_node_to_type(type_str); break;
             case Language::KOTLIN: normalized_type = kotlin_node_to_type(type_str); break;
@@ -402,9 +530,52 @@ private:
         // Recursively process children
         for (uint32_t i = 0; i < child_count; ++i) {
             TSNode child = ts_node_child(node, i);
-            // Skip unnamed nodes (syntax tokens like punctuation)
+
             if (ts_node_is_named(child)) {
+                // Named nodes are always included
                 tree_node->add_child(convert_node(child, source, lang));
+            } else {
+                // Capture semantically significant unnamed nodes (operators)
+                const char* child_type = ts_node_type(child);
+                std::string op_str(child_type);
+
+                // Arithmetic operators
+                if (op_str == "+" || op_str == "-" || op_str == "*" ||
+                    op_str == "/" || op_str == "%" || op_str == "**") {
+                    auto op_node = std::make_shared<Tree>(
+                        static_cast<int>(NodeType::ARITHMETIC_OP), child_type);
+                    tree_node->add_child(op_node);
+                }
+                // Comparison operators
+                else if (op_str == "==" || op_str == "!=" || op_str == "<" ||
+                         op_str == ">" || op_str == "<=" || op_str == ">=" ||
+                         op_str == "===" || op_str == "!==") {
+                    auto op_node = std::make_shared<Tree>(
+                        static_cast<int>(NodeType::COMPARISON_OP), child_type);
+                    tree_node->add_child(op_node);
+                }
+                // Logical operators
+                else if (op_str == "&&" || op_str == "||" || op_str == "!") {
+                    auto op_node = std::make_shared<Tree>(
+                        static_cast<int>(NodeType::LOGICAL_OP), child_type);
+                    tree_node->add_child(op_node);
+                }
+                // Bitwise operators
+                else if (op_str == "&" || op_str == "|" || op_str == "^" ||
+                         op_str == "~" || op_str == "<<" || op_str == ">>") {
+                    auto op_node = std::make_shared<Tree>(
+                        static_cast<int>(NodeType::BITWISE_OP), child_type);
+                    tree_node->add_child(op_node);
+                }
+                // Assignment operators
+                else if (op_str == "=" || op_str == "+=" || op_str == "-=" ||
+                         op_str == "*=" || op_str == "/=" || op_str == "%=" ||
+                         op_str == "&=" || op_str == "|=" || op_str == "^=" ||
+                         op_str == "<<=" || op_str == ">>=") {
+                    auto op_node = std::make_shared<Tree>(
+                        static_cast<int>(NodeType::ASSIGNMENT_OP), child_type);
+                    tree_node->add_child(op_node);
+                }
             }
         }
 

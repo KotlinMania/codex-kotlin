@@ -98,12 +98,20 @@ enum class NodeType : int {
     FUNC_TYPE = 73,
     GENERIC_TYPE = 74,
 
+    // Operators (captured from unnamed nodes for semantic awareness)
+    ARITHMETIC_OP = 75,
+    COMPARISON_OP = 76,
+    LOGICAL_OP = 77,
+    BITWISE_OP = 78,
+    ASSIGNMENT_OP = 79,
+
     // Other
     COMMENT = 80,
     IMPORT = 81,
     PACKAGE = 82,
     ANNOTATION = 83,
     MODIFIER = 84,
+    OTHER = 85,
 
     // Unknown/unhandled
     UNKNOWN = 99,
@@ -246,6 +254,18 @@ inline NodeType kotlin_node_to_type(const std::string& node_type) {
         {"modifier", NodeType::MODIFIER},
         {"multiline_comment", NodeType::COMMENT},
         {"line_comment", NodeType::COMMENT},
+        {"class_body", NodeType::BLOCK},
+        {"function_body", NodeType::BLOCK},
+        {"property_delegate", NodeType::OTHER},
+        {"type_arguments", NodeType::GENERIC_TYPE},
+        {"value_arguments", NodeType::OTHER},
+        {"this_expression", NodeType::VARIABLE},
+        {"super_expression", NodeType::VARIABLE},
+        {"modifiers", NodeType::MODIFIER},
+        {"visibility_modifier", NodeType::MODIFIER},
+        {"inheritance_modifier", NodeType::MODIFIER},
+        {"function_modifier", NodeType::MODIFIER},
+        {"platform_modifier", NodeType::MODIFIER},
     };
 
     auto it = mapping.find(node_type);
@@ -328,12 +348,22 @@ inline NodeType cpp_node_to_type(const std::string& node_type) {
         {"preproc_include", NodeType::IMPORT},
         {"using_declaration", NodeType::IMPORT},
         {"namespace_definition", NodeType::PACKAGE},
+        {"declaration_list", NodeType::PACKAGE}, // Map to PACKAGE to flatten structural nesting
 
         // Other
         {"comment", NodeType::COMMENT},
         {"attribute", NodeType::ANNOTATION},
         {"storage_class_specifier", NodeType::MODIFIER},
         {"type_qualifier", NodeType::MODIFIER},
+        {"virtual_specifier", NodeType::MODIFIER},
+        {"access_specifier", NodeType::MODIFIER},
+        {"linkage_specification", NodeType::PACKAGE}, // extern "C"
+        {"base_clause", NodeType::TYPE_REF}, // Inheritance list
+        {"parameter_list", NodeType::OTHER},
+        {"argument_list", NodeType::OTHER},
+        {"template_argument_list", NodeType::GENERIC_TYPE},
+        {"field_declaration", NodeType::VAR_DECL},
+        {"alias_declaration", NodeType::TYPE_REF},
     };
 
     auto it = mapping.find(node_type);
