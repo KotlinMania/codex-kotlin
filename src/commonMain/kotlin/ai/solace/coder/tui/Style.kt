@@ -5,8 +5,8 @@ import ai.solace.coder.tui.color.blend
 import ai.solace.coder.tui.color.isLight
 import ai.solace.coder.tui.terminal_palette.bestColor
 import ai.solace.coder.tui.terminal_palette.defaultBg
-import io.github.kotlinmania.ratatui.style.Color
-import io.github.kotlinmania.ratatui.style.Style
+import ratatui.style.Color
+import ratatui.style.Style
 
 fun userMessageStyle(): Style {
     return userMessageStyleFor(defaultBg())
