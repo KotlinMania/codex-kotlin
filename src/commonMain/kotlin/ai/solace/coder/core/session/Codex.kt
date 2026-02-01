@@ -1,8 +1,9 @@
 // port-lint: source core/src/codex.rs
 package ai.solace.coder.core.session
 
-import ai.solace.coder.client.auth.AuthManager
-import ai.solace.coder.client.auth.AuthMode
+import ai.solace.coder.core.auth.AuthManager
+import ai.solace.coder.core.auth.AuthMode
+import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.core.context.ContextManager
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.core.context.truncateText
@@ -360,7 +361,7 @@ class Codex internal constructor(
  */
 data class CodexSpawnOk(
     val codex: Codex,
-    val conversationId: String
+    val conversationId: ConversationId
 )
 
 /**
@@ -453,7 +454,7 @@ suspend fun spawnCodex(
  */
 @OptIn(ExperimentalAtomicApi::class)
 class Session private constructor(
-    val conversationId: String,
+    val conversationId: ConversationId,
     private val txEvent: Channel<Event>,
     private val state: SessionState,
     private val stateMutex: Mutex,
@@ -612,7 +613,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemStarted(ItemStartedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = conversationId,
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -626,7 +627,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemCompleted(ItemCompletedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = conversationId,
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -1445,9 +1446,9 @@ class Session private constructor(
                 return null
             }
 
-            val conversationId: String = when (initialHistory) {
+            val conversationId: ConversationId = when (initialHistory) {
                 is InitialHistory.New, is InitialHistory.Forked -> generateConversationId()
-                is InitialHistory.Resumed -> initialHistory.payload.conversationId.toString()
+                is InitialHistory.Resumed -> initialHistory.payload.conversationId
             }
 
             // Initialize services
@@ -1482,7 +1483,7 @@ class Session private constructor(
             val event = Event(
                 id = Codex.INITIAL_SUBMIT_ID,
                 msg = EventMsg.SessionConfigured(SessionConfiguredEvent(
-                    sessionId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                    sessionId = conversationId,
                     model = sessionConfiguration.model,
                     modelProviderId = config.modelProviderId ?: "",
                     approvalPolicy = sessionConfiguration.approvalPolicy,
@@ -1527,7 +1528,7 @@ class Session private constructor(
         private fun makeTurnContext(
             authManager: AuthManager?,
             sessionConfiguration: SessionConfiguration,
-            conversationId: String,
+            conversationId: ConversationId,
             subId: String,
             finalOutputJsonSchema: JsonElement? = null,
             client: ai.solace.coder.core.client.ModelClient? = null
@@ -1560,14 +1561,15 @@ class Session private constructor(
             )
         }
 
-        private fun generateConversationId(): String {
+        private fun generateConversationId(): ConversationId {
             val chars = "0123456789abcdef"
-            return buildString {
+            val id = buildString {
                 append("conv_")
                 repeat(16) {
                     append(chars.random())
                 }
             }
+            return ConversationId.fromString(id).getOrThrow()
         }
 
         private fun isAbsolutePath(path: String): Boolean {

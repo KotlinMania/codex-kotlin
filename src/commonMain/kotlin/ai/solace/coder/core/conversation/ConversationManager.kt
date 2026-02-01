@@ -8,7 +8,7 @@ import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.session.Codex
 import ai.solace.coder.core.session.CodexSpawnOk
-import ai.solace.coder.core.session.INITIAL_SUBMIT_ID
+import ai.solace.coder.core.session.spawnCodex
 import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.protocol.Event
 import ai.solace.coder.protocol.EventMsg
@@ -19,7 +19,9 @@ import ai.solace.coder.protocol.SessionSource
 import ai.solace.coder.protocol.TurnItem
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.nio.file.Path
+import okio.Path
+import okio.Path.Companion.toPath
+import ai.solace.coder.protocol.ResponseItem
 
 /**
  * Represents a newly created Codex conversation, including the first event
@@ -70,12 +72,12 @@ class ConversationManager(
         config: Config,
         authManager: AuthManager
     ): CodexResult<NewConversation> {
-        val spawnResult = Codex.spawn(
+        val spawnResult = spawnCodex(
             config,
             authManager,
             InitialHistory.New,
             sessionSource
-        ).getOrElse { return Result.failure(it) }
+        ).getOrElse { return CodexResult.failure(it) }
         
         return finalizeSpawn(spawnResult.codex, spawnResult.conversationId)
     }
@@ -86,30 +88,30 @@ class ConversationManager(
     ): CodexResult<NewConversation> {
         // The first event must be `SessionConfigured`. Validate and forward it
         // to the caller so that they can display it in the conversation history.
-        val event = codex.nextEvent().getOrElse { return Result.failure(it) }
+        val event = codex.nextEvent().getOrElse { return CodexResult.failure(it) }
         
         val sessionConfigured = when {
-            event.id == INITIAL_SUBMIT_ID && event.msg is EventMsg.SessionConfigured -> {
-                event.msg as EventMsg.SessionConfigured
+            event.id == Codex.INITIAL_SUBMIT_ID && event.msg is EventMsg.SessionConfigured -> {
+                (event.msg as EventMsg.SessionConfigured).payload
             }
             else -> {
-                return Result.failure(CodexError.SessionConfiguredNotFirstEvent())
+                return CodexResult.failure(CodexError.SessionConfiguredNotFirstEvent)
             }
         }
         
         val conversation = CodexConversation(
             codex,
-            sessionConfigured.rolloutPath
+            sessionConfigured.rolloutPath.toPath()
         )
         
         conversationsMutex.withLock {
             conversations[conversationId] = conversation
         }
         
-        return Result.success(NewConversation(
+        return CodexResult.success(NewConversation(
             conversationId,
             conversation,
-            sessionConfigured.event
+            sessionConfigured
         ))
     }
     
@@ -118,8 +120,8 @@ class ConversationManager(
      */
     suspend fun getConversation(conversationId: ConversationId): CodexResult<CodexConversation> {
         return conversationsMutex.withLock {
-            conversations[conversationId]?.let { Result.success(it) }
-                ?: Result.failure(CodexError.ConversationNotFound(conversationId))
+            conversations[conversationId]?.let { CodexResult.success(it) }
+                ?: CodexResult.failure(CodexError.ConversationNotFound(conversationId))
         }
     }
     
@@ -144,12 +146,12 @@ class ConversationManager(
         initialHistory: InitialHistory,
         authManager: AuthManager
     ): CodexResult<NewConversation> {
-        val spawnResult = Codex.spawn(
+        val spawnResult = spawnCodex(
             config,
             authManager,
             initialHistory,
             sessionSource
-        ).getOrElse { return Result.failure(it) }
+        ).getOrElse { return CodexResult.failure(it) }
         
         return finalizeSpawn(spawnResult.codex, spawnResult.conversationId)
     }
@@ -183,12 +185,12 @@ class ConversationManager(
         val truncatedHistory = truncateBeforeNthUserMessage(history, nthUserMessage)
         
         // Spawn a new conversation with the computed initial history.
-        val spawnResult = Codex.spawn(
+        val spawnResult = spawnCodex(
             config,
             authManager,
             truncatedHistory,
             sessionSource
-        ).getOrElse { return Result.failure(it) }
+        ).getOrElse { return CodexResult.failure(it) }
         
         return finalizeSpawn(spawnResult.codex, spawnResult.conversationId)
     }
@@ -205,10 +207,10 @@ private fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Initi
     // Find indices of user message inputs in rollout order.
     val userPositions = mutableListOf<Int>()
     items.forEachIndexed { idx, item ->
-        if (item is RolloutItem.ResponseItem) {
+        if (item is RolloutItem.ResponseItemHolder) {
             // TODO: Port parse_turn_item
             // For now, check if it's a user message by role
-            when (val responseItem = item.item) {
+            when (val responseItem = item.payload) {
                 is ai.solace.coder.protocol.ResponseItem.Message -> {
                     if (responseItem.role == "user") {
                         userPositions.add(idx)

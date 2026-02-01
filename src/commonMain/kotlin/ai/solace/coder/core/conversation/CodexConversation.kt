@@ -6,7 +6,7 @@ import ai.solace.coder.core.session.Codex
 import ai.solace.coder.protocol.Event
 import ai.solace.coder.protocol.Op
 import ai.solace.coder.protocol.Submission
-import java.nio.file.Path
+import okio.Path
 
 /**
  * Conduit for the bidirectional stream of messages that compose a conversation

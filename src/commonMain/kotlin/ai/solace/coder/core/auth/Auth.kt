@@ -1,5 +1,5 @@
 // port-lint: source codex-rs/core/src/auth.rs
-package ai.solace.coder.core
+package ai.solace.coder.core.auth
 
 import ai.solace.coder.core.auth.*
 import ai.solace.coder.core.error.RefreshTokenFailedReason
@@ -701,7 +701,7 @@ class AuthManager private constructor(
      * Log out by deleting the on-disk auth.json (if present).
      */
     suspend fun logout(): Result<Boolean> {
-        val result = ai.solace.coder.core.logout(codexHome, authCredentialsStoreMode)
+        val result = logout(codexHome, authCredentialsStoreMode)
         // Always reload to clear any cached auth (even if file absent)
         reload()
         return result

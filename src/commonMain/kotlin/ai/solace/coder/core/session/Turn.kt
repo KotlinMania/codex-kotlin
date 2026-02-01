@@ -1,7 +1,8 @@
 // port-lint: source core/src/state/turn.rs
 package ai.solace.coder.core.session
 
-import ai.solace.coder.client.auth.AuthManager
+import ai.solace.coder.core.auth.AuthManager
+import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.exec.shell.Shell
 import ai.solace.coder.exec.shell.ShellDetector
 import ai.solace.coder.mcp.connection.McpConnectionManager
@@ -362,7 +363,7 @@ data class NotifyConfig(
  */
 sealed class UserNotification {
     data class AgentTurnComplete(
-        val threadId: String,
+        val threadId: ConversationId,
         val turnId: String,
         val cwd: String,
         val inputMessages: List<String>,
@@ -390,7 +391,7 @@ class RolloutRecorder private constructor(
     }
 
     companion object {
-        fun new(config: Any, conversationId: String): RolloutRecorder? {
+        fun new(config: Any, conversationId: ConversationId): RolloutRecorder? {
             // TODO: Implement rollout recorder creation
             return RolloutRecorder("/tmp/rollout-$conversationId.jsonl")
         }

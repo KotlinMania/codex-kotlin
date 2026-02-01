@@ -4,10 +4,10 @@ Based on AST analysis, here are the concrete next steps.
 
 ## Summary
 
-- **Current Progress:** 25.0% (111/444 files)
-- **Matched Files:** 108
+- **Current Progress:** 26.1% (116/444 files)
+- **Matched Files:** 113
 - **Average Similarity:** 0.74
-- **Critical Issues:** 13 files with <0.60 similarity
+- **Critical Issues:** 15 files with <0.60 similarity
 
 ## Priority 1: Fix Incomplete High-Dependency Files
 
@@ -62,7 +62,7 @@ Based on AST analysis, here are the concrete next steps.
 ### 9. tui.style
 - **Similarity:** 0.79 (needs 6% improvement)
 - **Dependencies:** 16
-- **Priority Score:** 3.4
+- **Priority Score:** 3.3
 - **Action:** Minor refinements needed
 
 ### 10. tui.app_event
