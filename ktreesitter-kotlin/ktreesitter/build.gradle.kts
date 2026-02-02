@@ -1,4 +1,5 @@
 import java.io.OutputStream.nullOutputStream
+import org.gradle.api.file.Directory
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
 import org.gradle.process.ExecOperations
@@ -33,7 +34,7 @@ fun KotlinNativeTarget.treesitter() {
 }
 
 val os: OperatingSystem = OperatingSystem.current()
-val libsDir = layout.buildDirectory.get().dir("libs")
+val libsDir: Directory = layout.buildDirectory.get().dir("libs")
 val treesitterDir = rootDir.resolve("tree-sitter")
 
 version = property("project.version") as String
@@ -51,10 +52,9 @@ plugins {
     alias(libs.plugins.kotest)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dokka)
-}
-
-if (androidSdkAvailable) {
-    apply(plugin = "com.android.library")
+    if (androidSdkAvailable) {
+        id("com.android.kotlin.multiplatform.library")
+    }
 }
 
 buildscript {
@@ -70,12 +70,6 @@ dependencyLocking {
 kotlin {
     jvm {}
 
-    if (androidSdkAvailable) {
-        androidTarget {
-            withSourcesJar(true)
-            publishLibraryVariants("release")
-        }
-    }
 
     linuxX64 { treesitter() }
     linuxArm64 { treesitter() }
@@ -172,8 +166,8 @@ kotlin {
     }
 }
 
-plugins.withId("com.android.library") {
-    extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+if (androidSdkAvailable) {
+    android {
         namespace = "io.github.treesitter.$name"
         compileSdk = (property("sdk.version.compile") as String).toInt()
         ndkVersion = property("ndk.version") as String
