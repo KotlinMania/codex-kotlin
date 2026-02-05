@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/streaming.rs
+// port-lint: source codex-api/src/endpoint/streaming.rs
 package ai.solace.coder.api.endpoint
 
 import ai.solace.coder.api.AuthProvider

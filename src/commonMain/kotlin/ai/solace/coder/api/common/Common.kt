@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/common.rs
+// port-lint: source codex-api/src/common.rs
 package ai.solace.coder.api.common
 
 import ai.solace.coder.protocol.ResponseItem

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/exec/mod.rs
+// port-lint: source core/src/exec/mod.rs
 package ai.solace.coder.exec.process
 
 /**

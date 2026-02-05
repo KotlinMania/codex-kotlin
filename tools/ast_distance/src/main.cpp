@@ -53,7 +53,7 @@ void print_usage(const char* program) {
     std::cerr << "  " << program << " --stats <directory>\n";
     std::cerr << "      Show file statistics (line counts, stubs, TODOs)\n\n";
     std::cerr << "Swarm Task Management:\n";
-    std::cerr << "  " << program << " --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file>\n";
+    std::cerr << "  " << program << " --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file> [agents_md_path]\n";
     std::cerr << "      Generate task file from missing/incomplete ports\n\n";
     std::cerr << "  " << program << " --tasks <task_file>\n";
     std::cerr << "      Show task status summary\n\n";
@@ -64,6 +64,10 @@ void print_usage(const char* program) {
     std::cerr << "      Mark a task as completed\n\n";
     std::cerr << "  " << program << " --release <task_file> <source_qualified>\n";
     std::cerr << "      Release an assigned task back to pending\n\n";
+    std::cerr << "  " << program << " --block <task_file> <source_qualified>\n";
+    std::cerr << "      Mark a task as blocked (skipped for assignment)\n\n";
+    std::cerr << "  " << program << " --unblock <task_file> <source_qualified>\n";
+    std::cerr << "      Mark a blocked task back to pending\n\n";
     std::cerr << "  Languages: rust, kotlin, cpp\n\n";
     std::cerr << "Port-Lint Headers:\n";
     std::cerr << "  Add a header comment to each ported file to enable accurate source tracking.\n";
@@ -780,10 +784,122 @@ void cmd_stats(const std::string& directory) {
 
 // ============ Swarm Task Management Commands ============
 
+static std::vector<std::string> split_on_char(const std::string& s, char delim) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : s) {
+        if (c == delim) {
+            if (!cur.empty()) out.push_back(cur);
+            cur.clear();
+        } else {
+            cur.push_back(c);
+        }
+    }
+    if (!cur.empty()) out.push_back(cur);
+    return out;
+}
+
+static std::string pascal_case(const std::string& s) {
+    std::string out;
+    for (const auto& part : split_on_char(s, '_')) {
+        if (part.empty()) continue;
+        out.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(part[0]))));
+        for (size_t i = 1; i < part.size(); ++i) {
+            out.push_back(part[i]);
+        }
+    }
+    return out;
+}
+
+// Heuristic mapping from a Rust relative path like `protocol/src/models.rs` to a
+// Kotlin source path under `src/commonMain/kotlin/ai/solace/coder/...`.
+static std::string default_kotlin_target_path_for(const std::string& rust_rel_path) {
+    fs::path p(rust_rel_path);
+    std::vector<std::string> parts;
+    for (const auto& part : p) {
+        parts.push_back(part.string());
+    }
+
+    // Find the `src` segment.
+    int src_idx = -1;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (parts[i] == "src") {
+            src_idx = static_cast<int>(i);
+            break;
+        }
+    }
+
+    std::vector<std::string> crate_parts;
+    std::vector<std::string> module_parts;
+    std::string stem = p.stem().string();
+
+    if (src_idx >= 0) {
+        crate_parts.assign(parts.begin(), parts.begin() + src_idx);
+        // Everything after src/, excluding filename
+        if (static_cast<size_t>(src_idx + 1) < parts.size()) {
+            module_parts.assign(parts.begin() + src_idx + 1, parts.end() - 1);
+        }
+    } else {
+        // Fallback: treat the parent path as module parts.
+        if (parts.size() > 1) {
+            module_parts.assign(parts.begin(), parts.end() - 1);
+        }
+    }
+
+    std::vector<std::string> pkg_parts;
+    pkg_parts.push_back("commonMain");
+    pkg_parts.push_back("kotlin");
+    pkg_parts.push_back("ai");
+    pkg_parts.push_back("solace");
+    pkg_parts.push_back("coder");
+
+    // Convert crate path segments into package segments.
+    for (const auto& crate : crate_parts) {
+        auto pieces = split_on_char(crate, '-');
+        if (!pieces.empty() && pieces[0] == "codex") {
+            pieces.erase(pieces.begin());
+        }
+        if (!pieces.empty() && pieces.back() == "rs") {
+            pieces.pop_back();
+        }
+        for (const auto& piece : pieces) {
+            if (!piece.empty()) pkg_parts.push_back(piece);
+        }
+    }
+
+    for (const auto& mod : module_parts) {
+        if (!mod.empty()) pkg_parts.push_back(mod);
+    }
+
+    const std::string kt_file = pascal_case(stem) + ".kt";
+
+    fs::path out;
+    for (const auto& part : pkg_parts) {
+        out /= part;
+    }
+    out /= kt_file;
+    return out.generic_string();
+}
+
 void cmd_init_tasks(const std::string& src_dir, const std::string& src_lang,
                     const std::string& tgt_dir, const std::string& tgt_lang,
                     const std::string& task_file, const std::string& agents_md = "") {
     std::cout << "=== Initializing Task File ===\n\n";
+
+    // Store absolute roots in the task file so follow-up commands (e.g. --complete)
+    // work regardless of the current working directory.
+    auto abs_or_raw = [](const std::string& p) -> std::string {
+        try {
+            std::error_code ec;
+            auto canon = std::filesystem::weakly_canonical(std::filesystem::path(p), ec);
+            if (!ec) {
+                return canon.string();
+            }
+            return std::filesystem::absolute(std::filesystem::path(p)).string();
+        } catch (...) {
+            return p;
+        }
+    };
 
     // Scan both codebases
     Codebase source(src_dir, src_lang);
@@ -793,17 +909,23 @@ void cmd_init_tasks(const std::string& src_dir, const std::string& src_lang,
 
     Codebase target(tgt_dir, tgt_lang);
     target.scan();
+    target.extract_imports();
+    // Required for port-lint header matching: populate port_lint_source fields.
+    // Without this, `find_matches()` treats all source files as "missing" even if
+    // Kotlin ports exist.
+    target.extract_porting_data();
 
     CodebaseComparator comp(source, target);
     comp.find_matches();
+    comp.compute_similarities();
 
-    // Build task list from missing files
+    // Build task list from missing + incomplete ports.
     TaskManager tm(task_file);
-    tm.source_root = src_dir;
-    tm.target_root = tgt_dir;
+    tm.source_root = abs_or_raw(src_dir);
+    tm.target_root = abs_or_raw(tgt_dir);
     tm.source_lang = src_lang;
     tm.target_lang = tgt_lang;
-    tm.agents_md_path = agents_md;
+    tm.agents_md_path = abs_or_raw(agents_md);
 
     // Add missing files as tasks (sorted by dependents)
     std::vector<const SourceFile*> missing;
@@ -820,22 +942,37 @@ void cmd_init_tasks(const std::string& src_dir, const std::string& src_lang,
         task.source_path = sf->relative_path;
         task.source_qualified = sf->qualified_name;
 
-        // Generate expected Kotlin path
-        std::string kt_path = sf->relative_path;
-        // Convert .rs to .kt and adjust path
-        if (kt_path.size() > 3 && kt_path.substr(kt_path.size() - 3) == ".rs") {
-            kt_path = kt_path.substr(0, kt_path.size() - 3) + ".kt";
-        }
-        // Remove src/ prefix if present
-        if (kt_path.rfind("src/", 0) == 0) {
-            kt_path = kt_path.substr(4);
-        }
-        task.target_path = kt_path;
+        task.target_path = default_kotlin_target_path_for(sf->relative_path);
         task.dependent_count = sf->dependent_count;
         task.dependency_count = sf->dependency_count;
 
         // Build dependency list
         for (const auto& dep : sf->imports) {
+            task.dependencies.push_back(dep.module_path);
+        }
+
+        tm.tasks.push_back(task);
+    }
+
+    // Add incomplete matches as tasks (similarity below threshold or stubs).
+    // Per README thresholds: < 0.60 is considered a partial/incomplete port.
+    constexpr float kIncompleteThreshold = 0.60f;
+    for (const auto& m : comp.matches) {
+        if (!m.is_stub && m.similarity >= kIncompleteThreshold) {
+            continue;
+        }
+
+        const auto& src_file = source.files.at(m.source_path);
+
+        PortTask task;
+        task.source_path = src_file.relative_path;
+        task.source_qualified = src_file.qualified_name;
+        task.target_path = m.target_path;
+        task.dependent_count = src_file.dependent_count;
+        task.dependency_count = src_file.dependency_count;
+        task.similarity = m.similarity;
+
+        for (const auto& dep : src_file.imports) {
             task.dependencies.push_back(dep.module_path);
         }
 
@@ -849,11 +986,30 @@ void cmd_init_tasks(const std::string& src_dir, const std::string& src_lang,
 
     // Show top priority tasks
     std::cout << "\nTop 10 priority tasks:\n";
-    int count = 0;
+    std::vector<const PortTask*> pending_tasks;
+    pending_tasks.reserve(tm.tasks.size());
     for (const auto& t : tm.tasks) {
-        if (count++ >= 10) break;
+        if (t.status == TaskStatus::PENDING) {
+            pending_tasks.push_back(&t);
+        }
+    }
+
+    std::sort(pending_tasks.begin(), pending_tasks.end(),
+        [](const PortTask* a, const PortTask* b) {
+            if (a->dependent_count != b->dependent_count) {
+                return a->dependent_count > b->dependent_count;
+            }
+            return a->similarity < b->similarity;
+        });
+
+    for (size_t i = 0; i < pending_tasks.size() && i < 10; ++i) {
+        const auto& t = *pending_tasks[i];
         std::cout << "  " << std::setw(30) << std::left << t.source_qualified
-                  << " deps=" << t.dependent_count << "\n";
+                  << " deps=" << t.dependent_count;
+        if (t.similarity > 0.0f) {
+            std::cout << " sim=" << std::fixed << std::setprecision(2) << t.similarity;
+        }
+        std::cout << "\n";
     }
 }
 
@@ -895,20 +1051,44 @@ void cmd_tasks(const std::string& task_file) {
     std::cout << "Pending Tasks (by priority):\n";
     std::cout << std::setw(35) << std::left << "Source"
               << std::setw(10) << "Deps"
+              << std::setw(10) << "Sim"
               << "Target Path\n";
     std::cout << std::string(70, '-') << "\n";
 
-    int shown = 0;
+    std::vector<const PortTask*> pending_tasks;
+    pending_tasks.reserve(tm.tasks.size());
     for (const auto& t : tm.tasks) {
         if (t.status == TaskStatus::PENDING) {
-            if (shown++ >= 20) {
-                std::cout << "... and " << (pending - 20) << " more\n";
-                break;
-            }
-            std::cout << std::setw(35) << std::left << t.source_qualified.substr(0, 33)
-                      << std::setw(10) << t.dependent_count
-                      << t.target_path << "\n";
+            pending_tasks.push_back(&t);
         }
+    }
+
+    std::sort(pending_tasks.begin(), pending_tasks.end(),
+        [](const PortTask* a, const PortTask* b) {
+            if (a->dependent_count != b->dependent_count) {
+                return a->dependent_count > b->dependent_count;
+            }
+            return a->similarity < b->similarity;
+        });
+
+    int shown = 0;
+    for (const auto* t : pending_tasks) {
+        if (shown++ >= 20) {
+            std::cout << "... and " << (pending - 20) << " more\n";
+            break;
+        }
+
+        std::stringstream sim;
+        if (t->similarity > 0.0f) {
+            sim << std::fixed << std::setprecision(2) << t->similarity;
+        } else {
+            sim << "-";
+        }
+
+        std::cout << std::setw(35) << std::left << t->source_qualified.substr(0, 33)
+                  << std::setw(10) << t->dependent_count
+                  << std::setw(10) << sim.str()
+                  << t->target_path << "\n";
     }
 }
 
@@ -980,9 +1160,12 @@ void cmd_complete(const std::string& task_file, const std::string& source_qualif
 
     Codebase target(tm.target_root, tm.target_lang);
     target.scan();
+    target.extract_imports();
+    target.extract_porting_data();
 
     CodebaseComparator comp(source, target);
     comp.find_matches();
+    comp.compute_similarities();
 
     // Build set of currently assigned task qualified names
     std::set<std::string> assigned_tasks;
@@ -1006,7 +1189,15 @@ void cmd_complete(const std::string& task_file, const std::string& source_qualif
         }
     }
 
-    // Rebuild task list from missing files
+    // Build set of blocked tasks (preserve across rescans)
+    std::set<std::string> blocked_tasks;
+    for (const auto& t : tm.tasks) {
+        if (t.status == TaskStatus::BLOCKED) {
+            blocked_tasks.insert(t.source_qualified);
+        }
+    }
+
+    // Rebuild task list from missing + incomplete files
     tm.tasks.clear();
 
     std::vector<const SourceFile*> missing;
@@ -1024,20 +1215,15 @@ void cmd_complete(const std::string& task_file, const std::string& source_qualif
         if (completed_tasks.count(sf->qualified_name)) {
             continue;
         }
+        if (blocked_tasks.count(sf->qualified_name)) {
+            continue;
+        }
 
         PortTask task;
         task.source_path = sf->relative_path;
         task.source_qualified = sf->qualified_name;
 
-        // Generate expected Kotlin path
-        std::string kt_path = sf->relative_path;
-        if (kt_path.size() > 3 && kt_path.substr(kt_path.size() - 3) == ".rs") {
-            kt_path = kt_path.substr(0, kt_path.size() - 3) + ".kt";
-        }
-        if (kt_path.rfind("src/", 0) == 0) {
-            kt_path = kt_path.substr(4);
-        }
-        task.target_path = kt_path;
+        task.target_path = default_kotlin_target_path_for(sf->relative_path);
         task.dependent_count = sf->dependent_count;
         task.dependency_count = sf->dependency_count;
 
@@ -1049,6 +1235,44 @@ void cmd_complete(const std::string& task_file, const std::string& source_qualif
         }
 
         for (const auto& dep : sf->imports) {
+            task.dependencies.push_back(dep.module_path);
+        }
+
+        tm.tasks.push_back(task);
+    }
+
+    // Add incomplete tasks back (similarity below threshold or stubs).
+    // Unlike missing tasks, these have a Kotlin file already matched.
+    constexpr float kIncompleteThreshold = 0.60f;
+    for (const auto& m : comp.matches) {
+        if (!m.is_stub && m.similarity >= kIncompleteThreshold) {
+            continue;
+        }
+
+        const auto& sf = source.files.at(m.source_path);
+        if (completed_tasks.count(sf.qualified_name)) {
+            continue;
+        }
+        if (blocked_tasks.count(sf.qualified_name)) {
+            continue;
+        }
+
+        PortTask task;
+        task.source_path = sf.relative_path;
+        task.source_qualified = sf.qualified_name;
+        task.target_path = m.target_path;
+        task.dependent_count = sf.dependent_count;
+        task.dependency_count = sf.dependency_count;
+        task.similarity = m.similarity;
+
+        // Restore assignment status if it was assigned
+        if (assigned_tasks.count(sf.qualified_name)) {
+            task.status = TaskStatus::ASSIGNED;
+            task.assigned_to = assigned_to_map[sf.qualified_name];
+            task.assigned_at = assigned_at_map[sf.qualified_name];
+        }
+
+        for (const auto& dep : sf.imports) {
             task.dependencies.push_back(dep.module_path);
         }
 
@@ -1081,6 +1305,30 @@ void cmd_complete(const std::string& task_file, const std::string& source_qualif
             task.source_qualified = qualified;
             task.status = TaskStatus::COMPLETED;
             task.completed_at = completed_at_map[qualified];
+            tm.tasks.push_back(task);
+        }
+    }
+
+    // Add blocked tasks back (preserving that the agent has explicitly deferred them)
+    for (const auto& qualified : blocked_tasks) {
+        bool found = false;
+        for (const auto& [path, sf] : source.files) {
+            if (sf.qualified_name == qualified) {
+                PortTask task;
+                task.source_path = sf.relative_path;
+                task.source_qualified = sf.qualified_name;
+                task.dependent_count = sf.dependent_count;
+                task.status = TaskStatus::BLOCKED;
+                tm.tasks.push_back(task);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            PortTask task;
+            task.source_path = qualified;
+            task.source_qualified = qualified;
+            task.status = TaskStatus::BLOCKED;
             tm.tasks.push_back(task);
         }
     }
@@ -1152,15 +1400,12 @@ void cmd_release(const std::string& task_file, const std::string& source_qualifi
         
         float similarity = ASTSimilarity::combined_similarity(src_tree.get(), tgt_tree.get());
         
-        // Require >= 0.70 similarity to release
         if (similarity < 0.70f) {
-            std::cerr << "Error: Cannot release task with low similarity: " << similarity << "\n";
-            std::cerr << "Target file exists but is incomplete (< 0.70 similarity required)\n";
-            std::cerr << "Either complete the port or delete the target file to release.\n";
-            return;
+            std::cerr << "Warning: Releasing task with low similarity: " << similarity << "\n";
+            std::cerr << "Target file exists but is likely incomplete.\n";
+        } else {
+            std::cerr << "Warning: Releasing with partial port (similarity " << similarity << ")\n";
         }
-        
-        std::cerr << "Warning: Releasing with partial port (similarity " << similarity << ")\n";
         std::cerr << "Consider completing it instead (use --complete).\n";
     }
 
@@ -1168,6 +1413,50 @@ void cmd_release(const std::string& task_file, const std::string& source_qualifi
         tm.save();
         std::cout << "Released task: " << source_qualified << "\n";
     }
+}
+
+void cmd_block(const std::string& task_file, const std::string& source_qualified) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    for (auto& t : tm.tasks) {
+        if (t.source_qualified == source_qualified) {
+            t.status = TaskStatus::BLOCKED;
+            t.assigned_to.clear();
+            t.assigned_at.clear();
+            tm.save();
+            std::cout << "Blocked task: " << source_qualified << "\n";
+            return;
+        }
+    }
+
+    std::cerr << "Task not found: " << source_qualified << "\n";
+}
+
+void cmd_unblock(const std::string& task_file, const std::string& source_qualified) {
+    TaskManager tm(task_file);
+    if (!tm.load()) {
+        std::cerr << "Error: Could not load task file: " << task_file << "\n";
+        return;
+    }
+
+    for (auto& t : tm.tasks) {
+        if (t.source_qualified == source_qualified) {
+            if (t.status != TaskStatus::BLOCKED) {
+                std::cerr << "Task is not blocked: " << source_qualified << "\n";
+                return;
+            }
+            t.status = TaskStatus::PENDING;
+            tm.save();
+            std::cout << "Unblocked task: " << source_qualified << "\n";
+            return;
+        }
+    }
+
+    std::cerr << "Task not found: " << source_qualified << "\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -1223,6 +1512,12 @@ int main(int argc, char* argv[]) {
 
         } else if (mode == "--release" && argc >= 4) {
             cmd_release(argv[2], argv[3]);
+
+        } else if (mode == "--block" && argc >= 4) {
+            cmd_block(argv[2], argv[3]);
+
+        } else if (mode == "--unblock" && argc >= 4) {
+            cmd_unblock(argv[2], argv[3]);
 
         } else if (mode == "--dump" && argc >= 4) {
             ASTParser parser;

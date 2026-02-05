@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/exec/src/exec_events.rs
+// port-lint: source exec/src/exec_events.rs
 package ai.solace.coder.exec
 
 import ai.solace.coder.protocol.ContentBlock

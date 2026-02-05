@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/auth/storage.rs
+// port-lint: source core/src/auth/storage.rs
 package ai.solace.coder.core.auth
 
 import kotlinx.serialization.json.Json

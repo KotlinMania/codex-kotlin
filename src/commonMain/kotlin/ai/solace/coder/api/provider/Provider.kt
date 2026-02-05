@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/provider.rs
+// port-lint: source codex-api/src/provider.rs
 package ai.solace.coder.api.provider
 
 import io.ktor.client.request.*

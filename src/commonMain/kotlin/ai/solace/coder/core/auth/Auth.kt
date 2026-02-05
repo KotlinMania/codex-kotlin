@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/auth.rs
+// port-lint: source core/src/auth.rs
 package ai.solace.coder.core.auth
 
 import ai.solace.coder.core.auth.*

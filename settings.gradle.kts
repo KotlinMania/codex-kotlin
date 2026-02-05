@@ -25,3 +25,11 @@ includeBuild("ktreesitter-kotlin") {
         substitute(module("io.github.tree-sitter:ktreesitter-bash")).using(project(":languages:bash"))
     }
 }
+
+// Use the local ratatui-kotlin checkout so we have the full API surface needed for strict
+// transliteration (e.g., Paragraph/Wrap/WidgetRef/Terminal backend types).
+includeBuild("/Volumes/stuff/Projects/kotlinmania/ratatui-kotlin") {
+    dependencySubstitution {
+        substitute(module("io.github.kotlinmania:ratatui-kotlin")).using(project(":"))
+    }
+}

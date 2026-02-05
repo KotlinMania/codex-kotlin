@@ -2,9 +2,9 @@
 package ai.solace.coder.tui
 
 import ai.solace.coder.tui.CustomTerminal
-import io.github.kotlinmania.ratatui.backend.Backend
-import io.github.kotlinmania.ratatui.layout.Rect
-import io.github.kotlinmania.ratatui.text.Line
+import ratatui.layout.Rect
+import ratatui.terminal.Backend
+import ratatui.text.Line
 import io.github.kotlinmania.kasuari.event.Event
 import io.github.kotlinmania.kasuari.event.KeyEvent
 import io.github.kotlinmania.kasuari.terminal.EnterAlternateScreen

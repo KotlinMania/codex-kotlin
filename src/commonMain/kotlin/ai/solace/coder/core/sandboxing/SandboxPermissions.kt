@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/sandboxing/mod.rs
+// port-lint: source core/src/sandboxing/mod.rs
 package ai.solace.coder.core.sandboxing
 
 /**

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-client/src/error.rs
+// port-lint: source codex-client/src/error.rs
 package ai.solace.coder.client.error
 
 import io.ktor.http.*

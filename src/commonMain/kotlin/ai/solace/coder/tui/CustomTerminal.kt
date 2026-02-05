@@ -1,16 +1,16 @@
 // port-lint: source tui/src/custom_terminal.rs
 package ai.solace.coder.tui
 
-import io.github.kotlinmania.ratatui.backend.Backend
-import io.github.kotlinmania.ratatui.backend.ClearType
-import io.github.kotlinmania.ratatui.buffer.Buffer
-import io.github.kotlinmania.ratatui.buffer.Cell
-import io.github.kotlinmania.ratatui.layout.Position
-import io.github.kotlinmania.ratatui.layout.Rect
-import io.github.kotlinmania.ratatui.layout.Size
-import io.github.kotlinmania.ratatui.style.Color
-import io.github.kotlinmania.ratatui.style.Modifier
-import io.github.kotlinmania.ratatui.widgets.WidgetRef
+import ratatui.buffer.Buffer
+import ratatui.buffer.Cell
+import ratatui.layout.Position
+import ratatui.layout.Rect
+import ratatui.layout.Size
+import ratatui.style.Color
+import ratatui.style.Modifier
+import ratatui.terminal.Backend
+import ratatui.terminal.ClearType
+import ratatui.widgets.WidgetRef
 import io.github.kotlinmania.kasuari.cursor.MoveTo
 import io.github.kotlinmania.kasuari.style.Colors
 import io.github.kotlinmania.kasuari.style.Print

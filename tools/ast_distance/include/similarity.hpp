@@ -223,10 +223,9 @@ public:
         report.jaccard_sim = node_type_jaccard(tree1, tree2);
         report.edit_distance_sim = normalized_edit_distance(tree1, tree2);
 
-        report.combined_score = 0.3f * report.cosine_sim +
-                                0.2f * report.structure_sim +
-                                0.2f * report.jaccard_sim +
-                                0.3f * report.edit_distance_sim;
+        // Keep this consistent with the codebase analysis (`compute_similarities`)
+        // so "Combined Score" means the same thing everywhere in the tool.
+        report.combined_score = combined_similarity(tree1, tree2);
 
         return report;
     }

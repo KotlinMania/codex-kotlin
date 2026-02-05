@@ -1,7 +1,7 @@
 // port-lint: source tui/src/render/mod.rs
 package ai.solace.coder.tui.render
 
-import io.github.kotlinmania.ratatui.layout.Rect
+import ratatui.layout.Rect
 
 data class Insets(
     val left: UShort = 0u,

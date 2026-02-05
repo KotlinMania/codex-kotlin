@@ -145,11 +145,50 @@ public:
             return num.empty() ? 0 : std::stoi(num);
         };
 
+        // Helper to extract float value
+        auto extract_float = [](const std::string& content, const std::string& key) -> float {
+            std::string pattern = "\"" + key + "\"";
+            size_t pos = content.find(pattern);
+            if (pos == std::string::npos) return 0.0f;
+            pos = content.find(':', pos);
+            if (pos == std::string::npos) return 0.0f;
+            pos++;
+            while (pos < content.size() && std::isspace(content[pos])) pos++;
+            std::string num;
+            while (pos < content.size() && (std::isdigit(content[pos]) || content[pos] == '.' || content[pos] == '-')) {
+                num += content[pos++];
+            }
+            return num.empty() ? 0.0f : std::stof(num);
+        };
+
         source_root = extract_string(content, "source_root");
         target_root = extract_string(content, "target_root");
         source_lang = extract_string(content, "source_lang");
         target_lang = extract_string(content, "target_lang");
         agents_md_path = extract_string(content, "agents_md");
+
+        // Resolve relative paths in the task file against the task file directory so
+        // commands can be run from any working directory.
+        try {
+            std::filesystem::path base_dir = std::filesystem::path(task_file_path).parent_path();
+            auto resolve_in_place = [&](std::string& p) {
+                if (p.empty()) return;
+                std::filesystem::path pp(p);
+                if (pp.is_relative()) {
+                    pp = base_dir / pp;
+                }
+                // Prefer canonicalization when possible; fall back to absolute.
+                std::error_code ec;
+                auto canon = std::filesystem::weakly_canonical(pp, ec);
+                p = (ec ? std::filesystem::absolute(pp).string() : canon.string());
+            };
+
+            resolve_in_place(source_root);
+            resolve_in_place(target_root);
+            resolve_in_place(agents_md_path);
+        } catch (...) {
+            // Best-effort only; keep raw strings if anything goes wrong.
+        }
 
         // Find tasks array
         size_t tasks_pos = content.find("\"tasks\"");
@@ -174,6 +213,8 @@ public:
             task.source_qualified = extract_string(task_str, "source_qualified");
             task.target_path = extract_string(task_str, "target_path");
             task.dependent_count = extract_int(task_str, "dependent_count");
+            task.dependency_count = extract_int(task_str, "dependency_count");
+            task.similarity = extract_float(task_str, "similarity");
             task.assigned_to = extract_string(task_str, "assigned_to");
             task.assigned_at = extract_string(task_str, "assigned_at");
             task.completed_at = extract_string(task_str, "completed_at");
@@ -216,6 +257,12 @@ public:
             file << "      \"source_qualified\": \"" << t.source_qualified << "\",\n";
             file << "      \"target_path\": \"" << t.target_path << "\",\n";
             file << "      \"dependent_count\": " << t.dependent_count << ",\n";
+            if (t.dependency_count > 0) {
+                file << "      \"dependency_count\": " << t.dependency_count << ",\n";
+            }
+            if (t.similarity > 0.0f) {
+                file << "      \"similarity\": " << std::fixed << std::setprecision(4) << t.similarity << ",\n";
+            }
             file << "      \"status\": \"" << status_to_string(t.status) << "\"";
             if (!t.assigned_to.empty()) {
                 file << ",\n      \"assigned_to\": \"" << t.assigned_to << "\"";
@@ -270,7 +317,11 @@ public:
 
         std::sort(pending.begin(), pending.end(),
             [](const PortTask* a, const PortTask* b) {
-                return a->dependent_count > b->dependent_count;
+                if (a->dependent_count != b->dependent_count) {
+                    return a->dependent_count > b->dependent_count;
+                }
+                // Lower similarity first (more incomplete).
+                return a->similarity < b->similarity;
             });
 
         PortTask* task = pending[0];
@@ -399,7 +450,7 @@ public:
         std::cout << "5. Match documentation comments from the source\n";
         std::cout << "6. Run: ast_distance <source> rust <target> kotlin\n";
         std::cout << "   to verify similarity (aim for >0.85)\n";
-        std::cout << "7. When complete, run: ast_distance --complete " << task.source_qualified << "\n\n";
+        std::cout << "7. When complete, run: ast_distance --complete " << task_file_path << " " << task.source_qualified << "\n\n";
     }
 
 private:

@@ -162,7 +162,10 @@ inline NodeType rust_node_to_type(const std::string& node_type) {
         {"struct_item", NodeType::STRUCT},
         {"enum_item", NodeType::ENUM},
         {"trait_item", NodeType::INTERFACE},
-        {"impl_item", NodeType::CLASS},
+        // Rust `impl` blocks are method containers; Kotlin methods live in class
+        // bodies which we treat as BLOCKs. Mapping `impl_item` to BLOCK improves
+        // cross-language similarity without pretending an `impl` is a class.
+        {"impl_item", NodeType::BLOCK},
         {"let_declaration", NodeType::VAR_DECL},
         {"parameter", NodeType::PARAM},
         {"type_parameter", NodeType::TYPE_PARAM},
@@ -229,8 +232,11 @@ inline NodeType kotlin_node_to_type(const std::string& node_type) {
 
         // Declarations
         {"function_declaration", NodeType::FUNCTION},
-        {"class_declaration", NodeType::CLASS},
-        {"object_declaration", NodeType::CLASS},
+        // Kotlin's primary composition mechanism ("class") is typically the closest
+        // analogue to Rust's data-centric "struct" in ports. Mapping it to STRUCT
+        // improves cross-language similarity signals for Rust <-> Kotlin.
+        {"class_declaration", NodeType::STRUCT},
+        {"object_declaration", NodeType::STRUCT},
         {"enum_class_body", NodeType::ENUM},
         {"interface_declaration", NodeType::INTERFACE},
         {"property_declaration", NodeType::VAR_DECL},

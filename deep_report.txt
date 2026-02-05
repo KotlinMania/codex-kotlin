@@ -1,0 +1,580 @@
+=== Deep Analysis: codex-rs (rust) -> src (kotlin) ===
+
+Scanning source codebase (rust)...
+Codebase: codex-rs (rust)
+  Files: 444
+  Total imports: 6687
+  Most depended: core.error (50 dependents)
+
+Scanning target codebase (kotlin)...
+Codebase: src (kotlin)
+  Files: 111
+  Total imports: 694
+  Most depended: provider.Provider (7 dependents)
+
+Comparing codebases...
+Computing AST similarities...
+
+=== Codebase Comparison Report ===
+
+Source: codex-rs (444 files)
+Target: src (111 files)
+
+Matched:   108 files
+Unmatched: 336 source, 3 target
+
+=== Matched Files (by porting priority) ===
+
+Source                        Target                        Sim       Deps    Priority
+ ----------------------------------------------------------------------------------------
+core.error                    error.CodexError              0.85      50      7.4       
+otel.config                   otel.Config                   0.85      45      6.9       
+ollama.parser                 ollama.Parser                 0.73      23      6.1       
+tui.history_cell              tui.HistoryCell               0.47      11      5.8       
+protocol.user_input           protocol.UserInput            0.75      20      5.1       
+protocol.conversation_id      protocol.ConversationId       0.81      25      4.8       
+state.session                 state.SessionState            0.78      18      3.9       
+tools.context                 tools.Context                 0.80      19      3.8       
+tui.key_hint                  tui.KeyHint                   0.68      11      3.6       
+tui.style                     tui.Style                     0.79      16      3.4       
+tui.app_event                 tui.AppEvent                  0.80      14      2.9       
+tui.color                     color.Color                   0.82      15      2.7       
+tui.app_event_sender          tui.AppEventSender            0.78      12      2.7       
+core.features                 features.FeaturesExpect       0.48      5       2.6       
+render.renderable             render.Renderable             0.86      19      2.6       
+core.model_provider_info      model.ModelProviderInfo       0.72      7       1.9       
+core.conversation_manager     conversation.ConversationMan  0.79      9       1.9       
+windows-sandbox-rs.env        command_safety.WindowsEnviro  0.79      8       1.7       
+execpolicy-legacy.exec_call   legacy.ExecCall               0.79      8       1.7       
+core.terminal                 core.Terminal                 0.88      13      1.6       
+core.codex_conversation       conversation.CodexConversati  0.81      8       1.5       
+protocol.models               protocol.Models               0.80      7       1.4       
+core.turn_diff_tracker        session.TurnDiffTrackerExpec  0.41      2       1.2       
+windows-sandbox-rs.token      auth.IdTokenParser            0.43      2       1.1       
+core.model_family             model.ModelFamily             0.80      5       1.0       
+execpolicy-legacy.arg_type    legacy.ArgType                0.84      6       1.0       
+state.turn                    session.Turn                  0.71      3       0.9       
+core.mcp_connection_manager   connection.McpConnectionMana  0.60      2       0.8       
+core.shell                    shell.ShellDetector           0.80      4       0.8       
+codex-api.provider            provider.Provider             0.89      7       0.8       
+execpolicy.policy             execpolicy.Policy             0.89      7       0.8       
+ollama.url                    ollama.Url                    0.82      4       0.7       
+rmcp-client.find_codex_home   rmcpclient.FindCodexHome      0.86      5       0.7       
+execpolicy.decision           execpolicy.Decision           0.87      5       0.6       
+core.environment_context      utils.Environment             0.46      1       0.5       
+core.codex                    session.Codex                 0.84      3       0.5       
+core.client                   client.ModelClient            0.88      4       0.5       
+protocol.plan_tool            protocol.PlanTool             0.80      2       0.4       
+models.git_pull_request       git.GhostCommitsTest          0.62      1       0.4       
+tui.custom_terminal           terminal.Terminal             0.66      1       0.3       
+protocol.account              protocol.Account              0.71      1       0.3       
+command_safety.is_safe_comma  command_safety.IsSafeCommand  0.73      1       0.3       
+core.truncate                 context.TruncationPolicy      0.74      1       0.3       
+protocol.protocol             protocol.Protocol             0.87      2       0.3       
+windows-sandbox-rs.process    tools.ToolCallProcessorTest   0.84      1       0.2       
+codex-api.auth                api.Auth                      0.82      0       0.0       
+readiness.lib                 readiness.ReadinessFlagTest   0.82      0       0.0       
+endpoint.compact              endpoint.Compact              0.79      0       0.0       
+protocol.config_types         protocol.ConfigTypes          0.77      0       0.0       
+protocol.custom_prompts       protocol.CustomPrompts        0.82      0       0.0       
+git.ghost_commits             git.GhostCommits              0.74      0       0.0       
+endpoint.responses            endpoint.Responses            0.87      0       0.0       
+endpoint.streaming            endpoint.Streaming            0.76      0       0.0       
+codex-api.telemetry           telemetry.Telemetry           0.71      0       0.0       
+requests.headers              requests.Headers              0.76      0       0.0       
+core.bash                     bash.BashParser               0.42      0       0.0       
+protocol.message_history      protocol.MessageHistory       0.79      0       0.0       
+config.profile                config.Profile                0.78      0       0.0       
+config.mod                    config.Config                 0.51      0       0.0       
+codex-api.error               error.ApiError                0.72      0       0.0       
+requests.chat                 requests.ChatRequest          0.71      0       0.0       
+core.client_common            prompt.Prompt                 0.54      0       0.0       
+codex-api.rate_limits         ratelimits.RateLimits         0.87      0       0.0       
+protocol.approvals            protocol.Approvals            0.86      0       0.0       
+core.text_encoding            encoding.TextEncoding         0.79      0       0.0       
+codex-client.error            error.TransportError          0.69      0       0.0       
+context_manager.mod           context.ContextManager        0.46      0       0.0       
+protocol.num_format           protocol.NumFormat            0.85      0       0.0       
+auth.storage                  auth.Storage                  0.76      0       0.0       
+login.device_code_auth        auth.Hashing                  0.77      0       0.0       
+requests.responses            requests.ResponsesRequest     0.81      0       0.0       
+mcp-server.codex_tool_config  config.DurationSerializers    0.61      0       0.0       
+config.types                  config.Types                  0.71      0       0.0       
+sandboxing.mod                sandboxing.SandboxPermission  0.47      0       0.0       
+render.mod                    render.Insets                 0.78      0       0.0       
+async-utils.lib               concurrent.CancellationToken  0.79      0       0.0       
+sse.responses                 sse.Responses                 0.77      0       0.0       
+codex-api.common              common.Common                 0.81      0       0.0       
+endpoint.chat                 endpoint.Chat                 0.89      0       0.0       
+exec.exec_events              exec.ExecEvents               0.77      0       0.0       
+command_safety.is_dangerous_  command_safety.IsDangerousCo  0.79      0       0.0       
+command_safety.windows_safe_  command_safety.WindowsSafeCo  0.85      0       0.0       
+command_safety.windows_dange  command_safety.WindowsDanger  0.89      0       0.0       
+models.mod                    config.ConfigToml             0.69      0       0.0       
+handlers.mod                  process.SandboxType           0.50      0       0.0       
+handlers.read_file            handlers.ReadFileTest         0.70      0       0.0       
+execpolicy.parser             streaming.SseParser           0.79      0       0.0       
+protocol.items                protocol.Items                0.83      0       0.0       
+apply-patch.parser            ollama.ParserTest             0.61      0       0.0       
+app-server.models             auth.AuthModels               0.67      0       0.0       
+core.landlock                 core.Landlock                 0.78      0       0.0       
+backend-client.types          exec.ExecTypes                0.61      0       0.0       
+codex-client.sse              sse.SseTest                   0.84      0       0.0       
+tools.events                  sse.OkioEventsource           0.62      0       0.0       
+sse.chat                      sse.Chat                      0.79      0       0.0       
+onboarding.auth               auth.AuthManager              0.72      0       0.0       
+ollama.pull                   ollama.Pull                   0.89      0       0.0       
+windows-sandbox-rs.policy     context.TruncationPolicyTest  0.69      0       0.0       
+tui.oss_selection             sse.SseEvent                  0.49      0       0.0       
+handlers.shell                shell.CommandParser           0.81      0       0.0       
+common.config_override        config.ConfigLoader           0.88      0       0.0       
+tools.sandboxing              sandbox.SandboxManagerTest    0.73      0       0.0       
+core.auth                     core.Auth                     0.82      0       0.0       
+unified_exec.session          session.CodexTest             0.72      0       0.0       
+unified_exec.session_manager  session.TurnContextTest       0.63      0       0.0       
+mcp.auth                      auth.StorageTest              0.73      0       0.0       
+render.line_utils             utils.KtorOkio                0.75      0       0.0       
+protocol.parse_command        protocol.ParseCommand         0.79      0       0.0       
+
+=== Missing from Target (need to port) ===
+  ansi-escape.lib                (0 dependents)
+  bin.export                     (0 dependents)
+  app-server-protocol.export     (0 dependents)
+  app-server-protocol.jsonrpc_lite (0 dependents)
+  app-server-protocol.lib        (0 dependents)
+  protocol.common                (0 dependents)
+  protocol.mod                   (0 dependents)
+  protocol.thread_history        (0 dependents)
+  protocol.v1                    (1 dependents)
+  protocol.v2                    (1 dependents)
+  app-server-test-client.main    (0 dependents)
+  app-server.bespoke_event_handling (0 dependents)
+  app-server.codex_message_processor (1 dependents)
+  app-server.config_api          (1 dependents)
+  app-server.error_code          (0 dependents)
+  app-server.fuzzy_file_search   (0 dependents)
+  app-server.lib                 (0 dependents)
+  app-server.main                (0 dependents)
+  app-server.message_processor   (0 dependents)
+  app-server.outgoing_message    (0 dependents)
+  apply-patch.lib                (0 dependents)
+  apply-patch.main               (0 dependents)
+  apply-patch.seek_sequence      (0 dependents)
+  apply-patch.standalone_executable (0 dependents)
+  arg0.lib                       (0 dependents)
+  backend-client.client          (0 dependents)
+  backend-client.lib             (0 dependents)
+  chatgpt.apply_command          (1 dependents)
+  chatgpt.chatgpt_client         (0 dependents)
+  chatgpt.chatgpt_token          (0 dependents)
+  chatgpt.get_task               (1 dependents)
+  chatgpt.lib                    (0 dependents)
+  cli.debug_sandbox              (0 dependents)
+  debug_sandbox.pid_tracker      (1 dependents)
+  debug_sandbox.seatbelt         (0 dependents)
+  cli.exit_status                (2 dependents)
+  cli.lib                        (0 dependents)
+  cli.login                      (0 dependents)
+  cli.main                       (0 dependents)
+  cli.mcp_cmd                    (0 dependents)
+  cli.wsl_paths                  (0 dependents)
+  cloud-tasks-client.api         (0 dependents)
+  cloud-tasks-client.http        (0 dependents)
+  cloud-tasks-client.lib         (0 dependents)
+  cloud-tasks-client.mock        (1 dependents)
+  cloud-tasks.app                (0 dependents)
+  cloud-tasks.cli                (0 dependents)
+  cloud-tasks.env_detect         (0 dependents)
+  cloud-tasks.lib                (0 dependents)
+  cloud-tasks.new_task           (0 dependents)
+  cloud-tasks.scrollable_diff    (1 dependents)
+  cloud-tasks.ui                 (0 dependents)
+  cloud-tasks.util               (0 dependents)
+  endpoint.mod                   (0 dependents)
+  codex-api.lib                  (0 dependents)
+  requests.mod                   (0 dependents)
+  sse.mod                        (0 dependents)
+  codex-backend-openapi-models.lib (0 dependents)
+  models.code_task_details_response (3 dependents)
+  models.credit_status_details   (3 dependents)
+  models.external_pull_request_response (1 dependents)
+  models.paginated_list_task_list_item_ (4 dependents)
+  models.rate_limit_status_details (2 dependents)
+  models.rate_limit_status_payload (3 dependents)
+  models.rate_limit_window_snapshot (3 dependents)
+  models.task_list_item          (3 dependents)
+  models.task_response           (1 dependents)
+  codex-client.lib               (0 dependents)
+  codex-client.request           (9 dependents)
+  codex-client.retry             (0 dependents)
+  codex-client.telemetry         (0 dependents)
+  codex-client.transport         (0 dependents)
+  common.approval_mode_cli_arg   (2 dependents)
+  common.approval_presets        (0 dependents)
+  common.config_summary          (0 dependents)
+  common.elapsed                 (1 dependents)
+  common.format_env_display      (2 dependents)
+  common.fuzzy_match             (1 dependents)
+  common.lib                     (0 dependents)
+  common.model_presets           (0 dependents)
+  common.oss                     (0 dependents)
+  common.sandbox_mode_cli_arg    (1 dependents)
+  common.sandbox_summary         (0 dependents)
+  core.api_bridge                (0 dependents)
+  core.apply_patch               (2 dependents)
+  core.codex_delegate            (0 dependents)
+  command_safety.mod             (0 dependents)
+  core.compact                   (1 dependents)
+  core.compact_remote            (0 dependents)
+  config.edit                    (0 dependents)
+  config_loader.macos            (0 dependents)
+  config_loader.mod              (0 dependents)
+  context_manager.history        (1 dependents)
+  context_manager.history_tests  (0 dependents)
+  context_manager.normalize      (1 dependents)
+  core.custom_prompts            (0 dependents)
+  core.default_client            (0 dependents)
+  core.event_mapping             (0 dependents)
+  core.exec                      (0 dependents)
+  core.exec_env                  (3 dependents)
+  core.exec_policy               (1 dependents)
+  features.legacy                (0 dependents)
+  core.flags                     (0 dependents)
+  core.function_tool             (0 dependents)
+  core.git_info                  (0 dependents)
+  core.lib                       (0 dependents)
+  mcp.mod                        (0 dependents)
+  core.mcp_tool_call             (0 dependents)
+  core.message_history           (0 dependents)
+  core.openai_model_info         (0 dependents)
+  core.otel_init                 (0 dependents)
+  core.parse_command             (3 dependents)
+  core.powershell                (0 dependents)
+  core.project_doc               (0 dependents)
+  core.response_processing       (0 dependents)
+  core.review_format             (0 dependents)
+  rollout.list                   (1 dependents)
+  rollout.mod                    (0 dependents)
+  rollout.policy                 (0 dependents)
+  rollout.recorder               (0 dependents)
+  core.safety                    (0 dependents)
+  sandboxing.assessment          (0 dependents)
+  core.seatbelt                  (0 dependents)
+  core.spawn                     (0 dependents)
+  state.mod                      (0 dependents)
+  state.service                  (0 dependents)
+  tasks.compact                  (0 dependents)
+  tasks.ghost_snapshot           (0 dependents)
+  tasks.mod                      (0 dependents)
+  tasks.regular                  (0 dependents)
+  tasks.review                   (0 dependents)
+  tasks.undo                     (0 dependents)
+  tasks.user_shell               (0 dependents)
+  core.token_data                (5 dependents)
+  handlers.apply_patch           (0 dependents)
+  handlers.grep_files            (0 dependents)
+  handlers.list_dir              (0 dependents)
+  handlers.mcp                   (0 dependents)
+  handlers.mcp_resource          (0 dependents)
+  handlers.plan                  (0 dependents)
+  handlers.unified_exec          (0 dependents)
+  handlers.view_image            (0 dependents)
+  tools.mod                      (0 dependents)
+  tools.orchestrator             (0 dependents)
+  tools.parallel                 (0 dependents)
+  tools.registry                 (0 dependents)
+  tools.router                   (0 dependents)
+  runtimes.apply_patch           (0 dependents)
+  runtimes.mod                   (0 dependents)
+  runtimes.shell                 (0 dependents)
+  runtimes.unified_exec          (0 dependents)
+  tools.spec                     (0 dependents)
+  unified_exec.errors            (0 dependents)
+  unified_exec.mod               (0 dependents)
+  core.user_instructions         (2 dependents)
+  core.user_notification         (1 dependents)
+  core.user_shell_command        (0 dependents)
+  core.util                      (0 dependents)
+  bin.main_execve_wrapper        (1 dependents)
+  bin.main_mcp_server            (1 dependents)
+  exec-server.lib                (0 dependents)
+  exec-server.posix              (0 dependents)
+  posix.escalate_client          (0 dependents)
+  posix.escalate_protocol        (0 dependents)
+  posix.escalate_server          (1 dependents)
+  posix.escalation_policy        (2 dependents)
+  posix.mcp                      (0 dependents)
+  posix.mcp_escalation_policy    (1 dependents)
+  posix.socket                   (0 dependents)
+  posix.stopwatch                (2 dependents)
+  exec.cli                       (0 dependents)
+  exec.event_processor           (3 dependents)
+  exec.event_processor_with_human_output (1 dependents)
+  exec.event_processor_with_jsonl_output (0 dependents)
+  exec.lib                       (0 dependents)
+  exec.main                      (0 dependents)
+  execpolicy-legacy.build        (0 dependents)
+  execpolicy-legacy.arg_matcher  (5 dependents)
+  execpolicy-legacy.arg_resolver (0 dependents)
+  execpolicy-legacy.error        (0 dependents)
+  execpolicy-legacy.execv_checker (1 dependents)
+  execpolicy-legacy.lib          (0 dependents)
+  execpolicy-legacy.main         (0 dependents)
+  execpolicy-legacy.opt          (3 dependents)
+  execpolicy-legacy.policy       (0 dependents)
+  execpolicy-legacy.policy_parser (6 dependents)
+  execpolicy-legacy.program      (0 dependents)
+  execpolicy-legacy.sed_command  (0 dependents)
+  execpolicy-legacy.valid_exec   (4 dependents)
+  execpolicy.error               (0 dependents)
+  execpolicy.execpolicycheck     (0 dependents)
+  execpolicy.lib                 (0 dependents)
+  execpolicy.main                (0 dependents)
+  execpolicy.rule                (1 dependents)
+  feedback.lib                   (0 dependents)
+  file-search.cli                (0 dependents)
+  file-search.lib                (0 dependents)
+  file-search.main               (0 dependents)
+  keyring-store.lib              (0 dependents)
+  linux-sandbox.landlock         (0 dependents)
+  linux-sandbox.lib              (0 dependents)
+  linux-sandbox.linux_run_main   (0 dependents)
+  linux-sandbox.main             (0 dependents)
+  lmstudio.client                (0 dependents)
+  lmstudio.lib                   (0 dependents)
+  login.lib                      (0 dependents)
+  login.pkce                     (0 dependents)
+  login.server                   (2 dependents)
+  mcp-server.codex_tool_runner   (0 dependents)
+  mcp-server.error_code          (0 dependents)
+  mcp-server.exec_approval       (0 dependents)
+  mcp-server.lib                 (0 dependents)
+  mcp-server.main                (0 dependents)
+  mcp-server.message_processor   (2 dependents)
+  mcp-server.outgoing_message    (3 dependents)
+  mcp-server.patch_approval      (0 dependents)
+  tool_handlers.mod              (0 dependents)
+  mcp-types.lib                  (0 dependents)
+  ollama.client                  (0 dependents)
+  ollama.lib                     (0 dependents)
+  otel.lib                       (0 dependents)
+  otel.otel_event_manager        (4 dependents)
+  otel.otel_provider             (2 dependents)
+  process-hardening.lib          (0 dependents)
+  protocol.lib                   (0 dependents)
+  responses-api-proxy.lib        (0 dependents)
+  responses-api-proxy.main       (0 dependents)
+  responses-api-proxy.read_api_key (0 dependents)
+  rmcp-client.auth_status        (0 dependents)
+  bin.rmcp_test_server           (0 dependents)
+  rmcp-client.lib                (0 dependents)
+  rmcp-client.logging_client_handler (1 dependents)
+  rmcp-client.oauth              (0 dependents)
+  rmcp-client.perform_oauth_login (2 dependents)
+  rmcp-client.program_resolver   (1 dependents)
+  rmcp-client.rmcp_client        (2 dependents)
+  rmcp-client.utils              (0 dependents)
+  stdio-to-uds.lib               (0 dependents)
+  stdio-to-uds.main              (0 dependents)
+  tui.additional_dirs            (0 dependents)
+  tui.app                        (3 dependents)
+  tui.app_backtrack              (0 dependents)
+  tui.ascii_animation            (1 dependents)
+  bin.md-events                  (0 dependents)
+  bottom_pane.approval_overlay   (1 dependents)
+  bottom_pane.bottom_pane_view   (5 dependents)
+  bottom_pane.chat_composer      (2 dependents)
+  bottom_pane.chat_composer_history (1 dependents)
+  bottom_pane.command_popup      (1 dependents)
+  bottom_pane.custom_prompt_view (1 dependents)
+  bottom_pane.feedback_view      (0 dependents)
+  bottom_pane.file_search_popup  (1 dependents)
+  bottom_pane.footer             (0 dependents)
+  bottom_pane.list_selection_view (1 dependents)
+  bottom_pane.mod                (0 dependents)
+  bottom_pane.paste_burst        (1 dependents)
+  bottom_pane.popup_consts       (0 dependents)
+  bottom_pane.prompt_args        (0 dependents)
+  bottom_pane.queued_user_messages (1 dependents)
+  bottom_pane.scroll_state       (4 dependents)
+  bottom_pane.selection_popup_common (0 dependents)
+  bottom_pane.textarea           (3 dependents)
+  tui.chatwidget                 (2 dependents)
+  chatwidget.agent               (0 dependents)
+  chatwidget.interrupts          (0 dependents)
+  chatwidget.session_header      (1 dependents)
+  tui.cli                        (7 dependents)
+  tui.clipboard_paste            (0 dependents)
+  tui.diff_render                (0 dependents)
+  exec_cell.mod                  (0 dependents)
+  exec_cell.model                (1 dependents)
+  exec_cell.render               (0 dependents)
+  tui.exec_command               (0 dependents)
+  tui.file_search                (0 dependents)
+  tui.frames                     (0 dependents)
+  tui.get_git_diff               (1 dependents)
+  tui.insert_history             (0 dependents)
+  tui.lib                        (0 dependents)
+  tui.live_wrap                  (0 dependents)
+  tui.main                       (1 dependents)
+  tui.markdown                   (1 dependents)
+  tui.markdown_render            (0 dependents)
+  tui.markdown_render_tests      (0 dependents)
+  tui.markdown_stream            (0 dependents)
+  tui.model_migration            (0 dependents)
+  onboarding.mod                 (0 dependents)
+  onboarding.onboarding_screen   (0 dependents)
+  onboarding.trust_directory     (0 dependents)
+  onboarding.welcome             (0 dependents)
+  tui.pager_overlay              (0 dependents)
+  public_widgets.composer_input  (3 dependents)
+  public_widgets.mod             (0 dependents)
+  render.highlight               (0 dependents)
+  tui.resume_picker              (0 dependents)
+  tui.selection_list             (0 dependents)
+  tui.session_log                (1 dependents)
+  tui.shimmer                    (0 dependents)
+  tui.slash_command              (3 dependents)
+  status.account                 (0 dependents)
+  status.card                    (0 dependents)
+  status.format                  (0 dependents)
+  status.helpers                 (0 dependents)
+  status.mod                     (0 dependents)
+  status.rate_limits             (0 dependents)
+  tui.status_indicator_widget    (1 dependents)
+  streaming.controller           (0 dependents)
+  streaming.mod                  (0 dependents)
+  tui.terminal_palette           (0 dependents)
+  tui.text_formatting            (1 dependents)
+  tui.tui                        (9 dependents)
+  tui.job_control                (0 dependents)
+  tui.ui_consts                  (0 dependents)
+  tui.update_action              (5 dependents)
+  tui.update_prompt              (0 dependents)
+  tui.updates                    (1 dependents)
+  tui.version                    (0 dependents)
+  tui.wrapping                   (0 dependents)
+  cache.lib                      (0 dependents)
+  git.apply                      (0 dependents)
+  git.branch                     (0 dependents)
+  git.errors                     (0 dependents)
+  git.lib                        (0 dependents)
+  git.operations                 (0 dependents)
+  git.platform                   (0 dependents)
+  image.error                    (0 dependents)
+  image.lib                      (0 dependents)
+  json-to-toml.lib               (0 dependents)
+  pty.lib                        (0 dependents)
+  string.lib                     (0 dependents)
+  windows-sandbox-rs.acl         (1 dependents)
+  windows-sandbox-rs.allow       (0 dependents)
+  windows-sandbox-rs.audit       (0 dependents)
+  windows-sandbox-rs.cap         (0 dependents)
+  windows-sandbox-rs.lib         (0 dependents)
+  windows-sandbox-rs.logging     (1 dependents)
+  windows-sandbox-rs.winutil     (0 dependents)
+
+=== Porting Quality Summary ===
+
+Matched by header:    85 / 108
+Matched by name:      23 / 108
+Total TODOs in target: 62
+Total lint errors:    258
+Stub files:           0
+
+=== Files with Issues ===
+
+File                          Sim     Ratio   TODOs Lint  Status
+----------------------------------------------------------------------
+error.CodexError              0.85    0.00    0     5     LINT
+tui.HistoryCell               0.47    0.00    0     2     LINT
+protocol.ConversationId       0.81    0.00    0     2     LINT
+state.SessionState            0.78    0.00    0     8     LINT
+tui.KeyHint                   0.68    0.00    0     1     LINT
+tui.AppEventSender            0.78    0.00    1     0     TODO
+features.FeaturesExpect       0.48    0.00    0     0     
+render.Renderable             0.86    0.00    0     25    LINT
+conversation.ConversationMan  0.79    0.00    3     0     TODO
+command_safety.WindowsEnviro  0.79    0.00    2     9     LINT
+conversation.CodexConversati  0.81    0.00    0     1     LINT
+protocol.Models               0.80    0.00    0     1     LINT
+session.TurnDiffTrackerExpec  0.41    0.00    0     0     
+auth.IdTokenParser            0.43    0.00    0     0     
+session.Turn                  0.71    0.00    6     10    LINT
+connection.McpConnectionMana  0.60    0.00    3     7     LINT
+shell.ShellDetector           0.80    0.00    1     0     TODO
+provider.Provider             0.89    0.00    0     2     LINT
+utils.Environment             0.46    0.00    0     0     
+session.Codex                 0.84    0.00    12    92    LINT
+... and 88 more files
+
+=== Porting Recommendations ===
+
+Incomplete ports (similarity < 60%): 13
+Missing files: 336
+
+Top priority to complete:
+  tui.history_cell               sim=0.47 deps=11
+  core.features                  sim=0.48 deps=5
+  core.turn_diff_tracker         sim=0.41 deps=2
+  windows-sandbox-rs.token       sim=0.43 deps=2
+  core.mcp_connection_manager    sim=0.60 deps=2 [3 TODOs]
+  core.environment_context       sim=0.46 deps=1
+  core.bash                      sim=0.42 deps=0
+  config.mod                     sim=0.51 deps=0
+  core.client_common             sim=0.54 deps=0 [1 TODOs]
+  context_manager.mod            sim=0.46 deps=0
+
+Top priority to create:
+  codex-client.request           deps=9
+  tui.tui                        deps=9
+  tui.cli                        deps=7
+  execpolicy-legacy.policy_parser deps=6
+  bottom_pane.bottom_pane_view   deps=5
+  tui.update_action              deps=5
+  core.token_data                deps=5
+  execpolicy-legacy.arg_matcher  deps=5
+  otel.otel_event_manager        deps=4
+  execpolicy-legacy.valid_exec   deps=4
+
+=== Documentation Gaps ===
+
+File                          Src Docs    Tgt Docs    Gap %     DocSim    
+--------------------------------------------------------------------------
+protocol.protocol             512         18          96%       0.48      
+config.mod                    400         5           98%       0.34      
+tui.custom_terminal           246         48          80%       0.28      
+apply-patch.parser            164         0           100%      0.00      
+config.types                  128         0           100%      0.00      
+mcp-server.codex_tool_config  72          0           100%      0.00      
+core.features                 54          8           85%       0.24      
+core.model_provider_info      96          51          46%       0.78      
+tools.sandboxing              42          0           100%      0.00      
+common.config_override        54          13          75%       0.19      
+core.turn_diff_tracker        54          13          75%       0.06      
+readiness.lib                 38          0           100%      0.00      
+core.mcp_connection_manager   60          24          60%       0.56      
+tui.history_cell              42          6           85%       0.21      
+tui.app_event                 88          57          35%       0.99      
+tui.oss_selection             32          4           87%       0.17      
+handlers.read_file            24          0           100%      0.00      
+render.renderable             22          0           100%      0.00      
+core.truncate                 48          27          43%       0.66      
+protocol.approvals            24          5           79%       0.03      
+core.environment_context      34          15          55%       0.26      
+git.ghost_commits             68          51          25%       0.69      
+codex-api.provider            18          3           83%       0.72      
+core.landlock                 16          3           81%       0.78      
+config.profile                10          0           100%      0.00      
+... and 13 more files with doc gaps
+
+Documentation coverage: 2720 / 3310 lines (82%)
+Files with >20% doc gap: 38
+
+=== Generating Reports ===
+
+✅ Generated: port_status_report.md
+✅ Generated: high_priority_ports.md
+✅ Generated: NEXT_ACTIONS.md
+
+📁 All reports generated successfully!

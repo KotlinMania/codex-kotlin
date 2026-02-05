@@ -4,71 +4,72 @@ Based on AST analysis, here are the concrete next steps.
 
 ## Summary
 
-- **Current Progress:** 26.1% (116/444 files)
-- **Matched Files:** 113
+- **Current Progress:** 26.8% (119/444 files)
+- **Matched Files:** 116
 - **Average Similarity:** 0.74
 - **Critical Issues:** 15 files with <0.60 similarity
 
 ## Priority 1: Fix Incomplete High-Dependency Files
 
-### 1. otel.config
-- **Similarity:** 0.85 (needs 0% improvement)
-- **Dependencies:** 45
-- **Priority Score:** 6.9
-- **Action:** Minor refinements needed
-
-### 2. ollama.parser
+### 1. ollama.parser
 - **Similarity:** 0.73 (needs 12% improvement)
 - **Dependencies:** 23
 - **Priority Score:** 6.1
 - **Action:** Review and complete missing sections
 
-### 3. tui.history_cell
-- **Similarity:** 0.47 (needs 38% improvement)
-- **Dependencies:** 11
-- **Priority Score:** 5.8
-- **Action:** Deep review - likely missing major functionality
+### 2. protocol.conversation_id
+- **Similarity:** 0.79 (needs 6% improvement)
+- **Dependencies:** 25
+- **Priority Score:** 5.3
+- **Action:** Minor refinements needed
 
-### 4. protocol.user_input
-- **Similarity:** 0.75 (needs 10% improvement)
+### 3. protocol.user_input
+- **Similarity:** 0.74 (needs 11% improvement)
 - **Dependencies:** 20
 - **Priority Score:** 5.1
 - **Action:** Review and complete missing sections
 
-### 5. protocol.conversation_id
-- **Similarity:** 0.81 (needs 4% improvement)
-- **Dependencies:** 25
-- **Priority Score:** 4.8
-- **Action:** Minor refinements needed
+### 4. tui.history_cell
+- **Similarity:** 0.64 (needs 21% improvement)
+- **Dependencies:** 11
+- **Priority Score:** 4.0
+- **TODOs:** 1
+- **Action:** Review and complete missing sections
 
-### 6. state.session
-- **Similarity:** 0.78 (needs 7% improvement)
+### 5. state.session
+- **Similarity:** 0.79 (needs 6% improvement)
 - **Dependencies:** 18
 - **Priority Score:** 3.9
 - **Action:** Minor refinements needed
 
-### 7. tools.context
+### 6. tools.context
 - **Similarity:** 0.80 (needs 5% improvement)
 - **Dependencies:** 19
 - **Priority Score:** 3.8
 - **Action:** Minor refinements needed
 
-### 8. tui.key_hint
+### 7. tui.key_hint
 - **Similarity:** 0.68 (needs 17% improvement)
 - **Dependencies:** 11
 - **Priority Score:** 3.6
 - **Action:** Review and complete missing sections
 
-### 9. tui.style
+### 8. tui.style
 - **Similarity:** 0.79 (needs 6% improvement)
 - **Dependencies:** 16
 - **Priority Score:** 3.3
 - **Action:** Minor refinements needed
 
-### 10. tui.app_event
+### 9. tui.app_event
 - **Similarity:** 0.80 (needs 5% improvement)
 - **Dependencies:** 14
 - **Priority Score:** 2.9
+- **Action:** Minor refinements needed
+
+### 10. tui.color
+- **Similarity:** 0.82 (needs 3% improvement)
+- **Dependencies:** 15
+- **Priority Score:** 2.7
 - **Action:** Minor refinements needed
 
 ## Priority 2: Port Missing High-Value Files

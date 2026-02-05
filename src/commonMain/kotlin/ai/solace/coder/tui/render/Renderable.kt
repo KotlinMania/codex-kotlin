@@ -1,12 +1,12 @@
 // port-lint: source tui/src/render/renderable.rs
 package ai.solace.coder.tui.render
 
-import io.github.kotlinmania.ratatui.buffer.Buffer
-import io.github.kotlinmania.ratatui.layout.Rect
-import io.github.kotlinmania.ratatui.text.Line
-import io.github.kotlinmania.ratatui.text.Span
-import io.github.kotlinmania.ratatui.widgets.Paragraph
-import io.github.kotlinmania.ratatui.widgets.WidgetRef
+import ratatui.buffer.Buffer
+import ratatui.layout.Rect
+import ratatui.text.Line
+import ratatui.text.Span
+import ratatui.widgets.WidgetRef
+import ratatui.widgets.paragraph.Paragraph
 
 interface Renderable {
     fun render(area: Rect, buf: Buffer)

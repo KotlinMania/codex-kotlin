@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/client.rs
+// port-lint: source core/src/client.rs
 package ai.solace.coder.core.client
 
 import ai.solace.coder.api.AuthProvider

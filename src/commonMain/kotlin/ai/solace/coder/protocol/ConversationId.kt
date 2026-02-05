@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/conversation_id.rs
+// port-lint: source protocol/src/conversation_id.rs
 package ai.solace.coder.protocol
 
 import kotlin.uuid.ExperimentalUuidApi
@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
  *
  * Ported from Rust codex-rs/protocol/src/conversation_id.rs
  */
-@Serializable(with = ConversationIdSerializer::class)
+@Serializable(with = ConversationId.Serializer::class)
 @OptIn(ExperimentalUuidApi::class)
 data class ConversationId(
     private val uuid: Uuid
@@ -26,32 +26,25 @@ data class ConversationId(
             return ConversationId(Uuid.random())
         }
 
-        fun fromString(s: String): kotlin.Result<ConversationId> {
-            return runCatching {
-                ConversationId(Uuid.parse(s))
-            }
+        fun default(): ConversationId = new()
+
+        fun fromString(s: String): Result<ConversationId> {
+            return runCatching { ConversationId(Uuid.parse(s)) }
         }
     }
 
     override fun toString(): String = uuid.toString()
-}
 
-/** Default implementation matching Rust's `impl Default`. */
-@OptIn(ExperimentalUuidApi::class)
-fun ConversationId.Companion.default(): ConversationId = ConversationId.new()
+    object Serializer : KSerializer<ConversationId> {
+        override val descriptor: SerialDescriptor =
+            PrimitiveSerialDescriptor("ConversationId", PrimitiveKind.STRING)
 
-/** Extension function to provide compatibility with `JsonSchema`. */
-fun ConversationId.Companion.schemaName(): String = "ConversationId"
+        override fun serialize(encoder: Encoder, value: ConversationId) {
+            encoder.encodeString(value.toString())
+        }
 
-object ConversationIdSerializer : KSerializer<ConversationId> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("ConversationId", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: ConversationId) {
-        encoder.encodeString(value.toString())
-    }
-
-    override fun deserialize(decoder: Decoder): ConversationId {
-        return ConversationId.fromString(decoder.decodeString()).getOrThrow()
+        override fun deserialize(decoder: Decoder): ConversationId {
+            return fromString(decoder.decodeString()).getOrThrow()
+        }
     }
 }

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/rate_limits.rs
+// port-lint: source codex-api/src/rate_limits.rs
 package ai.solace.coder.api.ratelimits
 
 import ai.solace.coder.protocol.RateLimitSnapshot
