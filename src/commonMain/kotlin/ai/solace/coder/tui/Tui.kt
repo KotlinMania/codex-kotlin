@@ -10,12 +10,7 @@ import io.github.kotlinmania.kasuari.event.KeyEvent
 import io.github.kotlinmania.kasuari.terminal.EnterAlternateScreen
 import io.github.kotlinmania.kasuari.terminal.LeaveAlternateScreen
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 
 sealed class TuiEvent {
     data class Key(val keyEvent: KeyEvent) : TuiEvent()
@@ -23,47 +18,21 @@ sealed class TuiEvent {
     object Draw : TuiEvent()
 }
 
-class FrameRequester(
-    private val frameScheduleTx: Channel<Instant>
-) {
-    fun scheduleFrame() {
-        frameScheduleTx.trySend(Clock.System.now())
-    }
-
-    fun scheduleFrameIn(duration: Duration) {
-        frameScheduleTx.trySend(Clock.System.now() + duration)
-    }
-
-    companion object {
-        fun testDummy(): FrameRequester {
-            return FrameRequester(Channel(Channel.UNLIMITED))
-        }
-    }
-}
-
 class Tui<B : Backend>(
     val terminal: CustomTerminal<B>,
     private val scope: CoroutineScope
 ) {
-    private val frameScheduleTx = Channel<Instant>(Channel.UNLIMITED)
     private val drawTx = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val pendingHistoryLines = mutableListOf<Line>()
     private var altSavedViewport: Rect? = null
-    
-    // Using simple boolean for now instead of AtomicBool as we're in coroutines
+
     private var altScreenActive = false
     private var terminalFocused = true
     private var enhancedKeysSupported = false
 
-    init {
-        spawnFrameScheduler(frameScheduleTx, drawTx, scope)
-        // In Rust, this was detected before EventStream.
-        // enhancedKeysSupported = supports_keyboard_enhancement().unwrap_or(false)
-    }
+    private val _frameRequester: FrameRequester = FrameRequester.new(drawTx, scope)
 
-    fun frameRequester(): FrameRequester {
-        return FrameRequester(frameScheduleTx)
-    }
+    fun frameRequester(): FrameRequester = _frameRequester
 
     fun enhancedKeysSupported(): Boolean = enhancedKeysSupported
 
@@ -159,42 +128,6 @@ class Tui<B : Backend>(
 
         terminal.draw { frame ->
             drawFn(frame)
-        }
-    }
-}
-
-private fun spawnFrameScheduler(
-    frameScheduleRx: Channel<Instant>,
-    drawTx: MutableSharedFlow<Unit>,
-    scope: CoroutineScope
-) {
-    scope.launch {
-        var nextDeadline: Instant? = null
-
-        while (isActive) {
-            val now = Clock.System.now()
-            val target = nextDeadline ?: (now + 365.days)
-            val delayDuration = target - now
-
-            select<Unit> {
-                frameScheduleRx.onReceive { at ->
-                    if (nextDeadline == null || at < nextDeadline!!) {
-                        nextDeadline = at
-                    }
-                }
-                if (delayDuration.isPositive()) {
-                    onTimeout(delayDuration.inWholeMilliseconds) {
-                        if (nextDeadline != null) {
-                            nextDeadline = null
-                            drawTx.tryEmit(Unit)
-                        }
-                    }
-                } else if (nextDeadline != null) {
-                    // Deadline already passed
-                    nextDeadline = null
-                    drawTx.tryEmit(Unit)
-                }
-            }
         }
     }
 }
