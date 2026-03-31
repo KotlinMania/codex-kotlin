@@ -25,9 +25,7 @@ data class ConfigToml(
 
     // Legacy feature toggles (kept for compatibility with existing configs).
     @SerialName("experimental_use_unified_exec_tool") val experimentalUseUnifiedExecTool: Boolean? = null,
-    @SerialName("experimental_use_rmcp_client") val experimentalUseRmcpClient: Boolean? = null,
     @SerialName("experimental_use_freeform_apply_patch") val experimentalUseFreeformApplyPatch: Boolean? = null,
-    @SerialName("experimental_sandbox_command_assessment") val experimentalSandboxCommandAssessment: Boolean? = null,
 )
 
 @Serializable

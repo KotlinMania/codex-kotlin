@@ -18,43 +18,68 @@ import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * High-level lifecycle stage for a feature.
+ *
+ * Ported from Rust core/src/features.rs Stage
  */
-enum class Stage {
-    Experimental,
-    Beta,
-    Stable,
-    Deprecated,
-    Removed,
+sealed class Stage {
+    data object Experimental : Stage()
+    data class Beta(
+        val name: String,
+        val menuDescription: String,
+        val announcement: String,
+    ) : Stage()
+    data object Stable : Stage()
+    data object Deprecated : Stage()
+    data object Removed : Stage()
+
+    fun betaMenuName(): String? = (this as? Beta)?.name
+    fun betaMenuDescription(): String? = (this as? Beta)?.menuDescription
+    fun betaAnnouncement(): String? = (this as? Beta)?.announcement
 }
 
 /**
  * Unique features toggled via configuration.
+ *
+ * Ported from Rust core/src/features.rs Feature
  */
 enum class Feature {
+    // Stable.
     /** Create a ghost commit at each turn. */
     GhostCommit,
-    /** Use the single unified PTY-backed exec tool. */
-    UnifiedExec,
-    /** Enable experimental RMCP features such as OAuth login. */
-    RmcpClient,
-    /** Include the freeform apply_patch tool. */
-    ApplyPatchFreeform,
     /** Include the view_image tool. */
     ViewImageTool,
+    /** Send warnings to the model to correct it on the tool usage. */
+    ModelWarnings,
+    /** Enable the default shell tool. */
+    ShellTool,
+
+    // Experimental
+    /** Use the single unified PTY-backed exec tool. */
+    UnifiedExec,
+    /** Include the freeform apply_patch tool. */
+    ApplyPatchFreeform,
     /** Allow the model to request web searches. */
     WebSearchRequest,
     /** Gate the execpolicy enforcement for shell/unified exec. */
     ExecPolicy,
-    /** Enable the model-based risk assessments for sandboxed commands. */
-    SandboxCommandAssessment,
     /** Enable Windows sandbox (restricted token) on Windows. */
     WindowsSandbox,
+    /** Use the elevated Windows sandbox pipeline (setup + runner). */
+    WindowsSandboxElevated,
     /** Remote compaction enabled (only for ChatGPT auth). */
     RemoteCompaction,
-    /** Enable the default shell tool. */
-    ShellTool,
+    /** Refresh remote models and emit AppReady once the list is available. */
+    RemoteModels,
     /** Allow model to call multiple tools in parallel (only for models supporting it). */
-    ParallelToolCalls;
+    ParallelToolCalls,
+    /** Experimental shell snapshotting. */
+    ShellSnapshot,
+    /** Experimental TUI v2 (viewport) implementation. */
+    Tui2,
+    /** Enable discovery and injection of skills. */
+    Skills,
+    /** Enforce UTF8 output in Powershell. */
+    PowershellUtf8;
 
     fun key(): String = info().key
 
@@ -99,10 +124,8 @@ class Features private constructor(
             val features = withDefaults()
 
             val baseLegacy = LegacyFeatureToggles(
-                experimentalSandboxCommandAssessment = cfg.experimentalSandboxCommandAssessment,
                 experimentalUseFreeformApplyPatch = cfg.experimentalUseFreeformApplyPatch,
                 experimentalUseUnifiedExecTool = cfg.experimentalUseUnifiedExecTool,
-                experimentalUseRmcpClient = cfg.experimentalUseRmcpClient,
                 toolsWebSearch = cfg.tools?.webSearchEffective(),
                 toolsViewImage = cfg.tools?.viewImage,
             )
@@ -114,10 +137,8 @@ class Features private constructor(
 
             val profileLegacy = LegacyFeatureToggles(
                 includeApplyPatchTool = configProfile.includeApplyPatchTool,
-                experimentalSandboxCommandAssessment = configProfile.experimentalSandboxCommandAssessment,
                 experimentalUseFreeformApplyPatch = configProfile.experimentalUseFreeformApplyPatch,
                 experimentalUseUnifiedExecTool = configProfile.experimentalUseUnifiedExecTool,
-                experimentalUseRmcpClient = configProfile.experimentalUseRmcpClient,
                 toolsWebSearch = configProfile.toolsWebSearch,
                 toolsViewImage = configProfile.toolsViewImage,
             )
@@ -198,13 +219,11 @@ class Features private constructor(
 data class FeatureOverrides(
     val includeApplyPatchTool: Boolean? = null,
     val webSearchRequest: Boolean? = null,
-    val experimentalSandboxCommandAssessment: Boolean? = null,
 ) {
     internal fun apply(features: Features) {
         LegacyFeatureToggles(
             includeApplyPatchTool = includeApplyPatchTool,
             toolsWebSearch = webSearchRequest,
-            experimentalSandboxCommandAssessment = experimentalSandboxCommandAssessment,
         ).apply(features)
     }
 }
@@ -272,6 +291,12 @@ val FEATURES: List<FeatureSpec> =
             id = Feature.GhostCommit,
             key = "undo",
             stage = Stage.Stable,
+            defaultEnabled = false,
+        ),
+        FeatureSpec(
+            id = Feature.ParallelToolCalls,
+            key = "parallel",
+            stage = Stage.Stable,
             defaultEnabled = true,
         ),
         FeatureSpec(
@@ -280,29 +305,49 @@ val FEATURES: List<FeatureSpec> =
             stage = Stage.Stable,
             defaultEnabled = true,
         ),
-        // Unstable features.
         FeatureSpec(
-            id = Feature.UnifiedExec,
-            key = "unified_exec",
-            stage = Stage.Experimental,
-            defaultEnabled = false,
+            id = Feature.ShellTool,
+            key = "shell_tool",
+            stage = Stage.Stable,
+            defaultEnabled = true,
         ),
         FeatureSpec(
-            id = Feature.RmcpClient,
-            key = "rmcp_client",
-            stage = Stage.Experimental,
-            defaultEnabled = false,
-        ),
-        FeatureSpec(
-            id = Feature.ApplyPatchFreeform,
-            key = "apply_patch_freeform",
-            stage = Stage.Beta,
-            defaultEnabled = false,
+            id = Feature.ModelWarnings,
+            key = "warnings",
+            stage = Stage.Stable,
+            defaultEnabled = true,
         ),
         FeatureSpec(
             id = Feature.WebSearchRequest,
             key = "web_search_request",
             stage = Stage.Stable,
+            defaultEnabled = false,
+        ),
+        // Beta program. Rendered in the `/experimental` menu for users.
+        FeatureSpec(
+            id = Feature.UnifiedExec,
+            key = "unified_exec",
+            stage = Stage.Beta(
+                name = "Background terminal",
+                menuDescription = "Run long-running terminal commands in the background.",
+                announcement = "NEW! Try Background terminals for long running processes. Enable in /experimental!",
+            ),
+            defaultEnabled = false,
+        ),
+        FeatureSpec(
+            id = Feature.ShellSnapshot,
+            key = "shell_snapshot",
+            stage = Stage.Beta(
+                name = "Shell snapshot",
+                menuDescription = "Snapshot your shell environment to avoid re-running login scripts for every command.",
+                announcement = "NEW! Try shell snapshotting to make your Codex faster. Enable in /experimental!",
+            ),
+            defaultEnabled = false,
+        ),
+        FeatureSpec(
+            id = Feature.ApplyPatchFreeform,
+            key = "apply_patch_freeform",
+            stage = Stage.Experimental,
             defaultEnabled = false,
         ),
         FeatureSpec(
@@ -312,14 +357,14 @@ val FEATURES: List<FeatureSpec> =
             defaultEnabled = true,
         ),
         FeatureSpec(
-            id = Feature.SandboxCommandAssessment,
-            key = "experimental_sandbox_command_assessment",
+            id = Feature.WindowsSandbox,
+            key = "experimental_windows_sandbox",
             stage = Stage.Experimental,
             defaultEnabled = false,
         ),
         FeatureSpec(
-            id = Feature.WindowsSandbox,
-            key = "enable_experimental_windows_sandbox",
+            id = Feature.WindowsSandboxElevated,
+            key = "elevated_windows_sandbox",
             stage = Stage.Experimental,
             defaultEnabled = false,
         ),
@@ -330,16 +375,28 @@ val FEATURES: List<FeatureSpec> =
             defaultEnabled = true,
         ),
         FeatureSpec(
-            id = Feature.ParallelToolCalls,
-            key = "parallel",
+            id = Feature.RemoteModels,
+            key = "remote_models",
             stage = Stage.Experimental,
             defaultEnabled = false,
         ),
         FeatureSpec(
-            id = Feature.ShellTool,
-            key = "shell_tool",
-            stage = Stage.Stable,
+            id = Feature.Skills,
+            key = "skills",
+            stage = Stage.Experimental,
             defaultEnabled = true,
+        ),
+        FeatureSpec(
+            id = Feature.PowershellUtf8,
+            key = "powershell_utf8",
+            stage = Stage.Experimental,
+            defaultEnabled = false,
+        ),
+        FeatureSpec(
+            id = Feature.Tui2,
+            key = "tui2",
+            stage = Stage.Experimental,
+            defaultEnabled = false,
         ),
     )
 

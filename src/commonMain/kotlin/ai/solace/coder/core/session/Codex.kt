@@ -566,16 +566,17 @@ class Session private constructor(
      */
     fun buildEnvironmentUpdateItem(
         previous: TurnContext?,
-        next: TurnContext
+        next: TurnContext,
+        shell: Shell
     ): ResponseItem? {
         if (previous == null) return null
 
-        val prevContext = EnvironmentContext.from(previous)
-        val nextContext = EnvironmentContext.from(next)
+        val prevContext = EnvironmentContext.fromTurnContext(previous, shell)
+        val nextContext = EnvironmentContext.fromTurnContext(next, shell)
         if (prevContext.equalsExceptShell(nextContext)) {
             return null
         }
-        return EnvironmentContext.diff(previous, next).toResponseItem()
+        return EnvironmentContext.diff(previous, next, shell).toResponseItem()
     }
 
     /**
@@ -969,10 +970,11 @@ class Session private constructor(
             ).toResponseItem())
         }
 
-        items.add(EnvironmentContext(
+        items.add(EnvironmentContext.create(
             cwd = turnContext.cwd,
             approvalPolicy = turnContext.approvalPolicy,
-            sandboxPolicy = turnContext.sandboxPolicy
+            sandboxPolicy = turnContext.sandboxPolicy,
+            shell = ShellDetector().defaultUserShell()
         ).toResponseItem())
 
         return items
@@ -1946,6 +1948,7 @@ private object Handlers {
                 is ProtocolUserInput.Text -> UserInput.Text(content = input.text)
                 is ProtocolUserInput.Image -> UserInput.Text(content = "[Image: ${input.imageUrl}]")
                 is ProtocolUserInput.LocalImage -> UserInput.FileRef(path = input.path)
+                is ProtocolUserInput.Skill -> UserInput.Text(content = "[Skill: ${input.name}]")
             }
         }
 
@@ -2314,71 +2317,6 @@ data class UserInstructions(
     }
 }
 
-/**
- * Environment context for a turn.
- */
-data class EnvironmentContext(
-    val cwd: String,
-    val shellPath: String? = null,
-    val environment: Map<String, String> = emptyMap(),
-    val approvalPolicy: AskForApproval? = null,
-    val sandboxPolicy: SandboxPolicy? = null
-) {
-    /**
-     * Check if two contexts are equal except for the shell path.
-     */
-    fun equalsExceptShell(other: EnvironmentContext): Boolean {
-        return cwd == other.cwd &&
-            environment == other.environment &&
-            approvalPolicy == other.approvalPolicy &&
-            sandboxPolicy == other.sandboxPolicy
-    }
-
-    /**
-     * Convert to a response item.
-     */
-    fun toResponseItem(): ResponseItem {
-        val content = buildString {
-            append("CWD: $cwd")
-            if (shellPath != null) append("\nShell: $shellPath")
-            if (approvalPolicy != null) append("\nApproval: $approvalPolicy")
-            if (sandboxPolicy != null) append("\nSandbox: $sandboxPolicy")
-        }
-        return ResponseItem.Message(
-            role = "system",
-            content = listOf(ContentItem.InputText(text = content)),
-            id = "env-context"
-        )
-    }
-
-    companion object {
-        /**
-         * Create from a TurnContext.
-         */
-        fun from(context: TurnContext): EnvironmentContext {
-            return EnvironmentContext(
-                cwd = context.cwd,
-                shellPath = null,
-                environment = emptyMap(),
-                approvalPolicy = context.approvalPolicy,
-                sandboxPolicy = context.sandboxPolicy
-            )
-        }
-
-        /**
-         * Create a diff between two contexts.
-         */
-        fun diff(previous: TurnContext?, next: TurnContext): EnvironmentContext {
-            return EnvironmentContext(
-                cwd = next.cwd,
-                shellPath = null,
-                environment = emptyMap(),
-                approvalPolicy = next.approvalPolicy,
-                sandboxPolicy = next.sandboxPolicy
-            )
-        }
-    }
-}
 
 /**
  * Readiness flag for coordinating async operations.

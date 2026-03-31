@@ -12,23 +12,21 @@ enum class UpdateAction {
     BunGlobalLatest,
 
     /** Update via `brew upgrade codex`. */
-    BrewUpgrade;
+    BrewUpgrade
+}
 
-    /** Returns the list of command-line arguments for invoking the update. */
-    fun commandArgs(): Pair<String, List<String>> {
-        return when (this) {
-            NpmGlobalLatest -> "npm" to listOf("install", "-g", "@openai/codex")
-            BunGlobalLatest -> "bun" to listOf("install", "-g", "@openai/codex")
-            BrewUpgrade -> "brew" to listOf("upgrade", "codex")
-        }
-    }
+/** Returns the list of command-line arguments for invoking the update. */
+fun UpdateAction.commandArgs(): Pair<String, List<String>> = when (this) {
+    UpdateAction.NpmGlobalLatest -> "npm" to listOf("install", "-g", "@openai/codex")
+    UpdateAction.BunGlobalLatest -> "bun" to listOf("install", "-g", "@openai/codex")
+    UpdateAction.BrewUpgrade -> "brew" to listOf("upgrade", "codex")
+}
 
-    /** Returns string representation of the command-line arguments for invoking the update. */
-    fun commandStr(): String {
-        val (command, args) = commandArgs()
-        val joined = shellJoin(listOf(command) + args)
-        return joined ?: "$command ${args.joinToString(" ")}"
-    }
+/** Returns string representation of the command-line arguments for invoking the update. */
+fun UpdateAction.commandStr(): String {
+    val (command, args) = commandArgs()
+    val joined = shellJoin(listOf(command) + args)
+    return joined ?: "$command ${args.joinToString(" ")}"
 }
 
 /** Returns the appropriate update action for this environment, if any. */

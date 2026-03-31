@@ -19,9 +19,9 @@ import ai.solace.coder.client.error.TransportError
 import ai.solace.coder.api.provider.WireApi
 import ai.solace.coder.api.telemetry.RequestTelemetry
 import ai.solace.coder.api.telemetry.SseTelemetry
-import ai.solace.coder.core.AuthManager
+import ai.solace.coder.core.auth.AuthManager
 import ai.solace.coder.core.auth.AuthMode
-import ai.solace.coder.core.CodexAuth
+import ai.solace.coder.core.auth.CodexAuth
 import ai.solace.coder.core.config.Config
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.model.ModelFamily

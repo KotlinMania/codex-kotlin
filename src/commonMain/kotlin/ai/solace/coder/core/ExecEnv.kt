@@ -59,11 +59,13 @@ internal fun populateEnv(
                 EnvironmentVariablePattern.newCaseInsensitive("*SECRET*"),
                 EnvironmentVariablePattern.newCaseInsensitive("*TOKEN*"),
             )
-        envMap.entries.removeIf { (k, _) -> matchesAny(k, defaultExcludes) }
+        val keysToRemove = envMap.keys.filter { k -> matchesAny(k, defaultExcludes) }
+        keysToRemove.forEach { envMap.remove(it) }
     }
 
     if (policy.exclude.isNotEmpty()) {
-        envMap.entries.removeIf { (k, _) -> matchesAny(k, policy.exclude) }
+        val keysToRemove = envMap.keys.filter { k -> matchesAny(k, policy.exclude) }
+        keysToRemove.forEach { envMap.remove(it) }
     }
 
     for ((key, value) in policy.setVars) {
@@ -71,7 +73,8 @@ internal fun populateEnv(
     }
 
     if (policy.includeOnly.isNotEmpty()) {
-        envMap.entries.removeIf { (k, _) -> !matchesAny(k, policy.includeOnly) }
+        val keysToRemove = envMap.keys.filter { k -> !matchesAny(k, policy.includeOnly) }
+        keysToRemove.forEach { envMap.remove(it) }
     }
 
     return envMap

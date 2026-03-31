@@ -1,6 +1,6 @@
 package ai.solace.coder.core.sandboxing
 
-import ai.solace.coder.core.CodexAuth
+import ai.solace.coder.core.auth.CodexAuth
 import ai.solace.coder.core.client.ModelClient
 import ai.solace.coder.core.client.OtelEventManager
 import ai.solace.coder.core.config.Config

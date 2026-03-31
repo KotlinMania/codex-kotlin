@@ -1,0 +1,21 @@
+// port-lint: source common/src/format_env_display.rs
+package ai.solace.coder.common
+
+fun formatEnvDisplay(env: Map<String, String>?, envVars: List<String>): String {
+    val parts = mutableListOf<String>()
+
+    if (env != null) {
+        val pairs = env.entries.sortedBy { it.key }
+        parts.addAll(pairs.map { (key, _) -> "$key=*****" })
+    }
+
+    if (envVars.isNotEmpty()) {
+        parts.addAll(envVars.map { v -> "$v=*****" })
+    }
+
+    return if (parts.isEmpty()) {
+        "-"
+    } else {
+        parts.joinToString(", ")
+    }
+}

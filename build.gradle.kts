@@ -159,7 +159,6 @@ repositories {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xreturn-value-checker=full")
         freeCompilerArgs.add("-Xexplicit-backing-fields")
     }
     applyDefaultHierarchyTemplate()

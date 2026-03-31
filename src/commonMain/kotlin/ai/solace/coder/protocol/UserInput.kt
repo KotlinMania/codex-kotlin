@@ -30,4 +30,12 @@ sealed class UserInput {
     data class LocalImage(
         val path: String
     ) : UserInput()
+
+    /** Skill selected by the user (name + path to SKILL.md). */
+    @Serializable
+    @SerialName("skill")
+    data class Skill(
+        val name: String,
+        val path: String,
+    ) : UserInput()
 }

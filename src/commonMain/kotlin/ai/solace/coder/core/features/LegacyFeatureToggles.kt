@@ -9,10 +9,8 @@ package ai.solace.coder.core.features
  */
 data class LegacyFeatureToggles(
     val includeApplyPatchTool: Boolean? = null,
-    val experimentalSandboxCommandAssessment: Boolean? = null,
     val experimentalUseFreeformApplyPatch: Boolean? = null,
     val experimentalUseUnifiedExecTool: Boolean? = null,
-    val experimentalUseRmcpClient: Boolean? = null,
     val toolsWebSearch: Boolean? = null,
     val toolsViewImage: Boolean? = null,
 ) {
@@ -25,12 +23,6 @@ data class LegacyFeatureToggles(
         )
         setIfSome(
             features = features,
-            feature = Feature.SandboxCommandAssessment,
-            maybeValue = experimentalSandboxCommandAssessment,
-            aliasKey = "experimental_sandbox_command_assessment",
-        )
-        setIfSome(
-            features = features,
             feature = Feature.ApplyPatchFreeform,
             maybeValue = experimentalUseFreeformApplyPatch,
             aliasKey = "experimental_use_freeform_apply_patch",
@@ -40,12 +32,6 @@ data class LegacyFeatureToggles(
             feature = Feature.UnifiedExec,
             maybeValue = experimentalUseUnifiedExecTool,
             aliasKey = "experimental_use_unified_exec_tool",
-        )
-        setIfSome(
-            features = features,
-            feature = Feature.RmcpClient,
-            maybeValue = experimentalUseRmcpClient,
-            aliasKey = "experimental_use_rmcp_client",
         )
         setIfSome(
             features = features,
@@ -70,16 +56,12 @@ data class LegacyFeatureToggles(
         private val ALIASES: List<Alias> =
             listOf(
                 Alias(
-                    legacyKey = "experimental_sandbox_command_assessment",
-                    feature = Feature.SandboxCommandAssessment,
+                    legacyKey = "enable_experimental_windows_sandbox",
+                    feature = Feature.WindowsSandbox,
                 ),
                 Alias(
                     legacyKey = "experimental_use_unified_exec_tool",
                     feature = Feature.UnifiedExec,
-                ),
-                Alias(
-                    legacyKey = "experimental_use_rmcp_client",
-                    feature = Feature.RmcpClient,
                 ),
                 Alias(
                     legacyKey = "experimental_use_freeform_apply_patch",

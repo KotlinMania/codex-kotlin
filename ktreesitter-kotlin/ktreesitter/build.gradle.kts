@@ -39,22 +39,13 @@ val treesitterDir = rootDir.resolve("tree-sitter")
 
 version = property("project.version") as String
 
-// Check if Android SDK is available
-val androidSdkAvailable = System.getenv("ANDROID_HOME") != null ||
-    System.getenv("ANDROID_SDK_ROOT") != null ||
-    file("local.properties").exists()
-
 plugins {
     `maven-publish`
     signing
     alias(libs.plugins.kotlin.mpp)
-    alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotest)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dokka)
-    if (androidSdkAvailable) {
-        id("com.android.kotlin.multiplatform.library")
-    }
 }
 
 buildscript {
@@ -152,56 +143,6 @@ kotlin {
             }
         }
 
-        if (androidSdkAvailable && enableTests) {
-            getByName("androidInstrumentedTest") {
-                dependencies {
-                    implementation(libs.bundles.kotest.core)
-                    implementation(libs.bundles.kotest.android)
-                    rootProject.project("languages").subprojects.forEach {
-                        implementation(project(":languages:${it.name}"))
-                    }
-                }
-            }
-        }
-    }
-}
-
-if (androidSdkAvailable) {
-    android {
-        namespace = "io.github.treesitter.$name"
-        compileSdk = (property("sdk.version.compile") as String).toInt()
-        ndkVersion = property("ndk.version") as String
-        defaultConfig {
-            minSdk = (property("sdk.version.min") as String).toInt()
-            ndk {
-                //noinspection ChromeOsAbiSupport
-                abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
-            }
-            testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        }
-        externalNativeBuild {
-            cmake {
-                path = file("CMakeLists.txt")
-                buildStagingDirectory = file(".cmake")
-                version = property("cmake.version") as String
-            }
-        }
-        compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_17
-            targetCompatibility = JavaVersion.VERSION_17
-        }
-        testOptions.unitTests.all {
-            it.useJUnitPlatform()
-        }
-        packaging.resources {
-            excludes += setOf(
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/licenses/ASM",
-                "win32-x86-64/attach_hotspot_windows.dll",
-                "win32-x86/attach_hotspot_windows.dll"
-            )
-        }
     }
 }
 

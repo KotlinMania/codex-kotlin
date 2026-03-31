@@ -33,3 +33,11 @@ includeBuild("/Volumes/stuff/Projects/kotlinmania/ratatui-kotlin") {
         substitute(module("io.github.kotlinmania:ratatui-kotlin")).using(project(":"))
     }
 }
+
+// Use the local kasuari-kotlin checkout (constraint solver for TUI layouts).
+// Needed because the Maven Central version (0.1.0) doesn't support all KMP targets.
+includeBuild("/Volumes/stuff/Projects/kotlinmania/kasuari-kotlin") {
+    dependencySubstitution {
+        substitute(module("io.github.kotlinmania:kasuari-kotlin")).using(project(":"))
+    }
+}
