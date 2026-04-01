@@ -311,14 +311,9 @@ void cmd_numpy_mlx(const std::string& numpy_dir, const std::string& mlx_dir) {
                   << "Path\n";
         std::cout << std::string(80, '-') << "\n";
 
-        int shown = 0;
         for (const auto& r : rows) {
             if (r.audit.numpy_imports == 0 && r.audit.numpy_refs == 0) continue;
-            if (shown++ >= 50) {
-                std::cout << "... and " << (files_with_numpy - 50) << " more\n";
-                break;
-            }
-            std::cout << std::setw(40) << std::left << r.qualified.substr(0, 38)
+            std::cout << std::setw(40) << std::left << r.qualified
                       << std::setw(8) << std::fixed << std::setprecision(2) << r.similarity
                       << std::setw(8) << r.audit.numpy_imports
                       << std::setw(8) << r.audit.numpy_refs
@@ -813,12 +808,7 @@ void cmd_emberlint(const std::string& root) {
                   << "Path\n";
         std::cout << std::string(80, '-') << "\n";
 
-        int shown = 0;
         for (const auto& h : hits) {
-            if (shown++ >= 50) {
-                std::cout << "... and " << (hits.size() - 50) << " more\n";
-                break;
-            }
             std::cout << std::setw(8) << h.c.python_numpy_imports
                       << std::setw(8) << h.c.python_numpy_refs
                       << std::setw(8) << h.c.python_precision_casts
@@ -859,7 +849,7 @@ void cmd_scan(const std::string& dir, const std::string& lang) {
     std::cout << std::string(80, '-') << "\n";
 
     for (const auto& [path, sf] : cb.files) {
-        std::cout << std::setw(40) << std::left << sf.qualified_name.substr(0, 38)
+        std::cout << std::setw(40) << std::left << sf.qualified_name
                   << std::setw(8) << sf.imports.size()
                   << sf.relative_path << "\n";
     }
@@ -889,7 +879,7 @@ void cmd_deps(const std::string& dir, const std::string& lang) {
             status = "leaf";
         }
 
-        std::cout << std::setw(40) << std::left << sf->qualified_name.substr(0, 38)
+        std::cout << std::setw(40) << std::left << sf->qualified_name
                   << std::setw(10) << sf->dependency_count
                   << std::setw(10) << sf->dependent_count
                   << status << "\n";
@@ -901,12 +891,7 @@ void cmd_deps(const std::string& dir, const std::string& lang) {
     for (const auto* sf : roots) {
         std::cout << "\n" << sf->qualified_name << " (" << sf->dependent_count << " dependents):\n";
         std::cout << "  Imported by:\n";
-        int count = 0;
         for (const auto& dep : sf->imported_by) {
-            if (count++ >= 5) {
-                std::cout << "    ... and " << (sf->imported_by.size() - 5) << " more\n";
-                break;
-            }
             std::cout << "    - " << cb.files[dep].qualified_name << "\n";
         }
     }
@@ -1067,12 +1052,9 @@ void generate_reports(const Codebase& source, const Codebase& target,
 	            report << "|------|------------|------|------|\n";
 	            int shown_missing = 0;
 	            for (const auto* sf : missing) {
-	                if (shown_missing++ >= 20) break;
+	                shown_missing++;
 	                report << "| " << shown_missing << " | `" << sf->qualified_name << "` | "
 	                       << sf->dependent_count << " | `" << sf->relative_path << "` |\n";
-	            }
-	            if (missing.size() > 20) {
-	                report << "\n... and " << (missing.size() - 20) << " more missing files.\n";
 	            }
 	            report << "\n";
 	        }
@@ -1100,15 +1082,10 @@ void generate_reports(const Codebase& source, const Codebase& target,
 	        if (doc_gaps.empty()) {
 	            report << "No significant documentation gaps found.\n\n";
 	        } else {
-	            int shown_docs = 0;
 	            for (const auto& [gap, m] : doc_gaps) {
-	                if (shown_docs++ >= 15) break;
 	                report << "- `" << m->source_qualified << "` - " 
 	                       << std::fixed << std::setprecision(0) << (gap * 100) << "% gap ("
 	                       << m->source_doc_lines << " → " << m->target_doc_lines << " lines)\n";
-	            }
-	            if (doc_gaps.size() > 15) {
-	                report << "\n... and " << (doc_gaps.size() - 15) << " more files with doc gaps.\n";
 	            }
 	            report << "\n";
 	        }
@@ -1165,12 +1142,9 @@ void generate_reports(const Codebase& source, const Codebase& target,
 	            report << "|------|------------|------|------|\n";
 	            int shown_missing = 0;
 	            for (const auto* sf : missing) {
-	                if (shown_missing++ >= 20) break;
+	                shown_missing++;
 	                report << "| " << shown_missing << " | `" << sf->qualified_name << "` | "
 	                       << sf->dependent_count << " | `" << sf->relative_path << "` |\n";
-	            }
-	            if (missing.size() > 20) {
-	                report << "\n... and " << (missing.size() - 20) << " more missing files.\n";
 	            }
 	            report << "\n";
 	        }
@@ -1264,6 +1238,7 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
     source.scan();
     source.extract_imports();
     source.build_dependency_graph();
+    source.extract_porting_data();  // Line counts (needed for LineRatio) + TODOs/lint
     source.print_summary();
 
     std::cout << "\nScanning target codebase (" << tgt_lang << ")...\n";
@@ -1443,7 +1418,7 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
                     lint = m->lint_count;
                 }
 
-                std::cout << std::setw(30) << std::left << sf.qualified_name.substr(0, 28)
+                std::cout << std::setw(30) << std::left << sf.qualified_name
                           << std::setw(11) << dependents
                           << std::setw(11) << sim_str
                           << std::setw(16) << format_fn_parity(m)
@@ -1466,7 +1441,7 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
             if (!focus_src_key.empty()) {
                 print_scope_row(focus_src_key, true);
             } else {
-                std::cout << std::setw(30) << std::left << focus->source_qualified.substr(0, 28)
+                std::cout << std::setw(30) << std::left << focus->source_qualified
                           << std::setw(11) << focus->dependent_count
                           << std::setw(11) << "-"
                           << std::setw(16) << "-"
@@ -1529,17 +1504,13 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
     int total_todos = 0;
     int total_lint = 0;
     int stub_count = 0;
-    int header_matched = 0;
 
     for (const auto& m : comp.matches) {
         total_todos += m.todo_count;
         total_lint += m.lint_count;
         if (m.is_stub) stub_count++;
-        if (m.matched_by_header) header_matched++;
     }
 
-    std::cout << "Matched by header:    " << header_matched << " / " << comp.matches.size() << "\n";
-    std::cout << "Matched by name:      " << (comp.matches.size() - header_matched) << " / " << comp.matches.size() << "\n";
 	    std::cout << "Total TODOs in target: " << total_todos << "\n";
 	    std::cout << "Total lint errors:    " << total_lint << "\n";
 	    std::cout << "Stub files:           " << stub_count << "\n";
@@ -1606,18 +1577,12 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
 		              << "Status\n";
 		    std::cout << std::string(90, '-') << "\n";
 
-	    int shown = 0;
 	    for (const auto& m : ranked) {
 	        bool func_gap = (m.source_function_count > 0 &&
 	                         m.matched_function_count < m.source_function_count);
 	        if (m.todo_count == 0 && m.lint_count == 0 && !m.is_stub && !func_gap && m.similarity >= 0.6) {
 	            continue;  // Skip files without issues
 	        }
-	        if (shown++ >= 20) {
-	            std::cout << "... and " << (ranked.size() - 20) << " more files\n";
-	            break;
-        }
-
 	        std::string status;
 	        if (m.is_stub) status = "STUB";
 	        else if (m.similarity < 0.4) status = "LOW_SIM";
@@ -1636,7 +1601,7 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
 	                    std::to_string(m.source_function_count);
 	        }
 
-		        std::cout << std::setw(30) << std::left << m.target_qualified.substr(0, 28)
+		        std::cout << std::setw(30) << std::left << m.target_qualified
 		                  << std::setw(11) << std::fixed << std::setprecision(2) << m.similarity
 		                  << std::setw(11) << std::fixed << std::setprecision(2) << ratio
 		                  << std::setw(14) << funcs
@@ -1690,13 +1655,8 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
 		                  << "Path\n";
 		        std::cout << std::string(81, '-') << "\n";
 
-	        int shown_missing = 0;
 	        for (const auto* sf : missing) {
-	            if (shown_missing++ >= 20) {
-	                std::cout << "... and " << (missing.size() - 20) << " more missing files\n";
-	                break;
-	            }
-		            std::cout << std::setw(30) << std::left << sf->qualified_name.substr(0, 28)
+		            std::cout << std::setw(30) << std::left << sf->qualified_name
 		                      << std::setw(11) << sf->dependent_count
 		                      << sf->relative_path << "\n";
 		        }
@@ -1743,15 +1703,9 @@ void cmd_deep(const std::string& src_dir, const std::string& src_lang,
                   << "\n";
         std::cout << std::string(74, '-') << "\n";
 
-        int shown_docs = 0;
         for (const auto& [gap, m] : doc_gaps) {
-            if (shown_docs++ >= 25) {
-                std::cout << "... and " << (doc_gaps.size() - 25) << " more files with doc gaps\n";
-                break;
-            }
-
             std::string gap_str = std::to_string(static_cast<int>(gap * 100)) + "%";
-            std::cout << std::setw(30) << std::left << m->source_qualified.substr(0, 28)
+            std::cout << std::setw(30) << std::left << m->source_qualified
                       << std::setw(12) << m->source_doc_lines
                       << std::setw(12) << m->target_doc_lines
 	                      << std::setw(10) << gap_str
@@ -1795,7 +1749,7 @@ void cmd_missing(const std::string& src_dir, const std::string& src_lang,
         });
 
     for (const auto* sf : missing) {
-        std::cout << std::setw(40) << std::left << sf->qualified_name.substr(0, 38)
+        std::cout << std::setw(40) << std::left << sf->qualified_name
                   << std::setw(10) << sf->dependent_count
                   << sf->relative_path << "\n";
     }
@@ -2146,7 +2100,7 @@ static void print_agent_activity_section(const TaskManager& tm, const std::strin
 
 	        std::string agent_label = "#" + std::to_string(r.agent);
 	        std::cout << std::setw(8) << std::left << agent_label
-	                  << std::setw(34) << std::left << r.task.substr(0, 32)
+	                  << std::setw(34) << std::left << r.task
 	                  << std::setw(10) << format_idle_minutes(r.idle_min)
 	                  << std::setw(10) << score.str()
 	                  << trend.str()
@@ -2306,14 +2260,9 @@ void cmd_tasks(const std::string& task_file, int agent) {
               << "Target Path\n";
     std::cout << std::string(70, '-') << "\n";
 
-    int shown = 0;
     for (const auto& t : tm.tasks) {
         if (t.status == TaskStatus::PENDING) {
-            if (shown++ >= 20) {
-                std::cout << "... and " << (pending - 20) << " more\n";
-                break;
-            }
-            std::cout << std::setw(35) << std::left << t.source_qualified.substr(0, 33)
+            std::cout << std::setw(35) << std::left << t.source_qualified
                       << std::setw(10) << t.dependent_count
                       << t.target_path << "\n";
         }
@@ -3163,12 +3112,12 @@ int main(int argc, char* argv[]) {
             std::cout << "\n=== Function Similarity Matrix ===\n\n";
             std::cout << std::setw(20) << "";
             for (const auto& func2 : funcs2) {
-                std::cout << std::setw(12) << func2.name.substr(0, 10);
+                std::cout << std::setw(12) << func2.name;
             }
             std::cout << "\n";
 
             for (const auto& func1 : funcs1) {
-                std::cout << std::setw(20) << func1.name.substr(0, 18);
+                std::cout << std::setw(20) << func1.name;
                 for (const auto& func2 : funcs2) {
                     float sim = 0.0f;
                     if (!func1.has_stub_markers && !func2.has_stub_markers) {
