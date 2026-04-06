@@ -51,18 +51,8 @@ void print_usage(const char* program) {
     std::cerr << "      Run lint checks (unused params, missing guards)\n\n";
     std::cerr << "  " << program << " --stats <directory>\n";
     std::cerr << "      Show file statistics (line counts, stubs, TODOs)\n\n";
-    std::cerr << "Swarm Task Management:\n";
-    std::cerr << "  " << program << " --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file>\n";
-    std::cerr << "      Generate task file from missing/incomplete ports\n\n";
-    std::cerr << "  " << program << " --tasks <task_file>\n";
-    std::cerr << "      Show task status summary\n\n";
-    std::cerr << "  " << program << " --assign <task_file> <agent_id>\n";
-    std::cerr << "      Assign highest-priority pending task to an agent\n";
-    std::cerr << "      Outputs complete porting instructions and AGENTS.md guidelines\n\n";
-    std::cerr << "  " << program << " --complete <task_file> <source_qualified>\n";
-    std::cerr << "      Mark a task as completed\n\n";
-    std::cerr << "  " << program << " --release <task_file> <source_qualified>\n";
-    std::cerr << "      Release an assigned task back to pending\n\n";
+    std::cerr << "Swarm Task Management (DISABLED):\n";
+    std::cerr << "  Disabled flags: --init-tasks, --tasks, --assign, --complete, --release, --agent, --task-file, --override\n\n";
     std::cerr << "  Languages: rust, kotlin, cpp\n\n";
     std::cerr << "Port-Lint Headers:\n";
     std::cerr << "  Add a header comment to each ported file to enable accurate source tracking.\n";
@@ -882,6 +872,13 @@ int main(int argc, char* argv[]) {
     std::string mode = argv[1];
 
     try {
+        if (mode == "--init-tasks" || mode == "--tasks" || mode == "--assign" || mode == "--complete" ||
+            mode == "--release" || mode == "--agent" || mode == "--task-file" || mode == "--override") {
+            std::cerr << "Error: " << mode << " is disabled in this ast_distance build.\n";
+            std::cerr << "Disabled flags: --init-tasks, --tasks, --assign, --complete, --release, --agent, --task-file, --override\n";
+            return 2;
+        }
+
         if (mode == "--scan" && argc >= 4) {
             cmd_scan(argv[2], argv[3]);
 
@@ -909,23 +906,6 @@ int main(int argc, char* argv[]) {
 
         } else if (mode == "--stats" && argc >= 3) {
             cmd_stats(argv[2]);
-
-        // Swarm task management commands
-        } else if (mode == "--init-tasks" && argc >= 7) {
-            std::string agents_md = (argc >= 8) ? argv[7] : "";
-            cmd_init_tasks(argv[2], argv[3], argv[4], argv[5], argv[6], agents_md);
-
-        } else if (mode == "--tasks" && argc >= 3) {
-            cmd_tasks(argv[2]);
-
-        } else if (mode == "--assign" && argc >= 4) {
-            cmd_assign(argv[2], argv[3]);
-
-        } else if (mode == "--complete" && argc >= 4) {
-            cmd_complete(argv[2], argv[3]);
-
-        } else if (mode == "--release" && argc >= 4) {
-            cmd_release(argv[2], argv[3]);
 
         } else if (mode == "--dump" && argc >= 4) {
             ASTParser parser;
