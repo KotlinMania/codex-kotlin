@@ -212,10 +212,10 @@ kotlin {
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
 
                 // TUI libraries (from Maven Central)
-                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.1")
+                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.6")
                 implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.0")
                 implementation("io.github.kotlinmania:anstyle-kotlin:0.1.0")
-                implementation("io.github.kotlinmania:kasuari-kotlin:0.1.0")
+                implementation("io.github.kotlinmania:kasuari-kotlin:0.1.1")
                 implementation("io.github.kotlinmania:roff-kotlin:0.1.0")
                 implementation("io.github.kotlinmania:cansi-kotlin:0.1.0")
 
