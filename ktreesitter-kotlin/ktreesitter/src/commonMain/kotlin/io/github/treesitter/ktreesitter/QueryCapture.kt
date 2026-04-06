@@ -1,7 +1,5 @@
 package io.github.treesitter.ktreesitter
 
-import kotlin.jvm.JvmName
-
 /**
  * A [Node] that was captured with a certain capture [name].
  *
@@ -10,8 +8,8 @@ import kotlin.jvm.JvmName
  */
 @ConsistentCopyVisibility
 data class QueryCapture internal constructor(
-    @get:JvmName("node") val node: Node,
-    @get:JvmName("name") val name: String
+    val node: Node,
+    val name: String
 ) {
     override fun toString() = "QueryCapture(name=$name, node=$node)"
 }

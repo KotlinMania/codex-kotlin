@@ -14,7 +14,7 @@ import ai.solace.coder.protocol.ResponseItem
 class ContextManager {
     /** The oldest items are at the beginning of the list. */
     private val items = mutableListOf<ResponseItem>()
-    private var tokenInfo: TokenUsageInfo? = TokenUsageInfo.newOrAppend(null, null, null)
+    private var tokenInfo: TokenUsageInfo? = TokenUsageInfoFactory.newOrAppend(null, null, null)
 
     fun tokenInfo(): TokenUsageInfo? = tokenInfo?.copy()
 
@@ -27,7 +27,7 @@ class ContextManager {
         if (info != null) {
             tokenInfo = info.fillToContextWindow(contextWindow)
         } else {
-            tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
+            tokenInfo = TokenUsageInfoFactory.fullContextWindow(contextWindow)
         }
     }
 
@@ -85,7 +85,7 @@ class ContextManager {
      * Update token info from usage data.
      */
     fun updateTokenInfo(usage: TokenUsage, modelContextWindow: Long?) {
-        tokenInfo = TokenUsageInfo.newOrAppend(tokenInfo, usage, modelContextWindow)
+        tokenInfo = TokenUsageInfoFactory.newOrAppend(tokenInfo, usage, modelContextWindow)
     }
 
     /**

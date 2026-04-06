@@ -78,6 +78,7 @@ import ai.solace.coder.protocol.ReasoningRawContentDeltaEvent
 import ai.solace.coder.protocol.AgentReasoningSectionBreakEvent
 import ai.solace.coder.protocol.RolloutItem
 import ai.solace.coder.protocol.UserMessageItem
+import ai.solace.coder.protocol.newUserMessageItem
 import ai.solace.coder.protocol.ReasoningItem
 import ai.solace.coder.protocol.ReasoningItemReasoningSummary
 import ai.solace.coder.protocol.ReasoningItemContent
@@ -494,7 +495,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemStarted(ItemStartedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = ai.solace.coder.protocol.conversationIdFromString(conversationId).getOrThrow(),
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -508,7 +509,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemCompleted(ItemCompletedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = ai.solace.coder.protocol.conversationIdFromString(conversationId).getOrThrow(),
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -851,7 +852,7 @@ class Session private constructor(
     suspend fun setTotalTokensFull(turnContext: TurnContext) {
         val contextWindow = turnContext.modelContextWindow ?: return
         stateMutex.withLock {
-            state.tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
+            state.tokenInfo = TokenUsageInfoFactory.fullContextWindow(contextWindow)
         }
         sendTokenCountEvent(turnContext)
     }
@@ -868,7 +869,7 @@ class Session private constructor(
         recordConversationItems(turnContext, listOf(responseItem))
 
         // Create a TurnItem.UserMessage for the user message
-        val userMessageItem = UserMessageItem.new(emptyList())
+        val userMessageItem = newUserMessageItem(emptyList())
         val turnItem = TurnItem.UserMessage(item = userMessageItem)
         emitTurnItemStarted(turnContext, turnItem)
         emitTurnItemCompleted(turnContext, turnItem)
@@ -1221,7 +1222,7 @@ class Session private constructor(
             val event = Event(
                 id = Codex.INITIAL_SUBMIT_ID,
                 msg = EventMsg.SessionConfigured(SessionConfiguredEvent(
-                    sessionId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                    sessionId = ai.solace.coder.protocol.conversationIdFromString(conversationId).getOrThrow(),
                     model = sessionConfiguration.model,
                     modelProviderId = config.modelProviderId ?: "",
                     approvalPolicy = sessionConfiguration.approvalPolicy,
@@ -2568,7 +2569,7 @@ class SessionState(
     }
 
     fun setTokenUsageFull(contextWindow: Long) {
-        tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
+        tokenInfo = TokenUsageInfoFactory.fullContextWindow(contextWindow)
     }
 }
 

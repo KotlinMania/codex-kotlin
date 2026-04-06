@@ -1,5 +1,3 @@
-@file:kotlin.jvm.JvmName("KTreeSitter")
-
 package io.github.treesitter.ktreesitter
 
 // NOTE: don't forget to bump these when necessary

@@ -48,31 +48,6 @@ data class UserMessageItem(
     val id: String,
     val content: List<UserInput>
 ) {
-    companion object {
-        fun new(content: List<UserInput>): UserMessageItem {
-            return UserMessageItem(
-                id = generateUuid(),
-                content = content
-            )
-        }
-
-        private fun generateUuid(): String {
-            val chars = "0123456789abcdef"
-            return buildString {
-                repeat(8) { append(chars.random()) }
-                append("-")
-                repeat(4) { append(chars.random()) }
-                append("-4") // Version 4
-                repeat(3) { append(chars.random()) }
-                append("-")
-                append(chars.filter { it in "89ab" }.random())
-                repeat(3) { append(chars.random()) }
-                append("-")
-                repeat(12) { append(chars.random()) }
-            }
-        }
-    }
-
     fun asLegacyEvent(): EventMsg {
         return EventMsg.UserMessage(UserMessageEvent(
             message = message(),
@@ -111,31 +86,6 @@ data class AgentMessageItem(
     val id: String,
     val content: List<AgentMessageContent>
 ) {
-    companion object {
-        fun new(content: List<AgentMessageContent>): AgentMessageItem {
-            return AgentMessageItem(
-                id = generateUuid(),
-                content = content
-            )
-        }
-
-        private fun generateUuid(): String {
-            val chars = "0123456789abcdef"
-            return buildString {
-                repeat(8) { append(chars.random()) }
-                append("-")
-                repeat(4) { append(chars.random()) }
-                append("-4")
-                repeat(3) { append(chars.random()) }
-                append("-")
-                append(chars.filter { it in "89ab" }.random())
-                repeat(3) { append(chars.random()) }
-                append("-")
-                repeat(12) { append(chars.random()) }
-            }
-        }
-    }
-
     fun asLegacyEvents(): List<EventMsg> {
         return content.map { c ->
             when (c) {
@@ -144,6 +94,36 @@ data class AgentMessageItem(
                 )
             }
         }
+    }
+}
+
+fun newUserMessageItem(content: List<UserInput>): UserMessageItem {
+    return UserMessageItem(
+        id = generateUuidV4Hex(),
+        content = content
+    )
+}
+
+fun newAgentMessageItem(content: List<AgentMessageContent>): AgentMessageItem {
+    return AgentMessageItem(
+        id = generateUuidV4Hex(),
+        content = content
+    )
+}
+
+private fun generateUuidV4Hex(): String {
+    val chars = "0123456789abcdef"
+    return buildString {
+        repeat(8) { append(chars.random()) }
+        append("-")
+        repeat(4) { append(chars.random()) }
+        append("-4")
+        repeat(3) { append(chars.random()) }
+        append("-")
+        append(chars.filter { it in "89ab" }.random())
+        repeat(3) { append(chars.random()) }
+        append("-")
+        repeat(12) { append(chars.random()) }
     }
 }
 

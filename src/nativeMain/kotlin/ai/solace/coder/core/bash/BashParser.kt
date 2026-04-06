@@ -1,115 +1,18 @@
 // port-lint: source core/src/bash.rs
 package ai.solace.coder.core.bash
 
-import ai.solace.coder.exec.shell.ShellType
 import ai.solace.coder.exec.shell.ShellDetector
-import io.github.treesitter.ktreesitter.Language
-import io.github.treesitter.ktreesitter.Node
-import io.github.treesitter.ktreesitter.Parser
-import io.github.treesitter.ktreesitter.Tree
-import io.github.treesitter.ktreesitter.bash.TreeSitterBash
+import ai.solace.coder.exec.shell.ShellType
 
 /**
- * Parse the provided bash source using tree-sitter-bash, returning a Tree on
- * success or null if parsing failed.
+ * Extract `(<shell>, <script>)` from a `bash -lc "<script>"`/`zsh -lc "<script>"`/`sh -lc "<script>"`
+ * invocation. Returns null if the command shape or shell type is not supported.
  */
-fun tryParseShell(shellLcArg: String): Tree? {
-    return try {
-        val language = Language(TreeSitterBash.language())
-        val parser = Parser(language)
-        parser.parse(shellLcArg)
-    } catch (_: Exception) {
-        null
-    }
-}
-
-/**
- * Parse a script which may contain multiple simple commands joined only by
- * the safe logical/pipe/sequencing operators: `&&`, `||`, `;`, `|`.
- *
- * Returns a list of command word vectors if every command is a plain word-only
- * command and the parse tree does not contain disallowed constructs
- * (parentheses, redirections, substitutions, control flow, etc.). Otherwise
- * returns null.
- */
-fun tryParseWordOnlyCommandsSequence(tree: Tree, src: String): List<List<String>>? {
-    if (tree.rootNode.hasError) {
-        return null
-    }
-
-    // List of allowed (named) node kinds for a "word only commands sequence".
-    // If we encounter a named node that is not in this list we reject.
-    val allowedKinds = setOf(
-        // top level containers
-        "program",
-        "list",
-        "pipeline",
-        // commands & words
-        "command",
-        "command_name",
-        "word",
-        "string",
-        "string_content",
-        "raw_string",
-        "number"
-    )
-    // Allow only safe punctuation / operator tokens; anything else causes reject.
-    val allowedPunctTokens = setOf("&&", "||", ";", "|", "\"", "'")
-
-    val root = tree.rootNode
-    val stack = ArrayDeque<Node>()
-    stack.addLast(root)
-    val commandNodes = mutableListOf<Node>()
-
-    while (stack.isNotEmpty()) {
-        val node = stack.removeLast()
-        val kind = node.type
-
-        if (node.isNamed) {
-            if (kind !in allowedKinds) {
-                return null
-            }
-            if (kind == "command") {
-                commandNodes.add(node)
-            }
-        } else {
-            // Reject any punctuation / operator tokens that are not explicitly allowed.
-            if (kind.any { c -> c in "&;|" } && kind !in allowedPunctTokens) {
-                return null
-            }
-            if (kind !in allowedPunctTokens && kind.trim().isNotEmpty()) {
-                // If it's a quote token or operator it's allowed above; we also allow whitespace tokens.
-                // Any other punctuation like parentheses, braces, redirects, backticks, etc are rejected.
-                return null
-            }
-        }
-        for (i in 0 until node.childCount.toInt()) {
-            val child = node.child(i.toUInt())
-            if (child != null) {
-                stack.addLast(child)
-            }
-        }
-    }
-
-    // Walk uses a stack (LIFO), so re-sort by position to restore source order.
-    commandNodes.sortBy { it.startByte }
-
-    val commands = mutableListOf<List<String>>()
-    for (node in commandNodes) {
-        val words = parsePlainCommandFromNode(node, src)
-        if (words != null) {
-            commands.add(words)
-        } else {
-            return null
-        }
-    }
-    return commands
-}
-
 fun extractBashCommand(command: List<String>): Pair<String, String>? {
     if (command.size != 3) {
         return null
     }
+
     val shell = command[0]
     val flag = command[1]
     val script = command[2]
@@ -128,78 +31,224 @@ fun extractBashCommand(command: List<String>): Pair<String, String>? {
 }
 
 /**
- * Returns the sequence of plain commands within a `bash -lc "..."` or
- * `zsh -lc "..."` invocation when the script only contains word-only commands
- * joined by safe operators.
+ * Returns the sequence of plain commands within a `bash -lc "..."` or `zsh -lc "..."` invocation when
+ * the script only contains word-only commands joined by safe operators.
+ *
+ * This is a faithful transliteration of the Rust behavior in `core/src/bash.rs`, but implemented
+ * without tree-sitter so it can run on Kotlin/Native without JVM-only dependencies.
  */
 fun parseShellLcPlainCommands(command: List<String>): List<List<String>>? {
     val (_, script) = extractBashCommand(command) ?: return null
-
-    val tree = tryParseShell(script) ?: return null
-    return tryParseWordOnlyCommandsSequence(tree, script)
+    return parseWordOnlyCommandsSequence(script)
 }
 
-private fun parsePlainCommandFromNode(cmd: Node, src: String): List<String>? {
-    if (cmd.type != "command") {
+private enum class TokenKind {
+    Word,
+    Op
+}
+
+private data class Token(
+    val kind: TokenKind,
+    val value: String
+)
+
+private fun parseWordOnlyCommandsSequence(src: String): List<List<String>>? {
+    val tokens = tokenize(src) ?: return null
+    if (tokens.isEmpty()) {
         return null
     }
-    val words = mutableListOf<String>()
 
-    for (i in 0 until cmd.namedChildCount.toInt()) {
-        val child = cmd.namedChild(i.toUInt()) ?: continue
-        when (child.type) {
-            "command_name" -> {
-                val wordNode = child.namedChild(0u) ?: return null
-                if (wordNode.type != "word") {
-                    return null
-                }
-                val text = extractNodeText(wordNode, src) ?: return null
-                words.add(text)
-            }
-            "word", "number" -> {
-                val text = extractNodeText(child, src) ?: return null
-                words.add(text)
-            }
-            "string" -> {
-                if (child.childCount.toInt() == 3) {
-                    val c0 = child.child(0u)
-                    val c1 = child.child(1u)
-                    val c2 = child.child(2u)
-                    if (c0?.type == "\"" && c1?.type == "string_content" && c2?.type == "\"") {
-                        val text = extractNodeText(c1, src) ?: return null
-                        words.add(text)
-                    } else {
-                        return null
-                    }
-                } else {
+    val commands = mutableListOf<MutableList<String>>()
+    var current = mutableListOf<String>()
+
+    fun finishCommand(): Boolean {
+        if (current.isEmpty()) {
+            return false
+        }
+        if (looksLikeVariableAssignmentPrefix(current[0])) {
+            return false
+        }
+        commands.add(current)
+        current = mutableListOf()
+        return true
+    }
+
+    for (token in tokens) {
+        when (token.kind) {
+            TokenKind.Word -> current.add(token.value)
+            TokenKind.Op -> {
+                if (!finishCommand()) {
                     return null
                 }
             }
-            "raw_string" -> {
-                val rawString = extractNodeText(child, src) ?: return null
-                val stripped = if (rawString.startsWith('\'') && rawString.endsWith('\'')) {
-                    rawString.drop(1).dropLast(1)
-                } else {
-                    return null
-                }
-                words.add(stripped)
-            }
-            else -> return null
         }
     }
-    return words
+
+    if (!finishCommand()) {
+        return null
+    }
+    return commands
 }
 
-private fun extractNodeText(node: Node, src: String): String? {
-    return try {
-        val start = node.startByte.toInt()
-        val end = node.endByte.toInt()
-        if (start >= 0 && end <= src.length && start <= end) {
-            src.substring(start, end)
-        } else {
-            null
-        }
-    } catch (_: Exception) {
-        null
+private fun tokenize(src: String): List<Token>? {
+    val tokens = mutableListOf<Token>()
+    var i = 0
+
+    fun peek(offset: Int = 0): Char? {
+        val idx = i + offset
+        return if (idx in 0 until src.length) src[idx] else null
     }
+
+    fun isWhitespace(c: Char): Boolean = c == ' ' || c == '\t' || c == '\n' || c == '\r'
+
+    fun skipWhitespace() {
+        while (true) {
+            val c = peek() ?: return
+            if (!isWhitespace(c)) return
+            i += 1
+        }
+    }
+
+    fun readOperator(): String? {
+        return when (val c = peek()) {
+            '&' -> {
+                if (peek(1) == '&') {
+                    i += 2
+                    "&&"
+                } else {
+                    null
+                }
+            }
+            '|' -> {
+                if (peek(1) == '|') {
+                    i += 2
+                    "||"
+                } else {
+                    i += 1
+                    "|"
+                }
+            }
+            ';' -> {
+                i += 1
+                ";"
+            }
+            else -> null
+        }
+    }
+
+    fun rejectOnDisallowedChar(c: Char): Boolean {
+        return c == '(' || c == ')' || c == '<' || c == '>' || c == '{' || c == '}' || c == '[' || c == ']'
+    }
+
+    fun readSingleQuoted(): String? {
+        // opening quote already at i
+        i += 1
+        val start = i
+        while (true) {
+            val c = peek() ?: return null
+            if (c == '\'') {
+                val value = src.substring(start, i)
+                i += 1
+                return value
+            }
+            i += 1
+        }
+    }
+
+    fun readDoubleQuoted(): String? {
+        i += 1
+        val start = i
+        while (true) {
+            val c = peek() ?: return null
+            if (c == '"') {
+                val value = src.substring(start, i)
+                // Reject expansions/escapes inside double quotes to match the Rust tree-sitter shape check.
+                if (value.indexOf('$') >= 0 || value.indexOf('`') >= 0 || value.indexOf('\\') >= 0) {
+                    return null
+                }
+                i += 1
+                return value
+            }
+            if (c == '\n' || c == '\r') {
+                return null
+            }
+            i += 1
+        }
+    }
+
+    fun readBareWord(): String? {
+        val start = i
+        while (true) {
+            val c = peek() ?: break
+            if (isWhitespace(c)) break
+            // operators terminate a word
+            if (c == '&' || c == '|' || c == ';') break
+            // reject a bunch of constructs we never allow
+            if (rejectOnDisallowedChar(c)) return null
+            if (c == '$' || c == '`') return null
+            if (c == '\\') return null
+            i += 1
+        }
+        if (i == start) {
+            return null
+        }
+        return src.substring(start, i)
+    }
+
+    while (true) {
+        skipWhitespace()
+        val c = peek() ?: break
+
+        if (rejectOnDisallowedChar(c) || c == '<' || c == '>') {
+            return null
+        }
+
+        val op = readOperator()
+        if (op != null) {
+            tokens.add(Token(TokenKind.Op, op))
+            continue
+        }
+
+        val word = when (c) {
+            '\'' -> readSingleQuoted()
+            '"' -> readDoubleQuoted()
+            else -> readBareWord()
+        } ?: return null
+        tokens.add(Token(TokenKind.Word, word))
+    }
+
+    // Reject trailing operator (would have produced Op token at end).
+    if (tokens.lastOrNull()?.kind == TokenKind.Op) {
+        return null
+    }
+    return tokens
+}
+
+private fun looksLikeVariableAssignmentPrefix(token: String): Boolean {
+    // Reject `FOO=bar <cmd>` as in the Rust tree-sitter-based implementation.
+    if (token.startsWith('-')) {
+        return false
+    }
+    val eqIndex = token.indexOf('=')
+    if (eqIndex <= 0) {
+        return false
+    }
+    val name = token.substring(0, eqIndex)
+    if (!isShellVarName(name)) {
+        return false
+    }
+    return true
+}
+
+private fun isShellVarName(name: String): Boolean {
+    if (name.isEmpty()) return false
+    val first = name[0]
+    if (!(first == '_' || first in 'A'..'Z' || first in 'a'..'z')) {
+        return false
+    }
+    for (c in name) {
+        val ok = c == '_' || c in 'A'..'Z' || c in 'a'..'z' || c in '0'..'9'
+        if (!ok) return false
+    }
+    return true
 }

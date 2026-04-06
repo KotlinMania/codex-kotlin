@@ -4,6 +4,7 @@ package ai.solace.coder.core
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.FunctionCallOutputPayload
+import ai.solace.coder.protocol.FunctionCallOutputPayloadFactory
 import ai.solace.coder.protocol.ResponseInputItem
 import ai.solace.coder.protocol.ResponseItem
 
@@ -63,7 +64,7 @@ class ToolCallProcessor(
                 is ResponseInputItem.McpToolCallOutput -> {
                     val output = when {
                         response.result.isSuccess && response.result.value != null -> {
-                            FunctionCallOutputPayload.fromCallToolResult(response.result.value)
+                            FunctionCallOutputPayloadFactory.fromCallToolResult(response.result.value)
                         }
                         response.result.isSuccess -> {
                             FunctionCallOutputPayload(

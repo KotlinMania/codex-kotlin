@@ -20,34 +20,31 @@ import kotlinx.serialization.encoding.Encoder
 data class ConversationId(
     private val uuid: String
 ) {
-    companion object {
-        fun new(): ConversationId {
-            return ConversationId(generateUuidV7())
-        }
+    override fun toString(): String = uuid
+}
 
-        fun default(): ConversationId {
-            return ConversationId("00000000-0000-0000-0000-000000000000")
-        }
+fun newConversationId(): ConversationId {
+    return ConversationId(generateUuidV7())
+}
 
-        fun fromString(s: String): kotlin.Result<ConversationId> {
-            return runCatching {
-                // Basic UUID validation
-                if (s.length == 36 && s.count { it == '-' } == 4) {
-                    ConversationId(s)
-                } else {
-                    throw IllegalArgumentException("Invalid UUID format: $s")
-                }
-            }
-        }
+fun defaultConversationId(): ConversationId {
+    return ConversationId("00000000-0000-0000-0000-000000000000")
+}
 
-        @OptIn(ExperimentalUuidApi::class)
-        private fun generateUuidV7(): String {
-            // Use Kotlin's built-in UUID (random v4 for now, close enough for unique IDs)
-            return Uuid.random().toString()
+fun conversationIdFromString(s: String): kotlin.Result<ConversationId> {
+    return runCatching {
+        if (s.length == 36 && s.count { it == '-' } == 4) {
+            ConversationId(s)
+        } else {
+            throw IllegalArgumentException("Invalid UUID format: $s")
         }
     }
+}
 
-    override fun toString(): String = uuid
+@OptIn(ExperimentalUuidApi::class)
+private fun generateUuidV7(): String {
+    // Use Kotlin's built-in UUID (random v4 for now, close enough for unique IDs)
+    return Uuid.random().toString()
 }
 
 object ConversationIdSerializer : KSerializer<ConversationId> {
@@ -59,6 +56,6 @@ object ConversationIdSerializer : KSerializer<ConversationId> {
     }
 
     override fun deserialize(decoder: Decoder): ConversationId {
-        return ConversationId.fromString(decoder.decodeString()).getOrThrow()
+        return conversationIdFromString(decoder.decodeString()).getOrThrow()
     }
 }

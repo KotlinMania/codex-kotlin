@@ -19,7 +19,7 @@ class ApprovalStore {
      * @param key The serializable key (e.g., command hash, tool call ID)
      * @return The cached decision, or null if not found
      */
-    inline fun <reified K> get(key: K): ReviewDecision? where K : @Serializable Any {
+    inline fun <reified K : Any> get(key: K): ReviewDecision? {
         val serialized = try {
             Json.encodeToString(key)
         } catch (e: Exception) {
@@ -33,7 +33,7 @@ class ApprovalStore {
      * @param key The serializable key
      * @param value The approval decision to cache
      */
-    inline fun <reified K> put(key: K, value: ReviewDecision) where K : @Serializable Any {
+    inline fun <reified K : Any> put(key: K, value: ReviewDecision) {
         val serialized = try {
             Json.encodeToString(key)
         } catch (e: Exception) {
@@ -93,4 +93,3 @@ data class SandboxRetryData(
     val command: List<String>,
     val cwd: String
 )
-

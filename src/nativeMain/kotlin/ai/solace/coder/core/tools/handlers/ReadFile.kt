@@ -38,7 +38,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
 
         val args =
                 try {
-                    json.decodeFromString<ReadFileArgs>(payload.arguments)
+                    READ_FILE_JSON.decodeFromString<ReadFileArgs>(payload.arguments)
                 } catch (e: Exception) {
                     return Result.failure(
                             ai.solace.coder.core.tools.ToolError.Codex(
@@ -302,15 +302,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         }
     }
 
-    companion object {
-        private const val MAX_LINE_LENGTH = 500
-        private const val TAB_WIDTH = 4
-
-        private val json = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-    }
+    // (No companion object) - keep serialization plugin stable on K/N K2.
 }
 
 /** Arguments for the read_file tool. */
@@ -353,10 +345,16 @@ private data class LineRecord(
 
     fun isComment(): Boolean {
         val trimmed = raw.trim()
-        return COMMENT_PREFIXES.any { trimmed.startsWith(it) }
-    }
-
-    companion object {
-        private val COMMENT_PREFIXES = listOf("#", "//", "--")
+        return READ_FILE_COMMENT_PREFIXES.any { trimmed.startsWith(it) }
     }
 }
+
+private const val MAX_LINE_LENGTH = 500
+private const val TAB_WIDTH = 4
+
+private val READ_FILE_JSON = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
+
+private val READ_FILE_COMMENT_PREFIXES = listOf("#", "//", "--")

@@ -248,107 +248,89 @@ data class FunctionCallOutputPayload(
         @kotlinx.serialization.SerialName("content_items")
         val contentItems: List<FunctionCallOutputContentItem>? = null,
         val success: Boolean? = null
-) {
-        companion object {
-                private val json = Json { ignoreUnknownKeys = true }
+) {}
 
+object FunctionCallOutputPayloadFactory {
+        private val json = Json { ignoreUnknownKeys = true }
                 /**
                  * Create a FunctionCallOutputPayload from a CallToolResult.
                  *
                  * Ported from Rust codex-rs/protocol/src/models.rs impl From<&CallToolResult> for
                  * FunctionCallOutputPayload
                  */
-                fun fromCallToolResult(callToolResult: CallToolResult): FunctionCallOutputPayload {
-                        val isSuccess = callToolResult.isError != true
+        fun fromCallToolResult(callToolResult: CallToolResult): FunctionCallOutputPayload {
+                val isSuccess = callToolResult.isError != true
 
-                        // If structured_content is present and not null, serialize and return it
-                        val structuredContent = callToolResult.structuredContent
-                        if (structuredContent != null && structuredContent != JsonNull) {
-                                return try {
-                                        val serializedStructuredContent =
-                                                json.encodeToString(
-                                                        JsonElement.serializer(),
-                                                        structuredContent
-                                                )
-                                        FunctionCallOutputPayload(
-                                                content = serializedStructuredContent,
-                                                success = isSuccess,
-                                                contentItems = null
-                                        )
-                                } catch (e: Exception) {
-                                        FunctionCallOutputPayload(
-                                                content = e.message ?: "Serialization error",
-                                                success = false,
-                                                contentItems = null
-                                        )
-                                }
+                val structuredContent = callToolResult.structuredContent
+                if (structuredContent != null && structuredContent != JsonNull) {
+                        return try {
+                                val serializedStructuredContent =
+                                        json.encodeToString(JsonElement.serializer(), structuredContent)
+                                FunctionCallOutputPayload(
+                                        content = serializedStructuredContent,
+                                        success = isSuccess,
+                                        contentItems = null
+                                )
+                        } catch (e: Exception) {
+                                FunctionCallOutputPayload(
+                                        content = e.message ?: "Serialization error",
+                                        success = false,
+                                        contentItems = null
+                                )
                         }
-
-                        // Serialize content blocks
-                        val content = callToolResult.content
-                        val serializedContent =
-                                try {
-                                        json.encodeToString(
-                                                kotlinx.serialization.builtins.ListSerializer(
-                                                        ContentBlock.serializer()
-                                                ),
-                                                content
-                                        )
-                                } catch (e: Exception) {
-                                        return FunctionCallOutputPayload(
-                                                content = e.message ?: "Serialization error",
-                                                success = false,
-                                                contentItems = null
-                                        )
-                                }
-
-                        // Convert content blocks to items
-                        val convertedItems = convertContentBlocksToItems(content)
-
-                        return FunctionCallOutputPayload(
-                                content = serializedContent,
-                                contentItems = convertedItems,
-                                success = isSuccess
-                        )
                 }
 
-                /** Convert MCP ContentBlocks to FunctionCallOutputContentItems. */
-                private fun convertContentBlocksToItems(
-                        blocks: List<ContentBlock>
-                ): List<FunctionCallOutputContentItem>? {
-                        var sawImage = false
-                        val items = mutableListOf<FunctionCallOutputContentItem>()
-
-                        for (block in blocks) {
-                                when (block) {
-                                        is ContentBlock.TextContent -> {
-                                                items.add(
-                                                        FunctionCallOutputContentItem.InputText(
-                                                                text = block.text
-                                                        )
-                                                )
-                                        }
-                                        is ContentBlock.ImageContent -> {
-                                                sawImage = true
-                                                // Ensure data URL format
-                                                val imageUrl =
-                                                        if (block.data.startsWith("data:")) {
-                                                                block.data
-                                                        } else {
-                                                                "data:${block.mimeType};base64,${block.data}"
-                                                        }
-                                                items.add(
-                                                        FunctionCallOutputContentItem.InputImage(
-                                                                imageUrl = imageUrl
-                                                        )
-                                                )
-                                        }
-                                }
+                val content = callToolResult.content
+                val serializedContent =
+                        try {
+                                json.encodeToString(
+                                        kotlinx.serialization.builtins.ListSerializer(ContentBlock.serializer()),
+                                        content
+                                )
+                        } catch (e: Exception) {
+                                return FunctionCallOutputPayload(
+                                        content = e.message ?: "Serialization error",
+                                        success = false,
+                                        contentItems = null
+                                )
                         }
 
-                        // Only return contentItems if we saw at least one image
-                        return if (sawImage) items else null
+                val convertedItems = convertContentBlocksToItems(content)
+
+                return FunctionCallOutputPayload(
+                        content = serializedContent,
+                        contentItems = convertedItems,
+                        success = isSuccess
+                )
+        }
+
+        private fun convertContentBlocksToItems(
+                blocks: List<ContentBlock>
+        ): List<FunctionCallOutputContentItem>? {
+                var sawImage = false
+                val items = mutableListOf<FunctionCallOutputContentItem>()
+
+                for (block in blocks) {
+                        when (block) {
+                                is ContentBlock.TextContent -> {
+                                        items.add(
+                                                FunctionCallOutputContentItem.InputText(text = block.text)
+                                        )
+                                }
+                                is ContentBlock.ImageContent -> {
+                                        sawImage = true
+                                        val imageUrl =
+                                                if (block.data.startsWith("data:")) {
+                                                        block.data
+                                                } else {
+                                                        "data:${block.mimeType};base64,${block.data}"
+                                                }
+                                        items.add(FunctionCallOutputContentItem.InputImage(imageUrl = imageUrl))
+                                }
+                        }
                 }
+
+                return if (sawImage) items else null
         }
 }
 

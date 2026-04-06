@@ -172,10 +172,6 @@ sealed class SandboxPolicy {
         }
     }
 
-    companion object {
-        fun newReadOnlyPolicy(): SandboxPolicy = ReadOnly
-        fun newWorkspaceWritePolicy(): SandboxPolicy = WorkspaceWrite()
-    }
 }
 
 /** A writable root path with read-only subpaths. */
@@ -456,7 +452,8 @@ data class ErrorEvent(
 
 @Serializable data class WarningEvent(val message: String)
 
-@Serializable class ContextCompactedEvent
+@Serializable
+object ContextCompactedEvent
 
 @Serializable
 data class TaskStartedEvent(
@@ -523,23 +520,23 @@ data class TokenUsageInfo(
                 lastTokenUsage = TokenUsage(totalTokens = delta)
         )
     }
+}
 
-    companion object {
-        fun newOrAppend(
-                info: TokenUsageInfo?,
-                last: TokenUsage?,
-                modelContextWindow: Long?
-        ): TokenUsageInfo? {
-            if (info == null && last == null) return null
-            var result = info ?: TokenUsageInfo(TokenUsage(), TokenUsage(), modelContextWindow)
-            if (last != null) result = result.appendLastUsage(last)
-            return result
-        }
+object TokenUsageInfoFactory {
+    fun newOrAppend(
+            info: TokenUsageInfo?,
+            last: TokenUsage?,
+            modelContextWindow: Long?
+    ): TokenUsageInfo? {
+        if (info == null && last == null) return null
+        var result = info ?: TokenUsageInfo(TokenUsage(), TokenUsage(), modelContextWindow)
+        if (last != null) result = result.appendLastUsage(last)
+        return result
+    }
 
-        fun fullContextWindow(contextWindow: Long): TokenUsageInfo {
-            return TokenUsageInfo(TokenUsage(), TokenUsage(), contextWindow)
-                    .fillToContextWindow(contextWindow)
-        }
+    fun fullContextWindow(contextWindow: Long): TokenUsageInfo {
+        return TokenUsageInfo(TokenUsage(), TokenUsage(), contextWindow)
+                .fillToContextWindow(contextWindow)
     }
 }
 
