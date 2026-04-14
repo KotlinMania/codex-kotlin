@@ -2,6 +2,7 @@
 package ai.solace.coder.core.model
 
 import ai.solace.coder.core.context.TruncationPolicy
+import ai.solace.coder.core.tools.ConfigShellToolType
 import ai.solace.coder.protocol.ReasoningEffort
 import ai.solace.coder.protocol.Verbosity
 
@@ -19,16 +20,6 @@ enum class ReasoningSummaryFormat {
 enum class ApplyPatchToolType {
     Function,
     Freeform
-}
-
-/**
- * Shell tool type configuration.
- */
-enum class ConfigShellToolType {
-    Default,
-    Local,
-    ShellCommand,
-    UnifiedExec
 }
 
 /**

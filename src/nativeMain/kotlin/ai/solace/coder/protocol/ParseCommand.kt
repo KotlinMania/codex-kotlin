@@ -47,3 +47,17 @@ sealed class ParsedCommand {
         val cmd: String
     ) : ParsedCommand()
 }
+
+/**
+ * Best-effort classification of a shell command. Mirrors Rust's `parse_command`
+ * in codex-rs/core/src/parse_command.rs.
+ *
+ * NOTE: The full Rust implementation is ~900 lines of pattern-matching for
+ * recognizing reads, list-files, searches, etc. This Kotlin version returns
+ * a single `Unknown` entry so that event emitters have a well-typed payload
+ * until the full parser is ported.
+ */
+fun parseCommand(command: List<String>): List<ParsedCommand> {
+    if (command.isEmpty()) return emptyList()
+    return listOf(ParsedCommand.Unknown(cmd = command.joinToString(" ")))
+}

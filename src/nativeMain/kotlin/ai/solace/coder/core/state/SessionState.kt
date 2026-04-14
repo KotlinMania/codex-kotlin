@@ -1,7 +1,7 @@
 // port-lint: source core/src/state/session.rs
 package ai.solace.coder.core.state
 
-import ai.solace.coder.core.config.SessionConfiguration
+import ai.solace.coder.core.session.SessionConfiguration
 import ai.solace.coder.core.context.ContextManager
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.protocol.RateLimitSnapshot
@@ -27,12 +27,12 @@ internal class SessionState(
     )
 
     // History helpers
-    fun recordItems(items: Iterable<ResponseItem>, policy: TruncationPolicy) {
+    fun recordItems(items: List<ResponseItem>, policy: TruncationPolicy) {
         history.recordItems(items, policy)
     }
 
     fun cloneHistory(): ContextManager {
-        return history.copy()
+        return history.clone()
     }
 
     fun replaceHistory(items: List<ResponseItem>) {

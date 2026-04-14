@@ -1,6 +1,7 @@
 // port-lint: source core/src/error.rs
 package ai.solace.coder.core.error
 
+import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.protocol.CodexErrorInfo
 import ai.solace.coder.protocol.RateLimitSnapshot
 
@@ -177,27 +178,26 @@ sealed class CodexError {
     }
 
     sealed class SandboxError : CodexError() {
-        data class Unsupported(val message: String) : SandboxError() {
+        /** Error from sandbox execution: denied by policy. */
+        data class Denied(val output: ExecToolCallOutput) : SandboxError() {
             override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
             override fun httpStatusCodeValue(): Int? = null
         }
 
-        data class CreationFailed(val message: String) : SandboxError() {
+        /** Command timed out. */
+        data class Timeout(val output: ExecToolCallOutput) : SandboxError() {
             override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
             override fun httpStatusCodeValue(): Int? = null
         }
 
-        data class ApplicationFailed(val message: String) : SandboxError() {
+        /** Command was killed by a signal. */
+        data class Signal(val signal: Int) : SandboxError() {
             override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
             override fun httpStatusCodeValue(): Int? = null
         }
 
-        data class ConfigurationError(val message: String) : SandboxError() {
-            override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
-            override fun httpStatusCodeValue(): Int? = null
-        }
-
-        data class Denied(val message: String) : SandboxError() {
+        /** Linux landlock was not able to fully enforce all sandbox rules. */
+        object LandlockRestrict : SandboxError() {
             override fun toErrorInfo(): CodexErrorInfo = CodexErrorInfo.Other
             override fun httpStatusCodeValue(): Int? = null
         }
@@ -208,3 +208,41 @@ sealed class CodexError {
 class CodexException(val error: CodexError) : Exception(error.toString())
 
 typealias CodexErr = CodexError
+
+/** Limit UI error messages to a reasonable size while keeping useful context. */
+private const val ERROR_MESSAGE_UI_MAX_BYTES: Int = 2 * 1024 // 4 KiB
+
+/**
+ * Produce a user-facing error message for display in the UI.
+ *
+ * Mirrors Rust `core/src/error.rs::get_error_message_ui`.
+ */
+fun getErrorMessageUi(e: CodexError): String {
+    val message = when (e) {
+        is CodexError.SandboxError.Denied -> {
+            val output = e.output
+            val aggregated = output.aggregatedOutput.text.trim()
+            if (aggregated.isNotEmpty()) {
+                output.aggregatedOutput.text
+            } else {
+                val stderr = output.stderr.text.trim()
+                val stdout = output.stdout.text.trim()
+                when {
+                    stderr.isNotEmpty() && stdout.isNotEmpty() -> "$stderr\n$stdout"
+                    stderr.isNotEmpty() -> output.stderr.text
+                    stdout.isNotEmpty() -> output.stdout.text
+                    else -> "command failed inside sandbox with exit code ${output.exitCode}"
+                }
+            }
+        }
+        is CodexError.SandboxError.Timeout -> {
+            "error: command timed out after ${e.output.duration.inWholeMilliseconds} ms"
+        }
+        else -> e.toString()
+    }
+    return if (message.length > ERROR_MESSAGE_UI_MAX_BYTES) {
+        message.substring(0, ERROR_MESSAGE_UI_MAX_BYTES)
+    } else {
+        message
+    }
+}

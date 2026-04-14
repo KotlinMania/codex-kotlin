@@ -87,12 +87,12 @@ class McpConnectionManager {
     }
 
     /** List all resources from all connected servers. */
-    fun listAllResources(): Map<String, List<ai.solace.coder.protocol.Resource>> {
+    fun listAllResources(): Map<String, List<ai.solace.coder.protocol.McpResource>> {
         return emptyMap()
     }
 
     /** List all resource templates from all connected servers. */
-    fun listAllResourceTemplates(): Map<String, List<ai.solace.coder.protocol.ResourceTemplate>> {
+    fun listAllResourceTemplates(): Map<String, List<ai.solace.coder.protocol.McpResourceTemplate>> {
         return emptyMap()
     }
 

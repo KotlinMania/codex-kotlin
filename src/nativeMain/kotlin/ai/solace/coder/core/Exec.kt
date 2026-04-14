@@ -123,7 +123,11 @@ class Exec {
                                     justification = params.justification
                             )
 
-                    val transformResult = sandboxManager.transform(spec, sandboxPolicy, sandboxCwd)
+                    val transformResult = sandboxManager.transform(
+                            spec = spec,
+                            policy = sandboxPolicy,
+                            sandboxPolicyCwd = sandboxCwd
+                    )
                     if (transformResult.isFailure()) {
                         return@withContext CodexResult.failure(
                                 CodexError.Io("Process setup failed")
@@ -345,7 +349,7 @@ class Exec {
         if (isLikelySandboxDenied(sandboxType, execOutput)) {
             // Convert to exception so caller's try/catch will turn it into a failure CodexResult
             throw ai.solace.coder.core.error.CodexException(
-                    CodexError.SandboxError.ApplicationFailed("Sandbox denied execution")
+                    CodexError.SandboxError.Denied(execOutput)
             )
         }
 

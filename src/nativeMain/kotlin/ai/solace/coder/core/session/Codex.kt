@@ -10,13 +10,17 @@ import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.features.Feature
 import ai.solace.coder.core.features.Features
-import ai.solace.coder.core.tools.ProcessedResponseItem
+import ai.solace.coder.core.ProcessedResponseItem
+import ai.solace.coder.core.ToolCallProcessor
+import ai.solace.coder.core.tools.JsonSchema
 import ai.solace.coder.core.tools.ToolCall
-import ai.solace.coder.core.tools.ToolCallProcessor
 import ai.solace.coder.core.tools.ToolCallRuntime
 import ai.solace.coder.core.tools.ToolRegistry
 import ai.solace.coder.core.tools.ToolRouter
-import ai.solace.coder.core.tools.ApplyPatchToolType
+import ai.solace.coder.core.model.ApplyPatchToolType
+import ai.solace.coder.core.model.ModelFamily
+import ai.solace.coder.core.model.ModelProviderInfo
+import ai.solace.coder.core.model.deriveDefaultModelFamily
 import ai.solace.coder.exec.sandbox.ApprovalStore
 import ai.solace.coder.protocol.SandboxCommandAssessment
 import ai.solace.coder.protocol.SandboxRiskLevel
@@ -101,8 +105,8 @@ import ai.solace.coder.protocol.ExecCommandEndEvent
 import ai.solace.coder.protocol.ExecCommandSource
 import ai.solace.coder.protocol.ParsedCommand
 import ai.solace.coder.exec.process.ProcessExecutor
-import ai.solace.coder.exec.process.ExecParams
-import ai.solace.coder.exec.process.ExecExpiration
+import ai.solace.coder.core.ExecParams
+import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.utils.git.CreateGhostCommitOptions
 import kotlin.time.Duration
 import kotlin.time.measureTime
@@ -169,6 +173,9 @@ Be concise, structured, and focused on helping the next LLM seamlessly continue 
  */
 private const val SUMMARY_PREFIX = """Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:"""
 
+private const val CODEX_INITIAL_SUBMIT_ID = ""
+private const val CODEX_SUBMISSION_CHANNEL_CAPACITY = 64
+
 /**
  * The high-level interface to the Codex system.
  * It operates as a queue pair where you send submissions and receive events.
@@ -219,11 +226,6 @@ class Codex internal constructor(
      * Get a Flow of events for reactive consumption.
      */
     fun eventFlow(): Flow<Event> = rxEvent.receiveAsFlow()
-
-    companion object {
-        const val INITIAL_SUBMIT_ID = ""
-        const val SUBMISSION_CHANNEL_CAPACITY = 64
-    }
 }
 
 /**
@@ -257,7 +259,7 @@ suspend fun spawnCodex(
     conversationHistory: InitialHistory = InitialHistory.New,
     sessionSource: SessionSource = SessionSource.Cli
 ): CodexResult<CodexSpawnOk> {
-    val txSub = Channel<Submission>(Codex.SUBMISSION_CHANNEL_CAPACITY)
+    val txSub = Channel<Submission>(CODEX_SUBMISSION_CHANNEL_CAPACITY)
     val txEvent = Channel<Event>(Channel.UNLIMITED)
     val rxEvent = Channel<Event>(Channel.UNLIMITED)
 
@@ -282,7 +284,7 @@ suspend fun spawnCodex(
         sessionSource = sessionSource
     )
 
-    val session = Session.new(
+    val session = Session.Factory.new(
         sessionConfiguration = sessionConfiguration,
         config = config,
         authManager = authManager,
@@ -451,12 +453,12 @@ class Session private constructor(
     ): ResponseItem? {
         if (previous == null) return null
 
-        val prevContext = EnvironmentContext.from(previous)
-        val nextContext = EnvironmentContext.from(next)
+        val prevContext = environmentContextFrom(previous)
+        val nextContext = environmentContextFrom(next)
         if (prevContext.equalsExceptShell(nextContext)) {
             return null
         }
-        return EnvironmentContext.diff(previous, next).toResponseItem()
+        return environmentContextDiff(previous, next).toResponseItem()
     }
 
     /**
@@ -716,8 +718,8 @@ class Session private constructor(
 
         turnContext.userInstructions?.let { instructions ->
             items.add(UserInstructions(
+                directory = turnContext.cwd,
                 text = instructions,
-                directory = turnContext.cwd
             ).toResponseItem())
         }
 
@@ -800,10 +802,7 @@ class Session private constructor(
         stateMutex.withLock {
             state.rateLimits = newRateLimits
         }
-        sendEvent(
-            turnContext,
-            EventMsg.ResponseRateLimit(ResponseEvent.RateLimits(newRateLimits))
-        )
+        sendTokenCountEvent(turnContext)
     }
 
     /**
@@ -825,10 +824,6 @@ class Session private constructor(
      */
     suspend fun readResource(server: String, params: ai.solace.coder.protocol.ReadResourceRequestParams): ai.solace.coder.protocol.ReadResourceResult {
         return services.mcpConnectionManager.readResource(server, params)
-    }
-}            state.rateLimits = newRateLimits
-        }
-        sendTokenCountEvent(turnContext)
     }
 
     /**
@@ -1164,7 +1159,7 @@ class Session private constructor(
         return services.mcpConnectionManager.callTool(server, tool, arguments)
     }
 
-    companion object {
+    object Factory {
         /**
          * Create a new session.
          */
@@ -1190,7 +1185,7 @@ class Session private constructor(
             }
 
             // Initialize services
-            val rolloutRecorder = RolloutRecorder.new(config, conversationId)
+            val rolloutRecorder = newRolloutRecorder(config, conversationId)
             val defaultShell = ShellDetector().defaultUserShell()
 
             val state = SessionState(sessionConfiguration)
@@ -1219,7 +1214,7 @@ class Session private constructor(
 
             // Send SessionConfigured event
             val event = Event(
-                id = Codex.INITIAL_SUBMIT_ID,
+                id = CODEX_INITIAL_SUBMIT_ID,
                 msg = EventMsg.SessionConfigured(SessionConfiguredEvent(
                     sessionId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
                     model = sessionConfiguration.model,
@@ -1256,49 +1251,6 @@ class Session private constructor(
             return session
         }
 
-        /**
-         * Create a turn context.
-         *
-         * Note: In Rust, this is done in make_turn_context() which also creates the ModelClient.
-         * The client parameter should be passed in once ModelClient creation is integrated.
-         * Model info (model, modelFamily, modelContextWindow, etc.) is accessed via client.
-         */
-        private fun makeTurnContext(
-            authManager: AuthManager?,
-            sessionConfiguration: SessionConfiguration,
-            conversationId: ConversationId,
-            subId: String,
-            finalOutputJsonSchema: JsonElement? = null,
-            client: ai.solace.coder.core.client.ModelClient? = null
-        ): TurnContext {
-            val modelFamily = findFamilyForModel(sessionConfiguration.model)
-                ?: sessionConfiguration.modelFamily
-
-            val toolsConfig = ToolsConfig(
-                modelFamily = modelFamily,
-                features = sessionConfiguration.features
-            )
-
-            return TurnContext(
-                subId = subId,
-                client = client,  // Model info accessed via client
-                cwd = sessionConfiguration.cwd,
-                developerInstructions = sessionConfiguration.developerInstructions,
-                baseInstructions = sessionConfiguration.baseInstructions,
-                compactPrompt = sessionConfiguration.compactPrompt,
-                userInstructions = sessionConfiguration.userInstructions,
-                approvalPolicy = sessionConfiguration.approvalPolicy,
-                sandboxPolicy = sessionConfiguration.sandboxPolicy,
-                shellEnvironmentPolicy = sessionConfiguration.shellEnvironmentPolicy,
-                toolsConfig = toolsConfig,
-                finalOutputJsonSchema = finalOutputJsonSchema,
-                codexLinuxSandboxExe = sessionConfiguration.codexLinuxSandboxExe,
-                toolCallGate = ReadinessFlag(),
-                execPolicy = sessionConfiguration.execPolicy,
-                truncationPolicy = TruncationPolicy.Tokens(8000)
-            )
-        }
-
         private fun generateConversationId(): ConversationId {
             val chars = "0123456789abcdef"
             return buildString {
@@ -1312,6 +1264,51 @@ class Session private constructor(
         private fun isAbsolutePath(path: String): Boolean {
             return path.startsWith("/") || (path.length >= 3 && path[1] == ':' && path[2] == '\\')
         }
+    }
+
+    /**
+     * Create a turn context.
+     *
+     * Note: In Rust, this is done in make_turn_context() which also creates the ModelClient.
+     * The client parameter should be passed in once ModelClient creation is integrated.
+     * Model info (model, modelFamily, modelContextWindow, etc.) is accessed via client.
+     */
+    private fun makeTurnContext(
+        authManager: AuthManager?,
+        sessionConfiguration: SessionConfiguration,
+        conversationId: ConversationId,
+        subId: String,
+        finalOutputJsonSchema: JsonElement? = null,
+        client: ai.solace.coder.core.client.ModelClient? = null
+    ): TurnContext {
+        val modelFamily = findFamilyForModel(sessionConfiguration.model)
+            ?: sessionConfiguration.modelFamily
+
+        val toolsConfig = ai.solace.coder.core.tools.ToolsConfig.new(
+            ai.solace.coder.core.tools.ToolsConfigParams(
+                modelFamily = modelFamily,
+                features = sessionConfiguration.features
+            )
+        )
+
+        return TurnContext(
+            subId = subId,
+            client = client,  // Model info accessed via client
+            cwd = sessionConfiguration.cwd,
+            developerInstructions = sessionConfiguration.developerInstructions,
+            baseInstructions = sessionConfiguration.baseInstructions,
+            compactPrompt = sessionConfiguration.compactPrompt,
+            userInstructions = sessionConfiguration.userInstructions,
+            approvalPolicy = sessionConfiguration.approvalPolicy,
+            sandboxPolicy = sessionConfiguration.sandboxPolicy,
+            shellEnvironmentPolicy = sessionConfiguration.shellEnvironmentPolicy,
+            toolsConfig = toolsConfig,
+            finalOutputJsonSchema = finalOutputJsonSchema,
+            codexLinuxSandboxExe = sessionConfiguration.codexLinuxSandboxExe,
+            toolCallGate = ReadinessFlag(),
+            execPolicy = sessionConfiguration.execPolicy,
+            truncationPolicy = TruncationPolicy.Tokens(8000)
+        )
     }
 }
 
@@ -1330,6 +1327,23 @@ class Session private constructor(
  * Rust architecture where TurnContext.client provides access to ModelClient which
  * holds the Config.
  */
+private val TURN_CONTEXT_DEFAULT_COMPACT_PROMPT = """
+    Summarize the conversation history concisely while preserving:
+    - User's original requests and intent
+    - Key decisions and technical approach
+    - Important context for continuing the work
+
+    Omit:
+    - Verbose explanations and redundant details
+    - Off-topic discussions and failed attempts
+    - Internal debugging and troubleshooting
+
+    Focus on:
+    - Current state of the work
+    - Next steps to continue
+    - Critical constraints and requirements
+""".trimIndent()
+
 data class TurnContext(
     val subId: String,
     /**
@@ -1351,7 +1365,13 @@ data class TurnContext(
     val approvalPolicy: AskForApproval,
     val sandboxPolicy: SandboxPolicy,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
-    val toolsConfig: ToolsConfig = ToolsConfig(),
+    val toolsConfig: ai.solace.coder.core.tools.ToolsConfig = ai.solace.coder.core.tools.ToolsConfig(
+        shellType = ai.solace.coder.core.tools.ConfigShellToolType.Default,
+        applyPatchToolType = null,
+        webSearchRequest = false,
+        includeViewImageTool = true,
+        experimentalSupportedTools = emptyList()
+    ),
     val finalOutputJsonSchema: JsonElement? = null,
     val codexLinuxSandboxExe: String? = null,
     val toolCallGate: ReadinessFlag? = null,
@@ -1367,7 +1387,7 @@ data class TurnContext(
     val model: String get() = client?.getModel() ?: "unknown"
 
     /** Get the model family. Delegates to client.getModelFamily(). */
-    val modelFamily: ModelFamily get() = client?.getModelFamily() ?: ModelFamily.default()
+    val modelFamily: ModelFamily get() = client?.getModelFamily() ?: deriveDefaultModelFamily("default")
 
     /** Get the model context window. Delegates to client.getModelContextWindow(). */
     val modelContextWindow: Long? get() = client?.getModelContextWindow()
@@ -1381,14 +1401,15 @@ data class TurnContext(
     /** Get the auto-compact token limit. Delegates to client.getAutoCompactTokenLimit(). */
     val autoCompactTokenLimit: Long? get() = client?.getAutoCompactTokenLimit()
 
-    /** Stream max retries - from client config. */
-    val streamMaxRetries: Int get() = client?.config()?.streamMaxRetries ?: 3
+    /** Stream max retries - from client provider. */
+    val streamMaxRetries: Long get() = client?.getProvider()?.streamMaxRetries() ?: 5L
 
     /**
      * Whether the model family supports parallel tool calls.
+     * Mirrors Rust's turn_context.client.get_model_family().supports_parallel_tool_calls.
      */
     val modelFamilySupportsParallelToolCalls: Boolean
-        get() = toolsConfig.modelFamily.supportsParallelToolCalls
+        get() = modelFamily.supportsParallelToolCalls
 
     /**
      * Get the compact prompt, falling back to SUMMARIZATION_PROMPT if not set.
@@ -1416,26 +1437,7 @@ data class TurnContext(
      * Returns the compact prompt to use for this turn.
      */
     fun getCompactPrompt(): String {
-        return compactPrompt ?: DEFAULT_COMPACT_PROMPT
-    }
-
-    companion object {
-        private val DEFAULT_COMPACT_PROMPT = """
-            Summarize the conversation history concisely while preserving:
-            - User's original requests and intent
-            - Key decisions and technical approach
-            - Important context for continuing the work
-
-            Omit:
-            - Verbose explanations and redundant details
-            - Off-topic discussions and failed attempts
-            - Internal debugging and troubleshooting
-
-            Focus on:
-            - Current state of the work
-            - Next steps to continue
-            - Critical constraints and requirements
-        """.trimIndent()
+        return compactPrompt ?: TURN_CONTEXT_DEFAULT_COMPACT_PROMPT
     }
 }
 
@@ -1465,7 +1467,7 @@ data class SessionConfiguration(
     val sessionSource: SessionSource,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
     val codexLinuxSandboxExe: String? = null,
-    val modelFamily: ModelFamily = ModelFamily.default()
+    val modelFamily: ModelFamily = deriveDefaultModelFamily("default")
 ) {
     /**
      * Applies updates to create a new configuration.
@@ -1520,23 +1522,7 @@ enum class ShellEnvironmentInheritFilter {
     Core, All, None
 }
 
-/**
- * Tool configuration for a turn.
- *
- * Ported from Rust codex-rs/core/src/tools/spec.rs ToolsConfig
- */
-// port-lint: ignore-duplicate - Extended version with Features, differs from ToolSpec.ToolsConfig
-data class ToolsConfig(
-    val shellType: ShellToolType = ShellToolType.Default,
-    val applyPatchToolType: ApplyPatchToolType? = null,
-    val webSearchRequest: Boolean = false,
-    val includeViewImageTool: Boolean = true,
-    val experimentalSupportedTools: List<String> = emptyList(),
-    val modelFamily: ModelFamily = ModelFamily.default(),
-    val features: Features = Features.withDefaults()
-)
-
-enum class ShellToolType { Default, UnifiedExec, None }
+// ToolsConfig is defined in ai.solace.coder.core.tools (see core/tools/Spec.kt).
 // ApplyPatchToolType is imported from ai.solace.coder.core.tools.ToolSpec
 
 /**
@@ -1960,7 +1946,7 @@ private suspend fun runTurn(
     cancellationToken: CancellationToken
 ): Result<List<ProcessedResponseItem>> {
     val mcpTools = sess.services.mcpConnectionManager.listAllTools()
-    val router = ToolRouter(ToolRegistry())
+    val router = ai.solace.coder.core.tools.ToolRouter.fromConfig(turnContext.toolsConfig, mcpTools)
 
     val modelSupportsParallel = turnContext.modelFamilySupportsParallelToolCalls
     val parallelToolCalls = modelSupportsParallel && sess.enabled(Feature.ParallelToolCalls)
@@ -2107,7 +2093,7 @@ private suspend fun tryRunTurn(
                     val toolCallResult = router.buildToolCall(sess, event.item)
 
                     when {
-                        toolCallResult.isSuccess() && toolCallResult.getOrNull() != null -> {
+                        toolCallResult.isSuccess && toolCallResult.getOrNull() != null -> {
                             val call = toolCallResult.getOrThrow()!!
                             println("INFO: ToolCall: ${call.toolName} ${call.payload}")
 
@@ -2123,7 +2109,7 @@ private suspend fun tryRunTurn(
                             outputQueue.add(deferred)
                         }
 
-                        toolCallResult.isSuccess() -> {
+                        toolCallResult.isSuccess -> {
                             // Not a tool call, handle as non-tool response
                             val turnItem = handleNonToolResponseItem(event.item)
                             if (turnItem != null) {
@@ -2357,7 +2343,7 @@ private suspend fun spawnReviewThread(
     // Get review model (use config review_model or fall back to main model)
     val reviewModel = config.model // In full impl, would use config.reviewModel
     val reviewModelFamily = findFamilyForModel(reviewModel)
-        ?: ModelFamily.default()
+        ?: deriveDefaultModelFamily("default")
 
     // For reviews, disable web_search and view_image regardless of global settings
     val reviewFeatures = config.features.copy().apply {
@@ -2366,11 +2352,11 @@ private suspend fun spawnReviewThread(
     }
 
     // Create tools config for review
-    val toolsConfig = ToolsConfig(
-        modelFamily = reviewModelFamily,
-        features = reviewFeatures,
-        webSearchRequest = false,
-        includeViewImageTool = false
+    val toolsConfig = ai.solace.coder.core.tools.ToolsConfig.new(
+        ai.solace.coder.core.tools.ToolsConfigParams(
+            modelFamily = reviewModelFamily,
+            features = reviewFeatures
+        )
     )
 
     // Use review-specific base instructions
@@ -2381,9 +2367,14 @@ private suspend fun spawnReviewThread(
     val reviewReasoningEffort = ReasoningEffort.Low
     val reviewReasoningSummary = ReasoningSummary.Auto
 
-    // Create review turn context
+    // Create review turn context.
+    // NOTE: per-turn client (with review model/family/effort/summary) would be built
+    // in Rust here and attached to this TurnContext. We pass through the parent's
+    // client for now; reviewModel/reviewModelFamily/reviewReasoningEffort/
+    // reviewReasoningSummary are consumed via the client when the port is completed.
     val reviewTurnContext = TurnContext(
         subId = subId,
+        client = parentTurnContext.client,
         cwd = parentTurnContext.cwd,
         developerInstructions = null,
         baseInstructions = baseInstructions,
@@ -2397,12 +2388,7 @@ private suspend fun spawnReviewThread(
         codexLinuxSandboxExe = parentTurnContext.codexLinuxSandboxExe,
         toolCallGate = ReadinessFlag(),
         execPolicy = parentTurnContext.execPolicy,
-        truncationPolicy = TruncationPolicy.Tokens(8000),
-        model = reviewModel,
-        modelFamily = reviewModelFamily.slug,
-        modelContextWindow = reviewModelFamily.contextWindow.toLong(),
-        reasoningEffort = reviewReasoningEffort,
-        reasoningSummary = reviewReasoningSummary
+        truncationPolicy = TruncationPolicy.Tokens(8000)
     )
 
     // Seed the child task with the review prompt as the initial user message
@@ -2596,7 +2582,7 @@ data class CodexSessionConfiguration(
     val sessionSource: SessionSource,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
     val codexLinuxSandboxExe: String? = null,
-    val modelFamily: ModelFamily = ModelFamily.default()
+    val modelFamily: ModelFamily = deriveDefaultModelFamily("default")
 )
 
 /**
@@ -2620,12 +2606,7 @@ sealed class ToolSpec {
     /**
      * A function tool with schema-defined parameters.
      */
-    data class Function(
-        val name: String,
-        val description: String,
-        val strict: Boolean = false,
-        val parameters: JsonElement?
-    ) : ToolSpec()
+    data class Function(val tool: ResponsesApiTool) : ToolSpec()
 
     /**
      * A local shell tool (no parameters needed).
@@ -2640,22 +2621,27 @@ sealed class ToolSpec {
     /**
      * A freeform/custom tool with format specification.
      */
-    data class Freeform(
-        val name: String,
-        val description: String,
-        val format: FreeformToolFormat
-    ) : ToolSpec()
+    data class Freeform(val tool: FreeformTool) : ToolSpec()
 
     /**
      * Get the name of this tool.
      */
     fun name(): String = when (this) {
-        is Function -> name
+        is Function -> tool.name
         is LocalShell -> "local_shell"
         is WebSearch -> "web_search"
-        is Freeform -> name
+        is Freeform -> tool.name
     }
 }
+
+/**
+ * Freeform tool definition (matches Rust FreeformTool in client_common.rs).
+ */
+data class FreeformTool(
+    val name: String,
+    val description: String,
+    val format: FreeformToolFormat
+)
 
 /**
  * Format specification for freeform tools.
@@ -2674,7 +2660,7 @@ data class ResponsesApiTool(
     val name: String,
     val description: String,
     val strict: Boolean = false,
-    val parameters: JsonElement?
+    val parameters: JsonSchema
 )
 
 // =============================================================================
@@ -2682,7 +2668,7 @@ data class ResponsesApiTool(
 // =============================================================================
 
 class Config(
-    val modelProvider: ModelProviderInfo = ModelProviderInfo(),
+    val modelProvider: ModelProviderInfo = ModelProviderInfo(name = "openai"),
     val model: String = "gpt-4",
     val modelProviderId: String? = null,
     val modelReasoningEffort: ReasoningEffort? = null,
@@ -2700,22 +2686,8 @@ class Config(
     val showRawAgentReasoning: Boolean = false
 )
 
-data class ModelProviderInfo(
-    val name: String = "openai",
-    val apiBase: String? = null
-)
-
-data class ModelFamily(
-    val slug: String = "gpt-4",
-    val baseInstructions: String = "",
-    val contextWindow: Int = 128000,
-    val supportsParallelToolCalls: Boolean = true
-) {
-    companion object {
-        fun default() = ModelFamily()
-    }
-}
-
+// ModelProviderInfo imported from ai.solace.coder.core.model
+// ModelFamily imported from ai.solace.coder.core.model
 // ReasoningEffort and ReasoningSummary are imported from ai.solace.coder.protocol.ConfigTypes
 
 // McpServerConfig is now imported from ai.solace.coder.mcp.connection
@@ -2730,12 +2702,10 @@ class RolloutRecorder(
     suspend fun recordItems(items: List<RolloutItem>) {}
     suspend fun flush() {}
     suspend fun shutdown() {}
+}
 
-    companion object {
-        fun new(config: Config, conversationId: ConversationId): RolloutRecorder? {
-            return RolloutRecorder(null)
-        }
-    }
+private fun newRolloutRecorder(config: Config, conversationId: ConversationId): RolloutRecorder? {
+    return RolloutRecorder(null)
 }
 
 class UserNotifier(config: NotifyConfig?) {
@@ -3024,23 +2994,8 @@ class TurnAbortedException(val danglingArtifacts: List<ProcessedResponseItem>) :
 class InterruptedException : Exception()
 class ContextWindowExceededException : Exception()
 
-class DeveloperInstructions(val text: String) {
-    fun toResponseItem(): ResponseItem {
-        return ResponseItem.Message(
-            role = "system",
-            content = listOf(ContentItem.InputText(text = text))
-        )
-    }
-}
-
-class UserInstructions(val text: String, val directory: String) {
-    fun toResponseItem(): ResponseItem {
-        return ResponseItem.Message(
-            role = "system",
-            content = listOf(ContentItem.InputText(text = text))
-        )
-    }
-}
+// UserInstructions and DeveloperInstructions are defined in UserInstructions.kt
+// as a faithful port of core/src/user_instructions.rs.
 
 class EnvironmentContext(
     val cwd: String?,
@@ -3062,26 +3017,24 @@ class EnvironmentContext(
             ))
         )
     }
+}
 
-    companion object {
-        fun from(context: TurnContext): EnvironmentContext {
-            return EnvironmentContext(
-                cwd = context.cwd,
-                approvalPolicy = context.approvalPolicy,
-                sandboxPolicy = context.sandboxPolicy,
-                shell = ShellDetector().defaultUserShell()
-            )
-        }
+private fun environmentContextFrom(context: TurnContext): EnvironmentContext {
+    return EnvironmentContext(
+        cwd = context.cwd,
+        approvalPolicy = context.approvalPolicy,
+        sandboxPolicy = context.sandboxPolicy,
+        shell = ShellDetector().defaultUserShell()
+    )
+}
 
-        fun diff(prev: TurnContext, next: TurnContext): EnvironmentContext {
-            return EnvironmentContext(
-                cwd = if (prev.cwd != next.cwd) next.cwd else null,
-                approvalPolicy = if (prev.approvalPolicy != next.approvalPolicy) next.approvalPolicy else null,
-                sandboxPolicy = if (prev.sandboxPolicy != next.sandboxPolicy) next.sandboxPolicy else null,
-                shell = ShellDetector().defaultUserShell()
-            )
-        }
-    }
+private fun environmentContextDiff(prev: TurnContext, next: TurnContext): EnvironmentContext {
+    return EnvironmentContext(
+        cwd = if (prev.cwd != next.cwd) next.cwd else null,
+        approvalPolicy = if (prev.approvalPolicy != next.approvalPolicy) next.approvalPolicy else null,
+        sandboxPolicy = if (prev.sandboxPolicy != next.sandboxPolicy) next.sandboxPolicy else null,
+        shell = ShellDetector().defaultUserShell()
+    )
 }
 
 // Note: SessionTask, SessionTaskContext are defined in Turn.kt
@@ -3559,32 +3512,30 @@ class GhostSnapshotTask(
             }
         )
     }
+}
 
-    companion object {
-        private const val MAX_DIRS = 3
+private const val GHOST_SNAPSHOT_MAX_DIRS = 3
 
-        /**
-         * Format a warning message about large untracked directories.
-         */
-        fun formatLargeUntrackedWarning(report: GhostSnapshotReport): String? {
-            if (report.largeUntrackedDirs.isEmpty()) {
-                return null
-            }
-
-            val parts = mutableListOf<String>()
-            for (dir in report.largeUntrackedDirs.take(MAX_DIRS)) {
-                parts.add("${dir.path} (${dir.fileCount} files)")
-            }
-
-            if (report.largeUntrackedDirs.size > MAX_DIRS) {
-                val remaining = report.largeUntrackedDirs.size - MAX_DIRS
-                parts.add("$remaining more")
-            }
-
-            return "Repository snapshot encountered large untracked directories: ${parts.joinToString(", ")}. " +
-                "This can slow Codex; consider adding these paths to .gitignore or disabling undo in your config."
-        }
+/**
+ * Format a warning message about large untracked directories.
+ */
+private fun formatLargeUntrackedWarning(report: GhostSnapshotReport): String? {
+    if (report.largeUntrackedDirs.isEmpty()) {
+        return null
     }
+
+    val parts = mutableListOf<String>()
+    for (dir in report.largeUntrackedDirs.take(GHOST_SNAPSHOT_MAX_DIRS)) {
+        parts.add("${dir.path} (${dir.fileCount} files)")
+    }
+
+    if (report.largeUntrackedDirs.size > GHOST_SNAPSHOT_MAX_DIRS) {
+        val remaining = report.largeUntrackedDirs.size - GHOST_SNAPSHOT_MAX_DIRS
+        parts.add("$remaining more")
+    }
+
+    return "Repository snapshot encountered large untracked directories: ${parts.joinToString(", ")}. " +
+        "This can slow Codex; consider adding these paths to .gitignore or disabling undo in your config."
 }
 
 /**

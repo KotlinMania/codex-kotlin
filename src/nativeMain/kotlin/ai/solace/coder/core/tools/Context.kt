@@ -2,29 +2,14 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.session.Session
+import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.CallToolResult
 import ai.solace.coder.protocol.FunctionCallOutputContentItem
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.McpResult
-
-...
-
-            is Mcp -> {
-                val protoResult =
-                        result.fold(
-                                onSuccess = { McpResult(value = it) },
-                                onFailure = {
-                                    McpResult(error = it.message ?: "Unknown error")
-                                }
-                        )
-                ResponseInputItem.McpToolCallOutput(callId = callId, result = protoResult)
-            }
 import ai.solace.coder.protocol.ResponseInputItem
 import ai.solace.coder.protocol.ShellToolCallParams
-import kotlinx.coroutines.sync.Mutex
-
-typealias SharedTurnDiffTracker = Mutex // Placeholder or actual type if available
 
 data class ToolInvocation(
         val session: Session,
@@ -102,11 +87,13 @@ sealed class ToolOutput {
                 }
             }
             is Mcp -> {
-                val protoResult =
+                val protoResult: McpResult<CallToolResult, String> =
                         result.fold(
-                                onSuccess = { McpResult(value = it) },
+                                onSuccess = { McpResult<CallToolResult, String>(value = it) },
                                 onFailure = {
-                                    McpResult(error = it.message ?: "Unknown error")
+                                    McpResult<CallToolResult, String>(
+                                            error = it.message ?: "Unknown error"
+                                    )
                                 }
                         )
                 ResponseInputItem.McpToolCallOutput(callId = callId, result = protoResult)

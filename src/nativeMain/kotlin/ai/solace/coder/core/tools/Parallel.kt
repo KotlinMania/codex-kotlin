@@ -3,6 +3,7 @@ package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
+import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.ResponseInputItem
@@ -97,13 +98,15 @@ class ToolCallRuntime(
                 }
 
                 if (cancellationJob != null) {
-                    select {
+                    select<Unit> {
                         cancellationJob.onJoin {
                             job.cancel()
                             val secs = started.elapsedNow().inWholeMilliseconds / 1000.0f
                             result = Result.success(abortedResponse(call, secs.coerceAtLeast(0.1f)))
                         }
-                        job.join()
+                        job.onJoin {
+                            // Normal completion; `result` already populated by the launched coroutine.
+                        }
                     }
                 } else {
                     job.join()
@@ -111,11 +114,11 @@ class ToolCallRuntime(
 
                 result
                         ?: Result.failure(
-                                CodexError.Fatal("Tool execution failed to produce result")
+                                CodexError.Fatal("Tool execution failed to produce result").toException()
                         )
             }
         } catch (e: Exception) {
-            Result.failure(CodexError.Fatal("tool task failed to receive: ${e.message}"))
+            Result.failure(CodexError.Fatal("tool task failed to receive: ${e.message}").toException())
         }
     }
 

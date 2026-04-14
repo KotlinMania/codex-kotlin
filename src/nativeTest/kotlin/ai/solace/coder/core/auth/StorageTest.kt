@@ -25,9 +25,9 @@ class StorageTest {
         try {
             val storage = FileAuthStorage(tempDir)
             val auth = AuthDotJson(
-                openai_api_key = "test-key",
+                openaiApiKey = "test-key",
                 tokens = null,
-                last_refresh = null
+                lastRefresh = null
             )
 
             val saveResult = storage.save(auth)
@@ -70,7 +70,7 @@ class StorageTest {
             val keychainStorage = KeychainAuthStorage(tempDir, mockKeychain)
             val autoStorage = AutoAuthStorage(keychainStorage, fileStorage)
 
-            val auth = AuthDotJson(openai_api_key = "auto-key", tokens = null, last_refresh = null)
+            val auth = AuthDotJson(openaiApiKey = "auto-key", tokens = null, lastRefresh = null)
 
             // Setup: Keychain fails on save
             mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we don't know exact key

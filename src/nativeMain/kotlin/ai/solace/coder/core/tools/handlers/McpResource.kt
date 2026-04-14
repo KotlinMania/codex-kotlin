@@ -396,8 +396,8 @@ private suspend fun emitToolCallEnd(
 ) {
         val mcpResult =
                 result.fold(
-                        onSuccess = { McpResult(value = it) },
-                        onFailure = { McpResult(error = it.message ?: "Unknown error") }
+                        onSuccess = { McpResult<CallToolResult, String>(value = it) },
+                        onFailure = { McpResult<CallToolResult, String>(error = it.message ?: "Unknown error") }
                 )
 
         session.sendEvent(

@@ -1,6 +1,6 @@
 plugins {
-    kotlin("multiplatform") version "2.2.21"
-    kotlin("plugin.serialization") version "2.2.21"
+    kotlin("multiplatform") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.20"
 }
 
 // =============================================================================
@@ -202,8 +202,7 @@ kotlin {
 
                 // Character encoding support (for legacy codepage conversion)
                 // fleeksoft-io provides JDK-like IO classes for Kotlin Multiplatform
-                implementation("com.fleeksoft.io:io-core:0.0.4")
-                implementation("com.fleeksoft.io:io:0.0.4")
+                implementation("com.fleeksoft.io:io-core:0.0.5")
                 implementation("com.fleeksoft.charset:charset:0.0.5")
                 implementation("com.fleeksoft.charset:charset-ext:0.0.5")
 
@@ -212,15 +211,15 @@ kotlin {
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
 
                 // TUI libraries (from Maven Central)
-                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.6")
-                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.0")
-                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.0")
+                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.7")
+                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.3")
+                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.3")
                 implementation("io.github.kotlinmania:kasuari-kotlin:0.1.1")
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.0")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.0")
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.3")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.3")
 
                 // JWT library (from Maven Central)
-                implementation("io.github.kotlinmania:jwt-kotlin:0.1.0")
+                implementation("io.github.kotlinmania:jwt-kmp:0.2.1")
             }
         }
         

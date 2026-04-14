@@ -139,16 +139,14 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
                 is UnifiedExecError.SandboxDenied -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexError.SandboxError.Denied(e.message ?: "Sandbox denied")
+                                    CodexError.SandboxError.Denied(e.output)
                             )
                     )
                 }
                 is UnifiedExecError.SandboxError -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexError.SandboxError.ApplicationFailed(
-                                            e.message ?: "Sandbox failed"
-                                    )
+                                    CodexError.Io(e.message ?: "Sandbox failed")
                             )
                     )
                 }

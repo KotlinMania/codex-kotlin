@@ -1,9 +1,8 @@
 // port-lint: source core/src/tools/runtimes/mod.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.exec.ExecExpiration
+import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.exec.sandbox.CommandSpec
-import ai.solace.coder.core.tools.sandboxing.ToolError
 
 // Module: runtimes
 // Concrete ToolRuntime implementations for specific tools. Each runtime stays

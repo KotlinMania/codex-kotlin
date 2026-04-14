@@ -1,7 +1,7 @@
 // port-lint: source core/src/user_shell_command.rs
 package ai.solace.coder.core.session
 
-import ai.solace.coder.exec.process.ExecToolCallOutput
+import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.protocol.ContentItem
 import ai.solace.coder.protocol.ResponseItem
 

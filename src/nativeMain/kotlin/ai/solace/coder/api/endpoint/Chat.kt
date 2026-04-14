@@ -3,8 +3,8 @@ package ai.solace.coder.api.endpoint
 
 import ai.solace.coder.api.AuthProvider
 import ai.solace.coder.api.common.Prompt
-import ai.solace.coder.api.common.ResponseEvent
 import ai.solace.coder.api.common.ResponseStream
+import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.provider.Provider
 import ai.solace.coder.api.provider.WireApi
 import ai.solace.coder.api.requests.ChatRequest
@@ -79,7 +79,7 @@ enum class AggregateMode {
 class AggregatedStream private constructor(
     private val inner: ResponseStream,
     private val mode: AggregateMode,
-) {
+) : ResponseStream {
     private val cumulative = StringBuilder()
     private val cumulativeReasoning = StringBuilder()
     private val pending = ArrayDeque<ResponseEvent>()
@@ -88,7 +88,7 @@ class AggregatedStream private constructor(
      * Poll the next event from the aggregated stream.
      * This implements the full Rust poll_next logic for event aggregation.
      */
-    suspend fun pollNext(): Result<ResponseEvent?> {
+    override suspend fun next(): Result<ResponseEvent>? {
         // Return pending events first
         pending.firstOrNull()?.let { event ->
             pending.removeFirst()
@@ -97,14 +97,14 @@ class AggregatedStream private constructor(
 
         // Poll inner stream in a loop, aggregating as we go
         while (true) {
-            val result = inner.next()
+            val result = inner.next() ?: return null
 
             // Handle errors and end-of-stream
             if (result.isFailure) {
-                return result
+                return Result.failure(result.exceptionOrNull()!!)
             }
 
-            val event = result.getOrNull() ?: return Result.success(null)
+            val event = result.getOrNull() ?: return null
 
             when (event) {
                 is ResponseEvent.OutputItemDone -> {

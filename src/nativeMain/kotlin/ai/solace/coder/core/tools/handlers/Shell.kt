@@ -4,11 +4,12 @@ package ai.solace.coder.core.tools.handlers
 import ai.solace.coder.core.Exec
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecParams
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.command_safety.isKnownSafeCommand
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
-import ai.solace.coder.core.tools.SharedTurnDiffTracker
+import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
@@ -66,10 +67,8 @@ class ShellHandler : ToolHandler {
                                         )
                                 } catch (e: Exception) {
                                         Result.failure(
-                                                ToolError.Codex(
-                                                        CodexError.RespondToModel(
-                                                                "failed to parse function arguments: ${e.message}"
-                                                        )
+                                                FunctionCallError.RespondToModel(
+                                                        "failed to parse function arguments: ${e.message}"
                                                 )
                                         )
                                 }
@@ -88,10 +87,8 @@ class ShellHandler : ToolHandler {
                         }
                         else ->
                                 Result.failure(
-                                        ToolError.Codex(
-                                                CodexError.RespondToModel(
-                                                        "unsupported payload for shell handler: ${invocation.toolName}"
-                                                )
+                                        FunctionCallError.RespondToModel(
+                                                "unsupported payload for shell handler: ${invocation.toolName}"
                                         )
                                 )
                 }
@@ -188,10 +185,8 @@ class ShellCommandHandler : ToolHandler {
                 val payload =
                         invocation.payload as? ToolPayload.Function
                                 ?: return Result.failure(
-                                        ToolError.Codex(
-                                                CodexError.RespondToModel(
-                                                        "unsupported payload for shell_command handler: ${invocation.toolName}"
-                                                )
+                                        FunctionCallError.RespondToModel(
+                                                "unsupported payload for shell_command handler: ${invocation.toolName}"
                                         )
                                 )
 
@@ -210,10 +205,8 @@ class ShellCommandHandler : ToolHandler {
                         )
                 } catch (e: Exception) {
                         Result.failure(
-                                ToolError.Codex(
-                                        CodexError.RespondToModel(
-                                                "failed to parse function arguments: ${e.message}"
-                                        )
+                                FunctionCallError.RespondToModel(
+                                        "failed to parse function arguments: ${e.message}"
                                 )
                         )
                 }

@@ -128,12 +128,12 @@ class ShellRuntime(private val processExecutor: Exec) :
 
         return try {
             executeEnv(env, attempt.policy, stdoutStream(ctx))
+        } catch (e: ai.solace.coder.core.error.CodexException) {
+            Result.failure(ToolError.Codex(e.error))
         } catch (e: Exception) {
             Result.failure(
                     ToolError.Codex(
-                            CodexError.SandboxError.ApplicationFailed(
-                                    e.message ?: "Execution failed"
-                            )
+                            CodexError.Io(e.message ?: "Execution failed")
                     )
             )
         }

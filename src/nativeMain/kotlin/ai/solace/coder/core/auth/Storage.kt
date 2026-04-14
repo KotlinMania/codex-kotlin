@@ -119,7 +119,7 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
 
             // Set Unix file permissions to 0600 (owner read/write only)
             @OptIn(ExperimentalForeignApi::class)
-            chmod(authFile.toString(), S_IRUSR or S_IWUSR)
+            chmod(authFile.toString(), (S_IRUSR or S_IWUSR).convert())
 
             Result.success(Unit)
         } catch (e: Exception) {

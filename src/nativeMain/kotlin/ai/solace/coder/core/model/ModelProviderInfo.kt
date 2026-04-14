@@ -4,6 +4,7 @@ package ai.solace.coder.core.model
 import ai.solace.coder.api.provider.Provider
 import ai.solace.coder.api.provider.RetryConfig
 import ai.solace.coder.api.provider.WireApi
+import ai.solace.coder.core.AuthMode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
@@ -23,13 +24,7 @@ const val DEFAULT_OLLAMA_PORT: Int = 11434
 const val LMSTUDIO_OSS_PROVIDER_ID: String = "lmstudio"
 const val OLLAMA_OSS_PROVIDER_ID: String = "ollama"
 
-/**
- * Authentication mode for providers.
- */
-enum class AuthMode {
-    ApiKey,
-    ChatGPT
-}
+// AuthMode imported from ai.solace.coder.core
 
 /**
  * Serializable representation of a provider definition.

@@ -525,14 +525,14 @@ data class ReadResourceResult(
 
 @Serializable
 data class ListResourcesResult(
-        val resources: List<Resource>,
+        val resources: List<McpResource>,
         @kotlinx.serialization.SerialName("nextCursor") val nextCursor: String? = null
 )
 
 @Serializable
 data class ListResourceTemplatesResult(
         @kotlinx.serialization.SerialName("resourceTemplates")
-        val resourceTemplates: List<ResourceTemplate>,
+        val resourceTemplates: List<McpResourceTemplate>,
         @kotlinx.serialization.SerialName("nextCursor") val nextCursor: String? = null
 )
 

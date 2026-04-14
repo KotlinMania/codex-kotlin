@@ -1,5 +1,8 @@
 package ai.solace.coder.core.session
 
+import ai.solace.coder.core.model.ApplyPatchToolType
+import ai.solace.coder.core.tools.ConfigShellToolType
+import ai.solace.coder.core.tools.ToolsConfig
 import ai.solace.coder.protocol.AskForApproval
 import ai.solace.coder.protocol.SandboxPolicy
 import kotlin.test.Test
@@ -93,8 +96,14 @@ class ToolsConfigTest {
 
     @Test
     fun testDefaultToolsConfig() {
-        val config = ToolsConfig()
-        assertEquals(ShellToolType.Default, config.shellType)
+        val config = ToolsConfig(
+            shellType = ConfigShellToolType.Default,
+            applyPatchToolType = null,
+            webSearchRequest = false,
+            includeViewImageTool = true,
+            experimentalSupportedTools = emptyList()
+        )
+        assertEquals(ConfigShellToolType.Default, config.shellType)
         assertEquals(null, config.applyPatchToolType)
         assertEquals(false, config.webSearchRequest)
         assertEquals(true, config.includeViewImageTool)
@@ -104,13 +113,13 @@ class ToolsConfigTest {
     @Test
     fun testCustomToolsConfig() {
         val config = ToolsConfig(
-            shellType = ShellToolType.UnifiedExec,
+            shellType = ConfigShellToolType.UnifiedExec,
             applyPatchToolType = ApplyPatchToolType.Freeform,
             webSearchRequest = true,
             includeViewImageTool = false,
             experimentalSupportedTools = listOf("custom_tool")
         )
-        assertEquals(ShellToolType.UnifiedExec, config.shellType)
+        assertEquals(ConfigShellToolType.UnifiedExec, config.shellType)
         assertEquals(ApplyPatchToolType.Freeform, config.applyPatchToolType)
         assertTrue(config.webSearchRequest)
         assertEquals(false, config.includeViewImageTool)

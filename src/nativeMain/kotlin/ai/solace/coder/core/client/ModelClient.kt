@@ -11,8 +11,8 @@ import ai.solace.coder.api.endpoint.streamingMode
 import ai.solace.coder.api.common.CompactionInput
 import ai.solace.coder.api.common.Prompt as ApiPrompt
 import ai.solace.coder.api.common.Reasoning
-import ai.solace.coder.api.common.ResponseEvent
 import ai.solace.coder.api.common.ResponseStream as ApiResponseStream
+import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.common.createTextParamForRequest
 import ai.solace.coder.api.error.ApiError
 import ai.solace.coder.api.provider.WireApi
@@ -22,7 +22,7 @@ import ai.solace.coder.core.AuthManager
 import ai.solace.coder.core.AuthMode
 import ai.solace.coder.core.CodexAuth
 import ai.solace.coder.core.config.Config
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt
@@ -116,9 +116,9 @@ class ModelClient(
     private suspend fun streamChatCompletions(prompt: Prompt): Result<ApiResponseStream> {
         if (prompt.outputSchema != null) {
             return Result.failure(
-                CodexErr.UnsupportedOperation(
+                CodexError.UnsupportedOperation(
                     "output_schema is not supported for Chat Completions API"
-                )
+                ).toException()
             )
         }
 
@@ -308,9 +308,8 @@ class ModelClient(
 
         // Build extra headers for subagent
         val configureHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {
-            if (sessionSource is SessionSource.SubAgent) {
-                // TODO: Extract SubAgentSource value once SessionSource is a sealed class
-                val subagent = "review" // Placeholder
+            if (sessionSource == SessionSource.SubAgent) {
+                val subagent = "review"
                 headers.append("x-openai-subagent", subagent)
             }
         }
@@ -359,9 +358,15 @@ private fun mapResponseStream(
     return ResponseStream(
         flow {
             // Poll the API stream and emit events
-            var result = apiStream.next()
-            while (result.isSuccess && result.getOrNull() != null) {
-                val event = result.getOrNull()!!
+            while (true) {
+                val result = apiStream.next() ?: break
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull() ?: Exception("Unknown error")
+                    otelEventManager.seeEventCompletedFailed(error)
+                    emit(Result.failure(error))
+                    break
+                }
+                val event = result.getOrNull() ?: break
 
                 // Handle completion events for telemetry
                 if (event is ResponseEvent.Completed) {
@@ -377,14 +382,6 @@ private fun mapResponseStream(
                 }
 
                 emit(Result.success(event))
-                result = apiStream.next()
-            }
-
-            // Handle errors
-            if (result.isFailure) {
-                val error = result.exceptionOrNull() ?: Exception("Unknown error")
-                otelEventManager.seeEventCompletedFailed(error)
-                emit(Result.failure(error))
             }
         }
     )
@@ -404,11 +401,12 @@ private suspend fun handleUnauthorized(
     }
 
     if (authManager != null && auth != null && auth.mode == AuthMode.ChatGPT) {
-        return when (val refreshResult = authManager.refreshToken()) {
-            is Result.Success -> Result.success(Unit)
-            is Result.Failure -> Result.failure(
-                CodexErr.RefreshTokenFailed(refreshResult.error.message ?: "Unknown error")
-            )
+        val refreshResult = authManager.refreshToken()
+        return if (refreshResult.isSuccess) {
+            Result.success(Unit)
+        } else {
+            val msg = refreshResult.exceptionOrNull()?.message ?: "Unknown error"
+            Result.failure(CodexError.RefreshTokenFailed(msg).toException())
         }
     }
 
@@ -416,12 +414,17 @@ private suspend fun handleUnauthorized(
 }
 
 private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception {
-    return ApiError.Transport("HTTP ${status.value}: Unauthorized")
+    return ApiError.Transport(
+        ai.solace.coder.client.error.TransportError.Http(status = status)
+    )
 }
 
 private fun isUnauthorizedError(result: Result<*>): Boolean {
     val error = result.exceptionOrNull()
-    return error is ApiError.Transport && error.message?.contains("401") == true
+    if (error !is ApiError.Transport) return false
+    val inner = error.error
+    return inner is ai.solace.coder.client.error.TransportError.Http &&
+        inner.status == HttpStatusCode.Unauthorized
 }
 
 /**
@@ -432,13 +435,13 @@ private class ApiTelemetry(
 ) : RequestTelemetry, SseTelemetry {
 
     override fun onRequest(
-        attempt: Long,
+        attempt: Int,
         status: HttpStatusCode?,
-        error: Exception?,
+        error: Throwable?,
         duration: Duration
     ) {
         otelEventManager.recordApiRequest(
-            attempt = attempt,
+            attempt = attempt.toLong(),
             status = status?.value,
             errorMessage = error?.message,
             duration = duration
@@ -446,10 +449,10 @@ private class ApiTelemetry(
     }
 
     override fun onSsePoll(
-        result: Result<*>,
+        hasData: Boolean,
         duration: Duration
     ) {
-        otelEventManager.logSseEvent(result, duration)
+        otelEventManager.logSseEvent(hasData, duration)
     }
 }
 
@@ -489,8 +492,8 @@ class OtelEventManager {
         // TODO: Implement request telemetry
     }
 
-    fun logSseEvent(result: Result<*>, duration: Duration) {
-        // TODO: Implement SSE event telemetry
+    fun logSseEvent(hasData: Boolean, duration: Duration) {
+        // SSE event telemetry placeholder
     }
 }
 

@@ -1,6 +1,7 @@
 package ai.solace.coder.exec.sandbox
 
 import ai.solace.coder.exec.process.SandboxType
+import ai.solace.coder.protocol.ReviewDecision
 import ai.solace.coder.protocol.SandboxPolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,7 +15,7 @@ class SandboxManagerTest {
     fun testSelectInitialSandboxForbid() {
         val manager = SandboxManager()
         val sandbox = manager.selectInitialSandbox(
-            SandboxPolicy.ReadOnly(),
+            SandboxPolicy.ReadOnly,
             SandboxPreference.Forbid
         )
         assertEquals(SandboxType.None, sandbox)
@@ -42,8 +43,8 @@ class ApprovalStoreTest {
         store.put("key1", ReviewDecision.ApprovedForSession)
         assertEquals(ReviewDecision.ApprovedForSession, store.get("key1"))
 
-        store.put("key1", ReviewDecision.Rejected)
-        assertEquals(ReviewDecision.Rejected, store.get("key1"))
+        store.put("key1", ReviewDecision.Denied)
+        assertEquals(ReviewDecision.Denied, store.get("key1"))
     }
 
     @Test
@@ -51,10 +52,10 @@ class ApprovalStoreTest {
         val store = ApprovalStore()
 
         store.put("key1", ReviewDecision.Approved)
-        store.put("key2", ReviewDecision.Rejected)
+        store.put("key2", ReviewDecision.Denied)
 
         assertEquals(ReviewDecision.Approved, store.get("key1"))
-        assertEquals(ReviewDecision.Rejected, store.get("key2"))
+        assertEquals(ReviewDecision.Denied, store.get("key2"))
     }
 }
 

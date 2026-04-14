@@ -1,13 +1,12 @@
 // port-lint: source core/src/tools/events.rs
 package ai.solace.coder.core.tools
 
+import ai.solace.coder.core.ExecToolCallOutput
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.SandboxError
-import ai.solace.coder.core.exec.ExecToolCallOutput
-import ai.solace.coder.core.function_tool.FunctionCallError
 import ai.solace.coder.core.session.Session
+import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
-import ai.solace.coder.core.tools.sandboxing.ToolError
 import ai.solace.coder.protocol.EventMsg
 import ai.solace.coder.protocol.ExecCommandBeginEvent
 import ai.solace.coder.protocol.ExecCommandEndEvent
@@ -18,7 +17,6 @@ import ai.solace.coder.protocol.PatchApplyBeginEvent
 import ai.solace.coder.protocol.PatchApplyEndEvent
 import ai.solace.coder.protocol.TurnDiffEvent
 import ai.solace.coder.protocol.parseCommand
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration
 
 class ToolEventCtx(
@@ -147,9 +145,7 @@ sealed class ToolEmitter {
             is ApplyPatch -> {
                 when (stage) {
                     is ToolEventStage.Begin -> {
-                        ctx.turnDiffTracker?.withLock {
-                            it.onPatchBegin(changes)
-                        }
+                        ctx.turnDiffTracker?.onPatchBegin(changes)
                         ctx.session.sendEvent(
                             ctx.turn,
                             EventMsg.PatchApplyBegin(
@@ -250,40 +246,30 @@ sealed class ToolEmitter {
             },
             onFailure = { err ->
                 when (err) {
-                    is ToolError.Codex -> {
+                    is ai.solace.coder.core.tools.ToolError.Codex -> {
                         when (val inner = err.error) {
-                            is CodexError.Sandbox -> {
-                                when (val sandboxErr = inner.error) {
-                                    is SandboxError.Timeout -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
-                                    }
-                                    is SandboxError.Denied -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
-                                    }
-                                    else -> {
-                                        val message = "execution error: $err"
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                        Pair(event, result)
-                                    }
-                                }
+                            is CodexError.SandboxError.Timeout -> {
+                                val response = formatExecOutputForModel(inner.output, ctx)
+                                val event = ToolEventStage.Failure(ToolEventFailure.Output(inner.output))
+                                val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                Pair(event, result)
+                            }
+                            is CodexError.SandboxError.Denied -> {
+                                val response = formatExecOutputForModel(inner.output, ctx)
+                                val event = ToolEventStage.Failure(ToolEventFailure.Output(inner.output))
+                                val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                Pair(event, result)
                             }
                             else -> {
-                                val message = "execution error: $err"
+                                val message = "execution error: $inner"
                                 val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
                                 val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                        Pair(event, result)
+                                Pair(event, result)
                             }
                         }
                     }
-                    is ToolError.Rejected -> {
-                        val msg = err.message
+                    is ai.solace.coder.core.tools.ToolError.Rejected -> {
+                        val msg = err.reason
                         val normalized = if (msg == "rejected by user") {
                             "exec command rejected by user"
                         } else {
@@ -406,7 +392,7 @@ suspend fun emitExecEnd(
                 stderr = execResult.stderr,
                 aggregatedOutput = execResult.aggregatedOutput,
                 exitCode = execResult.exitCode,
-                duration = execResult.duration,
+                duration = execResult.duration.toString(),
                 formattedOutput = execResult.formattedOutput
             )
         )
@@ -435,10 +421,8 @@ suspend fun emitPatchEnd(
     )
 
     ctx.turnDiffTracker?.let { tracker ->
-        val unifiedDiff = tracker.withLock {
-            it.getUnifiedDiff()
-        }
-        if (unifiedDiff != null) {
+        val unifiedDiff = tracker.computeUnifiedDiff()
+        if (unifiedDiff.isNotEmpty()) {
             ctx.session.sendEvent(
                 ctx.turn,
                 EventMsg.TurnDiff(TurnDiffEvent(unifiedDiff))

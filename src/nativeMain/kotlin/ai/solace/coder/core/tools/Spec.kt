@@ -1,16 +1,19 @@
 // port-lint: source core/src/tools/spec.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.common.tools.ResponsesApiTool
+import ai.solace.coder.core.session.FreeformTool
+import ai.solace.coder.core.session.FreeformToolFormat
+import ai.solace.coder.core.session.ResponsesApiTool
+import ai.solace.coder.core.session.ToolSpec
 import ai.solace.coder.core.features.Feature
 import ai.solace.coder.core.features.Features
-import ai.solace.coder.core.model_family.ModelFamily
-import ai.solace.coder.core.session.ToolSpec
-import ai.solace.coder.core.tools.handlers.PLAN_TOOL
-import ai.solace.coder.core.tools.handlers.apply_patch.ApplyPatchToolType
-import ai.solace.coder.core.tools.handlers.apply_patch.createApplyPatchFreeformTool
-import ai.solace.coder.core.tools.handlers.apply_patch.createApplyPatchJsonTool
+import ai.solace.coder.core.model.ApplyPatchToolType
+import ai.solace.coder.core.model.ModelFamily
+import ai.solace.coder.core.tools.handlers.APPLY_PATCH_LARK_GRAMMAR
 import ai.solace.coder.core.tools.handlers.ApplyPatchHandler
+import ai.solace.coder.core.tools.handlers.PLAN_TOOL
+import ai.solace.coder.core.tools.handlers.createApplyPatchFreeformTool
+import ai.solace.coder.core.tools.handlers.createApplyPatchJsonTool
 import ai.solace.coder.core.tools.handlers.GrepFilesHandler
 import ai.solace.coder.core.tools.handlers.ListDirHandler
 import ai.solace.coder.core.tools.handlers.McpHandler
@@ -91,20 +94,20 @@ data class ToolsConfigParams(
 @Serializable
 sealed class JsonSchema {
     @Serializable
-    data class Boolean(val description: String? = null) : JsonSchema()
-    
+    data class Boolean(val description: kotlin.String? = null) : JsonSchema()
+
     @Serializable
-    data class String(val description: String? = null) : JsonSchema()
-    
+    data class String(val description: kotlin.String? = null) : JsonSchema()
+
     @Serializable
-    data class Number(val description: String? = null) : JsonSchema()
-    
+    data class Number(val description: kotlin.String? = null) : JsonSchema()
+
     @Serializable
     data class Array(
         val items: JsonSchema,
         val description: kotlin.String? = null
     ) : JsonSchema()
-    
+
     @Serializable
     data class Object(
         val properties: Map<kotlin.String, JsonSchema>,
@@ -503,25 +506,26 @@ fun buildSpecs(
 
 fun mcpToolToOpenAiTool(
     fullyQualifiedName: String,
-    tool: McpTool
+    tool: ai.solace.coder.protocol.McpTool
 ): ResponsesApiTool {
     val description = tool.description ?: ""
-    var inputSchema = tool.inputSchema
+    val inputSchema = tool.inputSchema
 
-    // OpenAI models mandate the "properties" field in the schema.
-    // We'll handle this by ensuring the schema has properties.
-    // Note: This logic is simplified compared to Rust's direct JSON manipulation
-    // because we are working with typed objects or need to parse/modify JSON.
-    // Assuming McpTool.inputSchema is a JsonElement or similar.
-    
-    // TODO: Implement full schema sanitization and property injection logic
-    // similar to Rust's sanitize_json_schema.
-    // For now, we assume inputSchema can be mapped to JsonSchema.
-    
-    // This part requires a proper JSON to JsonSchema converter which is complex.
-    // I will use a placeholder or simplified conversion if possible.
-    
-    val parameters = convertJsonElementToJsonSchema(inputSchema.toJsonElement())
+    // Build a JsonObject mirroring the MCP tool input schema so we can reuse the
+    // existing JSON-to-JsonSchema converter. This mirrors Rust's `sanitize_json_schema`
+    // approach where the schema is walked as serde_json::Value.
+    val schemaJson = kotlinx.serialization.json.buildJsonObject {
+        put("type", JsonPrimitive(inputSchema.type))
+        inputSchema.properties?.let { put("properties", it) }
+        inputSchema.required?.let { req ->
+            put(
+                "required",
+                kotlinx.serialization.json.buildJsonArray { req.forEach { add(JsonPrimitive(it)) } }
+            )
+        }
+    }
+
+    val parameters = convertJsonElementToJsonSchema(schemaJson)
 
     return ResponsesApiTool(
         name = fullyQualifiedName,

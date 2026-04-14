@@ -2,6 +2,10 @@
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.session.ResponsesApiTool
+import ai.solace.coder.core.session.ToolSpec
+import ai.solace.coder.core.tools.AdditionalProperties
+import ai.solace.coder.core.tools.JsonSchema
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
@@ -70,4 +74,42 @@ class PlanHandler : ToolHandler {
             isLenient = true
         }
     }
+}
+
+/** The update_plan tool spec. Mirrors codex-rs/core/src/tools/handlers/plan.rs PLAN_TOOL. */
+val PLAN_TOOL: ToolSpec = run {
+    val planItemProps = mutableMapOf<String, JsonSchema>()
+    planItemProps["step"] = JsonSchema.String(description = null)
+    planItemProps["status"] = JsonSchema.String(
+        description = "One of: pending, in_progress, completed"
+    )
+
+    val planItemsSchema = JsonSchema.Array(
+        description = "The list of steps",
+        items = JsonSchema.Object(
+            properties = planItemProps,
+            required = listOf("step", "status"),
+            additionalProperties = AdditionalProperties.from(false)
+        )
+    )
+
+    val properties = mutableMapOf<String, JsonSchema>()
+    properties["explanation"] = JsonSchema.String(description = null)
+    properties["plan"] = planItemsSchema
+
+    ToolSpec.Function(
+        ResponsesApiTool(
+            name = "update_plan",
+            description = """Updates the task plan.
+Provide an optional explanation and a list of plan items, each with a step and status.
+At most one step can be in_progress at a time.
+""",
+            strict = false,
+            parameters = JsonSchema.Object(
+                properties = properties,
+                required = listOf("plan"),
+                additionalProperties = AdditionalProperties.from(false)
+            )
+        )
+    )
 }

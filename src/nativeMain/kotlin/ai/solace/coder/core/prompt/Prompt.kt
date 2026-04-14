@@ -1,20 +1,41 @@
-// port-lint: source codex-rs/tui/src/bottom_pane/prompt_args.rs
+// port-lint: source codex-rs/core/src/client_common.rs
 package ai.solace.coder.core.prompt
 
 import ai.solace.coder.core.model.ModelFamily
+import ai.solace.coder.core.session.ToolSpec
+import ai.solace.coder.protocol.ResponseItem
 import kotlinx.serialization.json.JsonElement
 
+/**
+ * API request payload for a single model turn.
+ *
+ * Ported from Rust codex-rs/core/src/client_common.rs `Prompt`.
+ */
 data class Prompt(
-    val input: String,
-    val tools: List<Any>,
-    val parallelToolCalls: Boolean,
-    val outputSchema: JsonElement?
+    /** Conversation context input items. */
+    val input: List<ResponseItem> = emptyList(),
+
+    /**
+     * Tools available to the model, including additional tools sourced from
+     * external MCP servers.
+     */
+    val tools: List<ToolSpec> = emptyList(),
+
+    /** Whether parallel tool calls are permitted for this prompt. */
+    val parallelToolCalls: Boolean = false,
+
+    /** Optional override for the built-in BASE_INSTRUCTIONS. */
+    val baseInstructionsOverride: String? = null,
+
+    /** Optional output schema for the model's response. */
+    val outputSchema: JsonElement? = null
 ) {
     fun getFullInstructions(modelFamily: ModelFamily): String {
-        return "Instructions placeholder"
+        val base = baseInstructionsOverride ?: modelFamily.baseInstructions
+        return base
     }
 
-    fun getFormattedInput(): String {
+    fun getFormattedInput(): List<ResponseItem> {
         return input
     }
 }

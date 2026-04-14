@@ -97,7 +97,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 
     /** Read a simple slice of lines from a file. */
-    private fun readSlice(filePath: String, offset: Int, limit: Int): List<String> {
+    internal fun readSlice(filePath: String, offset: Int, limit: Int): List<String> {
         val path = filePath.toPath()
         val collected = mutableListOf<String>()
         var lineNumber = 0
@@ -123,7 +123,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 
     /** Read an indentation-aware block from a file. */
-    private fun readIndentationBlock(
+    internal fun readIndentationBlock(
             filePath: String,
             offset: Int,
             limit: Int,

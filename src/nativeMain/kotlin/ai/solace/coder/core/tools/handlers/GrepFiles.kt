@@ -1,15 +1,14 @@
 // port-lint: source core/src/tools/handlers/grep_files.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
 import ai.solace.coder.core.tools.ToolOutput
 import ai.solace.coder.core.tools.ToolPayload
-import ai.solace.coder.exec.process.ExecExpiration
-import ai.solace.coder.exec.process.ExecParams
+import ai.solace.coder.core.ExecExpiration
+import ai.solace.coder.core.ExecParams
 import ai.solace.coder.exec.process.ProcessExecutor
 import ai.solace.coder.protocol.SandboxPolicy
 import kotlinx.serialization.Serializable
@@ -24,38 +23,38 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/grep_files.rs
  */
-class GrepFilesHandler(
-    private val processExecutor: ProcessExecutor
-) : ToolHandler {
+class GrepFilesHandler : ToolHandler {
+    private val processExecutor: ProcessExecutor = ProcessExecutor()
+
 
     override val kind: ToolKind = ToolKind.Function
 
-    override suspend fun handle(invocation: ToolInvocation): CodexResult<ToolOutput> {
+    override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
-            return CodexResult.failure(
-                CodexError.Fatal("grep_files handler received unsupported payload")
+            return Result.failure(
+                FunctionCallError.RespondToModel("grep_files handler received unsupported payload")
             )
         }
 
         val args = try {
             json.decodeFromString<GrepFilesArgs>(payload.arguments)
         } catch (e: Exception) {
-            return CodexResult.failure(
-                CodexError.Fatal("failed to parse function arguments: ${e.message}")
+            return Result.failure(
+                FunctionCallError.RespondToModel("failed to parse function arguments: ${e.message}")
             )
         }
 
         val pattern = args.pattern.trim()
         if (pattern.isEmpty()) {
-            return CodexResult.failure(
-                CodexError.Fatal("pattern must not be empty")
+            return Result.failure(
+                FunctionCallError.RespondToModel("pattern must not be empty")
             )
         }
 
         if (args.limit == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("limit must be greater than zero")
+            return Result.failure(
+                FunctionCallError.RespondToModel("limit must be greater than zero")
             )
         }
 
@@ -65,8 +64,8 @@ class GrepFilesHandler(
         // Verify path exists
         val path = searchPath.toPath()
         if (!FileSystem.SYSTEM.exists(path)) {
-            return CodexResult.failure(
-                CodexError.Fatal("unable to access `$searchPath`: path does not exist")
+            return Result.failure(
+                FunctionCallError.RespondToModel("unable to access `$searchPath`: path does not exist")
             )
         }
 
@@ -103,7 +102,7 @@ class GrepFilesHandler(
         limit: Int,
         cwd: String,
         sandboxCwd: String
-    ): CodexResult<ToolOutput> {
+    ): Result<ToolOutput> {
         val command = buildRgCommand(pattern, include, searchPath)
 
         val params = ExecParams(
@@ -115,53 +114,68 @@ class GrepFilesHandler(
         // Grep is read-only, so use ReadOnly sandbox policy
         val sandboxPolicy = SandboxPolicy.ReadOnly
 
-        return try {
-            val result = processExecutor.execute(
+        val execResult = try {
+            processExecutor.execute(
                 params = params,
                 sandboxPolicy = sandboxPolicy,
                 sandboxCwd = sandboxCwd
             )
+        } catch (e: Exception) {
+            return Result.failure(
+                FunctionCallError.RespondToModel(
+                    "failed to launch rg: ${e.message}. Ensure ripgrep is installed and on PATH."
+                )
+            )
+        }
 
-            return result.map { output ->
-                if (output.timedOut) {
-                    return CodexResult.failure(
-                        CodexError.Fatal("rg timed out after 30 seconds")
-                    )
-                }
+        val output = when (execResult) {
+            is ai.solace.coder.core.error.CodexResult.Success -> execResult.value
+            is ai.solace.coder.core.error.CodexResult.Failure -> return Result.failure(
+                FunctionCallError.RespondToModel(
+                    "failed to launch rg: ${execResult.error}. Ensure ripgrep is installed and on PATH."
+                )
+            )
+        }
 
-                when (output.exitCode) {
-                    0 -> {
-                        val results = parseResults(output.stdout.text, limit)
-                        if (results.isEmpty()) {
-                            ToolOutput.Function(
-                                content = "No matches found.",
-                                success = false
-                            )
-                        } else {
-                            ToolOutput.Function(
-                                content = results.joinToString("\n"),
-                                success = true
-                            )
-                        }
-                    }
-                    1 -> {
-                        // Exit code 1 means no matches
+        if (output.timedOut) {
+            return Result.failure(
+                FunctionCallError.RespondToModel("rg timed out after 30 seconds")
+            )
+        }
+
+        return when (output.exitCode) {
+            0 -> {
+                val results = parseResults(output.stdout.text, limit)
+                if (results.isEmpty()) {
+                    Result.success(
                         ToolOutput.Function(
                             content = "No matches found.",
                             success = false
                         )
-                    }
-                    else -> {
-                        return CodexResult.failure(
-                            CodexError.Fatal("rg failed: ${output.stderr.text}")
+                    )
+                } else {
+                    Result.success(
+                        ToolOutput.Function(
+                            content = results.joinToString("\n"),
+                            success = true
                         )
-                    }
+                    )
                 }
             }
-        } catch (e: Exception) {
-            CodexResult.failure(
-                CodexError.Fatal("failed to launch rg: ${e.message}. Ensure ripgrep is installed and on PATH.")
-            )
+            1 -> {
+                // Exit code 1 means no matches
+                Result.success(
+                    ToolOutput.Function(
+                        content = "No matches found.",
+                        success = false
+                    )
+                )
+            }
+            else -> {
+                Result.failure(
+                    FunctionCallError.RespondToModel("rg failed: ${output.stderr.text}")
+                )
+            }
         }
     }
 

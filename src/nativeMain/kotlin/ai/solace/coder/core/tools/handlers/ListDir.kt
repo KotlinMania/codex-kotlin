@@ -1,8 +1,7 @@
 // port-lint: source core/src/tools/handlers/list_dir.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
@@ -25,45 +24,45 @@ class ListDirHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 
-    override suspend fun handle(invocation: ToolInvocation): CodexResult<ToolOutput> {
+    override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
-            return CodexResult.failure(
-                CodexError.Fatal("list_dir handler received unsupported payload")
+            return Result.failure(
+                FunctionCallError.RespondToModel("list_dir handler received unsupported payload")
             )
         }
 
         val args = try {
             json.decodeFromString<ListDirArgs>(payload.arguments)
         } catch (e: Exception) {
-            return CodexResult.failure(
-                CodexError.Fatal("failed to parse function arguments: ${e.message}")
+            return Result.failure(
+                FunctionCallError.RespondToModel("failed to parse function arguments: ${e.message}")
             )
         }
 
         // Validate arguments
         if (args.offset == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("offset must be a 1-indexed entry number")
+            return Result.failure(
+                FunctionCallError.RespondToModel("offset must be a 1-indexed entry number")
             )
         }
 
         if (args.limit == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("limit must be greater than zero")
+            return Result.failure(
+                FunctionCallError.RespondToModel("limit must be greater than zero")
             )
         }
 
         if (args.depth == 0) {
-            return CodexResult.failure(
-                CodexError.Fatal("depth must be greater than zero")
+            return Result.failure(
+                FunctionCallError.RespondToModel("depth must be greater than zero")
             )
         }
 
         val dirPath = args.dirPath
         if (!dirPath.startsWith("/") && !dirPath.matches(Regex("^[A-Za-z]:.*"))) {
-            return CodexResult.failure(
-                CodexError.Fatal("dir_path must be an absolute path")
+            return Result.failure(
+                FunctionCallError.RespondToModel("dir_path must be an absolute path")
             )
         }
 
@@ -73,15 +72,15 @@ class ListDirHandler : ToolHandler {
             output.add("Absolute path: $dirPath")
             output.addAll(entries)
 
-            CodexResult.success(
+            Result.success(
                 ToolOutput.Function(
                     content = output.joinToString("\n"),
                     success = true
                 )
             )
         } catch (e: Exception) {
-            CodexResult.failure(
-                CodexError.Fatal("failed to read directory: ${e.message}")
+            Result.failure(
+                FunctionCallError.RespondToModel("failed to read directory: ${e.message}")
             )
         }
     }

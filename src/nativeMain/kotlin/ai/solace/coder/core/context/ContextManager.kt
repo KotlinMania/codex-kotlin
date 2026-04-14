@@ -16,6 +16,18 @@ class ContextManager {
     private val items = mutableListOf<ResponseItem>()
     private var tokenInfo: TokenUsageInfo? = TokenUsageInfo.newOrAppend(null, null, null)
 
+    /**
+     * Return a deep-enough clone mirroring Rust `#[derive(Clone)]` on `ContextManager`.
+     * ResponseItem variants are immutable data classes so list-level copy suffices.
+     */
+    fun clone(): ContextManager {
+        val cloned = ContextManager()
+        cloned.items.clear()
+        cloned.items.addAll(this.items)
+        cloned.tokenInfo = this.tokenInfo?.copy()
+        return cloned
+    }
+
     fun tokenInfo(): TokenUsageInfo? = tokenInfo?.copy()
 
     fun setTokenInfo(info: TokenUsageInfo?) {

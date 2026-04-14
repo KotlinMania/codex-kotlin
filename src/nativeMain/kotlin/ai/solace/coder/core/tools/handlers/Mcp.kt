@@ -1,34 +1,54 @@
 // port-lint: source core/src/tools/handlers/mcp.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.function_tool.FunctionCallError
+import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
 import ai.solace.coder.core.tools.ToolOutput
 import ai.solace.coder.core.tools.ToolPayload
-import ai.solace.coder.protocol.CallToolResult
-import ai.solace.coder.protocol.ResponseInputItem
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
+/**
+ * Handler for MCP tool calls. Dispatches to `Session.callTool` and wraps the
+ * result into a `ToolOutput.Mcp` value. Mirrors Rust's McpHandler in
+ * codex-rs/core/src/tools/handlers/mcp.rs.
+ */
 class McpHandler : ToolHandler {
-    override fun kind(): ToolKind {
-        return ToolKind.Mcp
-    }
+    override val kind: ToolKind = ToolKind.Mcp
 
-    override suspend fun handle(invocation: ToolInvocation): ToolOutput {
-        val payload = invocation.payload as? ToolPayload.Mcp ?: return ToolOutput.Mcp(
-            ai.solace.coder.protocol.Result(
-                value = null,
-                error = "Invalid payload for McpHandler"
+    override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
+        val payload = invocation.payload
+        if (payload !is ToolPayload.Mcp) {
+            return Result.failure(
+                FunctionCallError.RespondToModel("mcp handler received unsupported payload")
             )
-        )
+        }
 
-        val result = invocation.session.callMcpTool(
+        // Parse the `rawArguments` as JSON. An empty string is OK, but invalid JSON is not.
+        val argumentsValue: JsonElement? = if (payload.rawArguments.trim().isEmpty()) {
+            null
+        } else {
+            try {
+                Json.parseToJsonElement(payload.rawArguments)
+            } catch (e: Exception) {
+                return Result.failure(
+                    FunctionCallError.RespondToModel(
+                        "failed to parse tool call arguments: ${e.message}"
+                    )
+                )
+            }
+        }
+
+        val callResult = invocation.session.callTool(
             payload.server,
             payload.tool,
-            payload.rawArguments
+            argumentsValue
         )
 
-        return ToolOutput.Mcp(result)
+        // Mirrors Rust: the MCP call always produces a successful ToolOutput.Mcp,
+        // with the inner Result carrying the per-call success/failure.
+        return Result.success(ToolOutput.Mcp(callResult))
     }
 }

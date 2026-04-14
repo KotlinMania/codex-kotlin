@@ -3,10 +3,12 @@ package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.session.Session
+import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.session.ToolSpec
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.LocalShellAction
+import ai.solace.coder.protocol.McpTool
 import ai.solace.coder.protocol.ResponseInputItem
 import ai.solace.coder.protocol.ResponseItem
 import ai.solace.coder.protocol.ShellToolCallParams
@@ -39,7 +41,7 @@ class ToolRouter(
     fun toolSupportsParallel(toolName: String): Boolean {
         return specs
             .filter { it.supportsParallelToolCalls }
-            .any { it.spec.name == toolName }
+            .any { it.spec.name() == toolName }
     }
 
     suspend fun buildToolCall(

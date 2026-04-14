@@ -3,7 +3,7 @@ package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.protocol.AskForApproval
 import ai.solace.coder.protocol.SandboxPolicy
-import ai.solace.coder.core.sandboxing.SandboxPermissions
+import ai.solace.coder.exec.sandbox.SandboxPermissions
 import ai.solace.coder.core.bash.parseShellLcPlainCommands
 
 /**

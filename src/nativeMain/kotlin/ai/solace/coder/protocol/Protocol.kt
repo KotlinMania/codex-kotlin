@@ -1064,15 +1064,41 @@ data class ReasoningRawContentDeltaEvent(
 
 // ========== MCP Types ==========
 
-@Serializable data class McpTool(val name: String, val description: String? = null)
+@Serializable
+data class ToolInputSchema(
+        val properties: JsonElement? = null,
+        val required: List<String>? = null,
+        val type: String = "object"
+)
 
-@Serializable data class McpResource(val uri: String, val name: String? = null)
+@Serializable
+data class McpTool(
+        val name: String,
+        val description: String? = null,
+        @SerialName("inputSchema") val inputSchema: ToolInputSchema = ToolInputSchema()
+)
+
+@Serializable
+data class McpResource(
+        val uri: String,
+        val name: String = "",
+        val description: String? = null,
+        @SerialName("mimeType") val mimeType: String? = null
+)
+
+// Alias for MCP protocol parity with Rust `mcp_types::Resource`.
+typealias Resource = McpResource
 
 @Serializable
 data class McpResourceTemplate(
-        @SerialName("uri_template") val uriTemplate: String,
-        val name: String? = null
+        @SerialName("uriTemplate") val uriTemplate: String,
+        val name: String = "",
+        val description: String? = null,
+        @SerialName("mimeType") val mimeType: String? = null
 )
+
+// Alias for MCP protocol parity with Rust `mcp_types::ResourceTemplate`.
+typealias ResourceTemplate = McpResourceTemplate
 
 @Serializable
 data class McpResult<T, E>(val value: T? = null, val error: E? = null) {
@@ -1091,5 +1117,3 @@ data class ConversationPathResponseEvent(
         @SerialName("conversation_id") val conversationId: ConversationId,
         val path: String
 )
-
-@Serializable data class ParsedCommand(val program: String, val args: List<String>)

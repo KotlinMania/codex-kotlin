@@ -1,8 +1,6 @@
 // port-lint: source core/src/tools/sandboxing.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.CommandSpec
-import ai.solace.coder.core.ExecEnv
 import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.SessionServices
@@ -22,26 +20,24 @@ class ApprovalStore {
     private val mutex = Mutex()
     private val map = mutableMapOf<String, ReviewDecision>()
 
-    suspend fun <K> get(key: K): ReviewDecision? where K : Any {
+    suspend fun get(key: Any): ReviewDecision? {
         return mutex.withLock {
-            val s = key.toString()
-            map[s]
+            map[key.toString()]
         }
     }
 
-    suspend fun <K> put(key: K, value: ReviewDecision) where K : Any {
+    suspend fun put(key: Any, value: ReviewDecision) {
         mutex.withLock {
-            val s = key.toString()
-            map[s] = value
+            map[key.toString()] = value
         }
     }
 }
 
-suspend fun <K> withCachedApproval(
+suspend fun withCachedApproval(
         services: SessionServices,
-        key: K,
+        key: Any,
         fetch: suspend () -> ReviewDecision
-): ReviewDecision where K : Any {
+): ReviewDecision {
     val store = services.toolApprovals
 
     store.get(key)?.let {
