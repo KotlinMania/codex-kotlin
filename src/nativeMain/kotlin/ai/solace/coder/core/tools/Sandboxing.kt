@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/sandboxing.rs
 package ai.solace.coder.core.tools
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.SessionServices
 import ai.solace.coder.core.session.TurnContext
@@ -149,7 +149,7 @@ sealed class ToolError : Exception() {
     data class Rejected(val reason: String) : ToolError() {
         override val message: String = reason
     }
-    data class Codex(val error: CodexError) : ToolError() {
+    data class Codex(val error: CodexErr) : ToolError() {
         override val message: String = error.toString()
     }
 }
@@ -174,7 +174,7 @@ class SandboxAttempt(
         return if (res.isSuccess()) {
             Result.success(res.getOrThrow())
         } else {
-            // Convert CodexError to Exception
+            // Convert CodexErr to Exception
             val err = res.onFailure {}.getOrNull()
             Result.failure(Exception(err?.toString() ?: "Unknown error"))
         }

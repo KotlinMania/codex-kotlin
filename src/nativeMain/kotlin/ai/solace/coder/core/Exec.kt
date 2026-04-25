@@ -1,7 +1,7 @@
 // port-lint: source core/src/exec.rs
 package ai.solace.coder.core
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.CommandSpec
@@ -109,7 +109,7 @@ class Exec {
                     val (program, args) =
                             params.command.splitFirst()
                                     ?: return@withContext CodexResult.failure(
-                                            CodexError.Io("command args are empty")
+                                            CodexErr.Io("command args are empty")
                                     )
 
                     val spec =
@@ -130,7 +130,7 @@ class Exec {
                     )
                     if (transformResult.isFailure()) {
                         return@withContext CodexResult.failure(
-                                CodexError.Io("Process setup failed")
+                                CodexErr.Io("Process setup failed")
                         )
                     }
                     val execEnv = transformResult.getOrThrow()
@@ -143,7 +143,7 @@ class Exec {
 
                     CodexResult.success(output)
                 } catch (e: Exception) {
-                    CodexResult.failure(CodexError.Io("Process execution failed: ${e.message}"))
+                    CodexResult.failure(CodexErr.Io("Process execution failed: ${e.message}"))
                 }
             }
 
@@ -199,7 +199,7 @@ class Exec {
                     val output = finalizeExecResult(rawOutput, env.sandbox, duration)
                     CodexResult.success(output)
                 } catch (e: Exception) {
-                    CodexResult.failure(CodexError.Io("Process execution failed: ${e.message}"))
+                    CodexResult.failure(CodexErr.Io("Process execution failed: ${e.message}"))
                 }
             }
 
@@ -349,7 +349,7 @@ class Exec {
         if (isLikelySandboxDenied(sandboxType, execOutput)) {
             // Convert to exception so caller's try/catch will turn it into a failure CodexResult
             throw ai.solace.coder.core.error.CodexException(
-                    CodexError.SandboxError.Denied(execOutput)
+                    CodexErr.Sandbox(ai.solace.coder.core.error.SandboxErr.Denied(execOutput))
             )
         }
 

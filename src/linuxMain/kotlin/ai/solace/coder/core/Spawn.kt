@@ -13,10 +13,14 @@ import kotlinx.cinterop.value
 import platform.posix.FILE
 import platform.posix.SIGKILL
 import platform.posix.access
+import platform.posix.chmod
 import platform.posix.kill
 import platform.posix.waitpid
 import platform.posix.F_OK
 import platform.posix.X_OK
+import platform.posix.S_IRUSR
+import platform.posix.S_IWUSR
+import kotlinx.cinterop.convert
 
 private fun wifexited(status: Int): Boolean = (status and 0x7f) == 0
 
@@ -94,4 +98,11 @@ actual fun platformGetSandbox(): SandboxType? {
 
 actual fun platformGetMacosDirParams(): List<Pair<String, String>> {
     return emptyList()
+}
+
+/**
+ * Set file permissions to 0600 (owner read/write only).
+ */
+actual fun platformSetOwnerReadWritePermissions(path: String): Int {
+    return chmod(path, (S_IRUSR or S_IWUSR).convert())
 }

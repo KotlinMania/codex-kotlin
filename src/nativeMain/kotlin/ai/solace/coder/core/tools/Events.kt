@@ -3,7 +3,7 @@ package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.FunctionCallError
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
@@ -248,18 +248,27 @@ sealed class ToolEmitter {
                 when (err) {
                     is ai.solace.coder.core.tools.ToolError.Codex -> {
                         when (val inner = err.error) {
-                            is CodexError.SandboxError.Timeout -> {
-                                val response = formatExecOutputForModel(inner.output, ctx)
-                                val event = ToolEventStage.Failure(ToolEventFailure.Output(inner.output))
-                                val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                Pair(event, result)
-                            }
-                            is CodexError.SandboxError.Denied -> {
-                                val response = formatExecOutputForModel(inner.output, ctx)
-                                val event = ToolEventStage.Failure(ToolEventFailure.Output(inner.output))
-                                val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                Pair(event, result)
-                            }
+                            is CodexErr.Sandbox ->
+                                when (val sandboxErr = inner.error) {
+                                    is ai.solace.coder.core.error.SandboxErr.Timeout -> {
+                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
+                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
+                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                        Pair(event, result)
+                                    }
+                                    is ai.solace.coder.core.error.SandboxErr.Denied -> {
+                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
+                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
+                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                        Pair(event, result)
+                                    }
+                                    else -> {
+                                        val message = "execution error: $inner"
+                                        val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
+                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
+                                        Pair(event, result)
+                                    }
+                                }
                             else -> {
                                 val message = "execution error: $inner"
                                 val event = ToolEventStage.Failure(ToolEventFailure.Message(message))

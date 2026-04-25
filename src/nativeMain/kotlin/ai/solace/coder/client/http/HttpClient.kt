@@ -3,8 +3,9 @@ package ai.solace.coder.client.http
 
 import ai.solace.coder.client.auth.AuthManager
 import ai.solace.coder.client.streaming.SseParser
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.error.UnexpectedResponseError
 import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.protocol.ResponseItem
 import io.ktor.client.*
@@ -66,7 +67,7 @@ class CodexHttpClient(
         options: ResponsesOptions = ResponsesOptions()
     ): Flow<CodexResult<ResponseEvent>> = flow {
         var retries = 0
-        var lastError: CodexError? = null
+        var lastError: CodexErr? = null
         
         while (retries < maxRetries) {
             try {
@@ -84,10 +85,14 @@ class CodexHttpClient(
                     // Successfully completed
                     return@flow
                 } else {
-                    lastError = CodexError.Http(
-                        statusCode = response.status.value,
-                        message = response.bodyAsText()
-                    )
+                    lastError =
+                        CodexErr.UnexpectedStatus(
+                            UnexpectedResponseError(
+                                status = response.status.value,
+                                body = response.bodyAsText(),
+                                requestId = null,
+                            )
+                        )
                     
                     // Check if we should retry
                     if (shouldRetry(response.status.value)) {
@@ -104,7 +109,7 @@ class CodexHttpClient(
                     return@flow
                 }
             } catch (e: Exception) {
-                lastError = CodexError.Io(e.message ?: "Unknown error")
+                lastError = CodexErr.Io(e.message ?: "Unknown error")
                 retries++
                 
                 if (retries < maxRetries) {
@@ -119,7 +124,7 @@ class CodexHttpClient(
         
         // Max retries exceeded
         emit(CodexResult.failure(
-            lastError ?: CodexError.Io("Max retries exceeded")
+            lastError ?: CodexErr.Io("Max retries exceeded")
         ))
     }
     

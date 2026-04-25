@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/unified_exec.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
@@ -52,7 +52,7 @@ class UnifiedExecHandler : ToolHandler {
                                 else ->
                                         return Result.failure(
                                                 ToolError.Codex(
-                                                        CodexError.Fatal(
+                                                        CodexErr.Fatal(
                                                                 "unified_exec handler received unsupported payload"
                                                         )
                                                 )
@@ -78,7 +78,7 @@ class UnifiedExecHandler : ToolHandler {
                                                 } catch (e: Exception) {
                                                         return Result.failure(
                                                                 ToolError.Codex(
-                                                                        CodexError.Fatal(
+                                                                        CodexErr.Fatal(
                                                                                 "failed to parse function arguments: ${e.message}"
                                                                         )
                                                                 )
@@ -141,7 +141,7 @@ class UnifiedExecHandler : ToolHandler {
                                                 } catch (e: Exception) {
                                                         return Result.failure(
                                                                 ToolError.Codex(
-                                                                        CodexError.Fatal(
+                                                                        CodexErr.Fatal(
                                                                                 "failed to parse function arguments: ${e.message}"
                                                                         )
                                                                 )
@@ -160,7 +160,7 @@ class UnifiedExecHandler : ToolHandler {
                                 else ->
                                         return Result.failure(
                                                 ToolError.Codex(
-                                                        CodexError.Fatal(
+                                                        CodexErr.Fatal(
                                                                 "unified_exec handler received unsupported tool: ${invocation.toolName}"
                                                         )
                                                 )
@@ -169,7 +169,7 @@ class UnifiedExecHandler : ToolHandler {
                 } catch (e: Exception) {
                         Result.failure(
                                 ToolError.Codex(
-                                        CodexError.Fatal("UnifiedExec failed: ${e.message}")
+                                        CodexErr.Fatal("UnifiedExec failed: ${e.message}")
                                 )
                         )
                 }

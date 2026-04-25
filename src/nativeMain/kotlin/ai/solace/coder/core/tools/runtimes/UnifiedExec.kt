@@ -2,7 +2,7 @@
 package ai.solace.coder.core.tools.runtimes
 
 import ai.solace.coder.core.ExecExpiration
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ApprovalRequirement
@@ -120,7 +120,7 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
         if (execEnvResult.isFailure) {
             return Result.failure(
                     ToolError.Codex(
-                            CodexError.Io(
+                            CodexErr.Io(
                                     execEnvResult.exceptionOrNull()?.message ?: "Unknown error"
                             )
                     )
@@ -139,14 +139,14 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
                 is UnifiedExecError.SandboxDenied -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexError.SandboxError.Denied(e.output)
+                                    CodexErr.Sandbox(ai.solace.coder.core.error.SandboxErr.Denied(e.output))
                             )
                     )
                 }
                 is UnifiedExecError.SandboxError -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexError.Io(e.message ?: "Sandbox failed")
+                                    CodexErr.Io(e.message ?: "Sandbox failed")
                             )
                     )
                 }

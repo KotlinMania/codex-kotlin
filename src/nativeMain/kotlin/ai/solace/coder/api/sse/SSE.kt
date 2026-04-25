@@ -31,11 +31,11 @@ import kotlin.time.TimeSource
  */
 class ChannelResponseStream(
     private val channel: Channel<Result<ResponseEvent>>
-) {
+) : ai.solace.coder.api.common.ResponseStream {
     /**
      * Receive the next event, or null if stream ended.
      */
-    suspend fun next(): Result<ResponseEvent>? {
+    override suspend fun next(): Result<ResponseEvent>? {
         return try {
             channel.receive()
         } catch (e: ClosedReceiveChannelException) {

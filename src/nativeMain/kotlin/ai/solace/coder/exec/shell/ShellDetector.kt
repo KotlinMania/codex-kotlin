@@ -285,6 +285,33 @@ class ShellDetector {
 
 private fun platformGetUserShellPath(): String? = Environment.SHELL
 private fun platformFileExists(path: String): Boolean = FileSystem.SYSTEM.exists(path.toPath())
-private fun platformFindInPath(binaryName: String): String? = null // TODO: Implement
+
+/**
+ * Walk the PATH environment variable looking for an executable matching [binaryName].
+ * Mirrors Rust `which::which` semantics: returns the first absolute path on PATH that
+ * resolves to an existing entry. Path separator is `:` on POSIX and `;` on Windows.
+ */
+private fun platformFindInPath(binaryName: String): String? {
+    val pathEnv = Environment.PATH ?: return null
+    val sep = if (platformIsWindows()) ';' else ':'
+    val candidates = if (platformIsWindows()) {
+        // On Windows, append PATHEXT-style suffixes; if binaryName already has an
+        // extension we still try the bare form first.
+        val exts = (Environment.get("PATHEXT") ?: ".COM;.EXE;.BAT;.CMD").split(';')
+        listOf(binaryName) + exts.filter { it.isNotEmpty() }.map { binaryName + it }
+    } else {
+        listOf(binaryName)
+    }
+    for (dir in pathEnv.split(sep)) {
+        if (dir.isEmpty()) continue
+        for (candidate in candidates) {
+            val full = if (dir.endsWith('/') || dir.endsWith('\\')) dir + candidate
+                       else "$dir/$candidate"
+            if (platformFileExists(full)) return full
+        }
+    }
+    return null
+}
+
 private fun platformIsWindows(): Boolean = false
 private fun platformIsMacOS(): Boolean = true

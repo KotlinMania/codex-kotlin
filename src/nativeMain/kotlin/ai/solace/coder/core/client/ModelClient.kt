@@ -22,7 +22,7 @@ import ai.solace.coder.core.AuthManager
 import ai.solace.coder.core.AuthMode
 import ai.solace.coder.core.CodexAuth
 import ai.solace.coder.core.config.Config
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt
@@ -116,7 +116,7 @@ class ModelClient(
     private suspend fun streamChatCompletions(prompt: Prompt): Result<ApiResponseStream> {
         if (prompt.outputSchema != null) {
             return Result.failure(
-                CodexError.UnsupportedOperation(
+                CodexErr.UnsupportedOperation(
                     "output_schema is not supported for Chat Completions API"
                 ).toException()
             )
@@ -406,7 +406,7 @@ private suspend fun handleUnauthorized(
             Result.success(Unit)
         } else {
             val msg = refreshResult.exceptionOrNull()?.message ?: "Unknown error"
-            Result.failure(CodexError.RefreshTokenFailed(msg).toException())
+            Result.failure(CodexErr.RefreshTokenFailed(msg).toException())
         }
     }
 
@@ -531,4 +531,3 @@ data class ModelInfo(
     val contextWindow: Long,
     val autoCompactTokenLimit: Long?
 )
-

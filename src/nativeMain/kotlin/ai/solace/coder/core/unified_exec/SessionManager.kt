@@ -1,7 +1,6 @@
 // port-lint: source core/src/unified_exec/session_manager.rs
 package ai.solace.coder.core.unified_exec
 
-// import ai.solace.coder.core.tools.createApprovalRequirementForCommand // TODO: Implement this
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.core.context.formattedTruncateText
 import ai.solace.coder.core.session.Session as CodexSession

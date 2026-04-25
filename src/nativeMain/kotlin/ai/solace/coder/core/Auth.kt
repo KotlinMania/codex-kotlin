@@ -660,7 +660,7 @@ private suspend fun tryRefreshToken(
                 val failed = classifyRefreshTokenFailure(body)
                 Result.failure(RefreshTokenError.Permanent(failed.reason, failed.message))
             } else {
-                val message = tryParseErrorMessage(body)
+                val message = parseAuthRefreshErrorMessage(body)
                 Result.failure(
                     RefreshTokenError.Transient("Failed to refresh token: ${response.status}: $message")
                 )
@@ -726,8 +726,12 @@ private fun extractRefreshTokenErrorCode(body: String): String? {
 
 /**
  * Try to parse an error message from JSON body.
+ *
+ * Auth-specific helper that accepts either `error` as a string or `message` as a string.
+ * Distinct from [ai.solace.coder.core.tryParseErrorMessage] in util.rs which expects
+ * `{"error": {"message": "..."}}`.
  */
-private fun tryParseErrorMessage(body: String): String {
+private fun parseAuthRefreshErrorMessage(body: String): String {
     val json = try {
         Json.parseToJsonElement(body).jsonObject
     } catch (_: Exception) {

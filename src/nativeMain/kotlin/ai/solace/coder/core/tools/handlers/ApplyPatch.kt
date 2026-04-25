@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/apply_patch.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.session.FreeformTool
 import ai.solace.coder.core.session.FreeformToolFormat
 import ai.solace.coder.core.session.ResponsesApiTool
@@ -46,7 +46,7 @@ class ApplyPatchHandler : ToolHandler {
                                 } catch (e: Exception) {
                                     return Result.failure(
                                             ToolError.Codex(
-                                                    CodexError.Fatal(
+                                                    CodexErr.Fatal(
                                                             "failed to parse function arguments: ${e.message}"
                                                     )
                                             )
@@ -58,7 +58,7 @@ class ApplyPatchHandler : ToolHandler {
                     else -> {
                         return Result.failure(
                                 ToolError.Codex(
-                                        CodexError.Fatal(
+                                        CodexErr.Fatal(
                                                 "apply_patch handler received unsupported payload"
                                         )
                                 )
@@ -72,7 +72,7 @@ class ApplyPatchHandler : ToolHandler {
             val result = applyPatch(patchInput, cwd)
             result.map { message -> ToolOutput.Function(content = message, success = true) }
         } catch (e: Exception) {
-            Result.failure(ToolError.Codex(CodexError.Fatal("apply_patch failed: ${e.message}")))
+            Result.failure(ToolError.Codex(CodexErr.Fatal("apply_patch failed: ${e.message}")))
         }
     }
 
@@ -98,7 +98,7 @@ class ApplyPatchHandler : ToolHandler {
                     parsePatch(lines)
                             ?: return Result.failure(
                                     ToolError.Codex(
-                                            CodexError.Fatal(
+                                            CodexErr.Fatal(
                                                     "Failed to parse patch: invalid format"
                                             )
                                     )
@@ -233,7 +233,7 @@ class ApplyPatchHandler : ToolHandler {
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
-                        ToolError.Codex(CodexError.Fatal("Failed to add file $path: ${e.message}"))
+                        ToolError.Codex(CodexErr.Fatal("Failed to add file $path: ${e.message}"))
                 )
             }
         }
@@ -247,7 +247,7 @@ class ApplyPatchHandler : ToolHandler {
             } catch (e: Exception) {
                 Result.failure(
                         ToolError.Codex(
-                                CodexError.Fatal("Failed to delete file $path: ${e.message}")
+                                CodexErr.Fatal("Failed to delete file $path: ${e.message}")
                         )
                 )
             }
@@ -301,7 +301,7 @@ class ApplyPatchHandler : ToolHandler {
             } catch (e: Exception) {
                 Result.failure(
                         ToolError.Codex(
-                                CodexError.Fatal("Failed to update file $path: ${e.message}")
+                                CodexErr.Fatal("Failed to update file $path: ${e.message}")
                         )
                 )
             }

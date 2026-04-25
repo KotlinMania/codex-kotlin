@@ -6,7 +6,6 @@ import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecParams
 import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.command_safety.isKnownSafeCommand
-import ai.solace.coder.core.error.CodexError
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.core.session.SharedTurnDiffTracker

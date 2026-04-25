@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/view_image.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
@@ -27,7 +27,7 @@ class ViewImageHandler : ToolHandler {
         if (payload !is ToolPayload.Function) {
             return Result.failure(
                     ToolError.Codex(
-                            CodexError.Fatal("view_image handler received unsupported payload")
+                            CodexErr.Fatal("view_image handler received unsupported payload")
                     )
             )
         }
@@ -38,7 +38,7 @@ class ViewImageHandler : ToolHandler {
                 } catch (e: Exception) {
                     return Result.failure(
                             ToolError.Codex(
-                                    CodexError.Fatal(
+                                    CodexErr.Fatal(
                                             "failed to parse function arguments: ${e.message}"
                                     )
                             )
@@ -52,7 +52,7 @@ class ViewImageHandler : ToolHandler {
         if (!FileSystem.SYSTEM.exists(path)) {
             return Result.failure(
                     ToolError.Codex(
-                            CodexError.Fatal(
+                            CodexErr.Fatal(
                                     "unable to locate image at `$absPath`: path does not exist"
                             )
                     )
@@ -63,7 +63,7 @@ class ViewImageHandler : ToolHandler {
         val metadata = FileSystem.SYSTEM.metadataOrNull(path)
         if (metadata == null || !metadata.isRegularFile) {
             return Result.failure(
-                    ToolError.Codex(CodexError.Fatal("image path `$absPath` is not a file"))
+                    ToolError.Codex(CodexErr.Fatal("image path `$absPath` is not a file"))
             )
         }
 
@@ -71,7 +71,7 @@ class ViewImageHandler : ToolHandler {
         val extension = path.name.substringAfterLast('.', "").lowercase()
         if (!SUPPORTED_EXTENSIONS.contains(extension)) {
             return Result.failure(
-                    ToolError.Codex(CodexError.Fatal("unsupported image format: .$extension"))
+                    ToolError.Codex(CodexErr.Fatal("unsupported image format: .$extension"))
             )
         }
 

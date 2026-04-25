@@ -6,7 +6,7 @@ import ai.solace.coder.client.auth.AuthMode
 import ai.solace.coder.core.context.ContextManager
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.core.context.truncateText
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.core.features.Feature
 import ai.solace.coder.core.features.Features
@@ -206,7 +206,7 @@ class Codex internal constructor(
             txSub.send(sub)
             CodexResult.success(Unit)
         } catch (e: Exception) {
-            CodexResult.failure(CodexError.InternalAgentDied)
+            CodexResult.failure(CodexErr.InternalAgentDied)
         }
     }
 
@@ -218,7 +218,7 @@ class Codex internal constructor(
             val event = rxEvent.receive()
             CodexResult.success(event)
         } catch (e: Exception) {
-            CodexResult.failure(CodexError.InternalAgentDied)
+            CodexResult.failure(CodexErr.InternalAgentDied)
         }
     }
 
@@ -294,7 +294,7 @@ suspend fun spawnCodex(
     )
 
     if (session == null) {
-        return CodexResult.failure(CodexError.InternalAgentDied)
+        return CodexResult.failure(CodexErr.InternalAgentDied)
     }
 
     val conversationId = session.conversationId
@@ -883,7 +883,7 @@ class Session private constructor(
     suspend fun notifyStreamError(
         turnContext: TurnContext,
         message: String,
-        codexError: CodexError
+        codexError: CodexErr
     ) {
         val codexErrorInfo = CodexErrorInfo.ResponseStreamDisconnected(
             httpStatusCode = codexError.httpStatusCodeValue()
@@ -2002,7 +2002,7 @@ private suspend fun runTurn(
                     sess.notifyStreamError(
                         turnContext,
                         "Reconnecting... $retries/$maxRetries",
-                        CodexError.Stream(error?.message ?: "Unknown error")
+                        CodexErr.Stream(error?.message ?: "Unknown error")
                     )
 
                     kotlinx.coroutines.delay(delay)
@@ -2248,7 +2248,7 @@ private suspend fun tryRunTurn(
         }
     } catch (e: Exception) {
         // Stream error - return failure for retry
-        return Result.failure(CodexError.Stream(e.message ?: "Stream error").toException())
+        return Result.failure(CodexErr.Stream(e.message ?: "Stream error").toException())
     }
 
     // If we exit the loop without Completed event, return what we have
@@ -3748,5 +3748,3 @@ fun UserInput.toResponseInputItem(): ResponseInputItem {
         )
     }
 }
-
-fun CodexError.httpStatusCodeValue(): Int? = null

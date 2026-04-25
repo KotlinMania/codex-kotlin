@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/plan.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.session.ResponsesApiTool
 import ai.solace.coder.core.session.ToolSpec
 import ai.solace.coder.core.tools.AdditionalProperties
@@ -33,7 +33,7 @@ class PlanHandler : ToolHandler {
         if (payload !is ToolPayload.Function) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("update_plan handler received unsupported payload")
+                            CodexErr.Fatal("update_plan handler received unsupported payload")
                     )
             )
         }
@@ -44,7 +44,7 @@ class PlanHandler : ToolHandler {
                 } catch (e: Exception) {
                     return Result.failure(
                             ai.solace.coder.core.tools.ToolError.Codex(
-                                    CodexError.Fatal(
+                                    CodexErr.Fatal(
                                             "failed to parse function arguments: ${e.message}"
                                     )
                             )
@@ -56,7 +56,7 @@ class PlanHandler : ToolHandler {
         if (inProgressCount > 1) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("at most one step can be in_progress at a time")
+                            CodexErr.Fatal("at most one step can be in_progress at a time")
                     )
             )
         }

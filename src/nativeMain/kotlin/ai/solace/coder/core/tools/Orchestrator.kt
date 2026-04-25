@@ -2,7 +2,7 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.ExecToolCallOutput
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.error.getErrorMessageUi
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.SandboxManager
@@ -100,9 +100,16 @@ class ToolOrchestrator {
             onFailure = { err ->
                 // Check if it is a Sandbox Denied error
                 // In Kotlin we might need to check exception type or wrap it
-                if (err is ToolErrorException && err.error is ToolError.Codex && err.error.error is CodexError.SandboxError.Denied) {
-                    val deniedError = err.error.error as CodexError.SandboxError.Denied
-                    val output = deniedError.output
+                if (err is ToolErrorException && err.error is ToolError.Codex) {
+                    val codexError = err.error.error
+                    if (codexError !is CodexErr.Sandbox) {
+                        return Result.failure(err)
+                    }
+                    val sandboxErr = codexError.error
+                    if (sandboxErr !is ai.solace.coder.core.error.SandboxErr.Denied) {
+                        return Result.failure(err)
+                    }
+                    val output = sandboxErr.output
 
                     if (!tool.escalateOnFailure()) {
                         return Result.failure(err)
@@ -116,7 +123,7 @@ class ToolOrchestrator {
                         var risk: ai.solace.coder.protocol.SandboxCommandAssessment? = null
 
                         req.sandboxRetryData()?.let { metadata ->
-                            val friendly = getErrorMessageUi(err.error.error)
+                            val friendly = getErrorMessageUi(codexError)
                             val failureSummary = "failed in sandbox: $friendly"
 
                             risk = toolCtx.session.assessSandboxCommand(

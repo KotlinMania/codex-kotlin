@@ -2,6 +2,7 @@
 package ai.solace.coder.core.auth
 
 import ai.solace.coder.core.AuthDotJson
+import ai.solace.coder.core.platformSetOwnerReadWritePermissions
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.buffered
@@ -9,9 +10,6 @@ import kotlinx.io.readString
 import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
 import platform.posix.realpath
-import platform.posix.chmod
-import platform.posix.S_IRUSR
-import platform.posix.S_IWUSR
 import platform.posix.PATH_MAX
 import kotlinx.cinterop.*
 
@@ -118,8 +116,7 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
             }
 
             // Set Unix file permissions to 0600 (owner read/write only)
-            @OptIn(ExperimentalForeignApi::class)
-            chmod(authFile.toString(), (S_IRUSR or S_IWUSR).convert())
+            platformSetOwnerReadWritePermissions(authFile.toString())
 
             Result.success(Unit)
         } catch (e: Exception) {

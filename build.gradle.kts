@@ -212,6 +212,7 @@ kotlin {
 
                 // TUI libraries (from Maven Central)
                 implementation("io.github.kotlinmania:ratatui-kotlin:0.1.7")
+                implementation("io.github.kotlinmania:crossterm-kotlin:0.1.3")
                 implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.3")
                 implementation("io.github.kotlinmania:anstyle-kotlin:0.1.3")
                 implementation("io.github.kotlinmania:kasuari-kotlin:0.1.1")

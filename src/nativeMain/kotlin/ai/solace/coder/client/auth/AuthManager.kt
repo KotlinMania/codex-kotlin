@@ -3,7 +3,7 @@
 // and codex-core (AuthManager, storage). The Kotlin file consolidates pieces from both for KMP usage.
 package ai.solace.coder.client.auth
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.error.CodexResult
 import ai.solace.coder.utils.Environment
 import kotlinx.coroutines.sync.Mutex
@@ -81,7 +81,7 @@ class AuthManager(
                 // 3. Update storage with new tokens
                 // 4. Return the new access token
                 CodexResult.failure(
-                    CodexError.RefreshTokenFailed("Token refresh not implemented")
+                    CodexErr.RefreshTokenFailed("Token refresh not implemented")
                 )
             }
             AuthMode.None -> CodexResult.success(null)

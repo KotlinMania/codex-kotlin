@@ -59,9 +59,8 @@ class ChatClient<A : AuthProvider>(
         body: JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
     ): Result<ResponseStream> {
-        // TODO: Implement spawnChatStream once SSE parsing is ported
-        return streaming.stream(path(), body, configureExtraHeaders) { _, _, _ ->
-            TODO("spawnChatStream not yet implemented")
+        return streaming.stream(path(), body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            ai.solace.coder.api.sse.spawnChatStream(client, requestConfig, idleTimeout, telemetry)
         }
     }
 }

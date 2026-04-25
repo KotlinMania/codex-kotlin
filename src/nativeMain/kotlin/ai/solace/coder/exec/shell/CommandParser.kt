@@ -1,4 +1,3 @@
-// port-lint: source core/src/bash.rs
 package ai.solace.coder.exec.shell
 
 /**

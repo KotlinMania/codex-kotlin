@@ -10,11 +10,30 @@ import ai.solace.coder.api.telemetry.SseTelemetry
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlin.time.Duration
 import kotlinx.serialization.json.JsonElement
 
 /**
+ * Spawner closure invoked by [StreamingClient.stream] once the request has been
+ * fully configured. Mirrors the Rust signature
+ * `fn(StreamResponse, Duration, Option<Arc<dyn SseTelemetry>>) -> ResponseStream`,
+ * adapted for Kotlin: the request is delivered as a configured
+ * [HttpRequestBuilder] block and an [HttpClient].
+ */
+internal typealias StreamSpawner = suspend (
+    httpClient: HttpClient,
+    request: HttpRequestBuilder.() -> Unit,
+    idleTimeout: Duration,
+    telemetry: SseTelemetry?,
+) -> ResponseStream
+
+/**
  * Internal streaming client that handles HTTP streaming with auth and telemetry.
- * TODO: Implement full retry policy and SSE spawning logic.
+ *
+ * Note: full retry policy / `run_with_request_telemetry` plumbing is not yet
+ * ported. Today the stream is spawned directly; once retry telemetry lands the
+ * Rust `run_with_request_telemetry(self.provider.retry.to_policy(), ..., builder, |req| transport.stream(req))`
+ * loop should wrap the spawner call.
  */
 internal class StreamingClient<A : AuthProvider>(
     private val httpClient: HttpClient,
@@ -39,21 +58,25 @@ internal class StreamingClient<A : AuthProvider>(
         path: String,
         body: JsonElement,
         configureExtraHeaders: HttpRequestBuilder.() -> Unit,
-        spawner: suspend (HttpClient, String, SseTelemetry?) -> ResponseStream,
+        spawner: StreamSpawner,
     ): Result<ResponseStream> {
         return try {
-            // Build request
-            val requestBuilder = provider.buildRequest(HttpMethod.Post, path) {
+            // Build the request configuration block. Mirrors Rust's `builder` closure
+            // in run_with_request_telemetry: each retry attempt re-applies the same
+            // headers/body, so we capture the configuration as a lambda the spawner
+            // can pass to ktor `prepareGet`/`prepareRequest`.
+            val builtBuilder = provider.buildRequest(HttpMethod.Post, path) {
                 configureExtraHeaders()
                 headers.append(HttpHeaders.Accept, "text/event-stream")
                 setBody(body.toString())
                 addAuthHeaders(auth)
             }
 
-            // TODO: Apply retry policy with telemetry
-            // For now, spawn stream directly
-            val url = requestBuilder.url.buildString()
-            val stream = spawner(httpClient, url, sseTelemetry)
+            val configure: HttpRequestBuilder.() -> Unit = {
+                takeFrom(builtBuilder)
+            }
+
+            val stream = spawner(httpClient, configure, provider.streamIdleTimeout, sseTelemetry)
             Result.success(stream)
         } catch (e: Exception) {
             Result.failure(e)

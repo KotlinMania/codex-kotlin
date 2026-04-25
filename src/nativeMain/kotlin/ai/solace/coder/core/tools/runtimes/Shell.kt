@@ -5,7 +5,7 @@ import ai.solace.coder.core.Exec
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.StdoutStream
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ApprovalRequirement
@@ -120,7 +120,7 @@ class ShellRuntime(private val processExecutor: Exec) :
         if (envResult.isFailure) {
             return Result.failure(
                     ToolError.Codex(
-                            CodexError.Io(envResult.exceptionOrNull()?.message ?: "Unknown error")
+                            CodexErr.Io(envResult.exceptionOrNull()?.message ?: "Unknown error")
                     )
             )
         }
@@ -133,7 +133,7 @@ class ShellRuntime(private val processExecutor: Exec) :
         } catch (e: Exception) {
             Result.failure(
                     ToolError.Codex(
-                            CodexError.Io(e.message ?: "Execution failed")
+                            CodexErr.Io(e.message ?: "Execution failed")
                     )
             )
         }

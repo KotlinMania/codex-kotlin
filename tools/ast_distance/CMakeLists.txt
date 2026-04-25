@@ -32,7 +32,13 @@ FetchContent_Declare(
     GIT_TAG v0.22.3
 )
 
-FetchContent_MakeAvailable(tree-sitter tree-sitter-rust tree-sitter-kotlin tree-sitter-cpp)
+FetchContent_Declare(
+    tree-sitter-python
+    GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter-python.git
+    GIT_TAG v0.21.0
+)
+
+FetchContent_MakeAvailable(tree-sitter tree-sitter-rust tree-sitter-kotlin tree-sitter-cpp tree-sitter-python)
 
 # Build tree-sitter core as a library
 # Disable warnings for third-party C code (they use old-style prototypes)
@@ -78,12 +84,26 @@ target_include_directories(tree-sitter-cpp-parser PUBLIC
 )
 target_compile_options(tree-sitter-cpp-parser PRIVATE -w)
 
+# Build tree-sitter-python parser
+add_library(tree-sitter-python-parser STATIC
+    ${tree-sitter-python_SOURCE_DIR}/src/parser.c
+    ${tree-sitter-python_SOURCE_DIR}/src/scanner.c
+)
+target_include_directories(tree-sitter-python-parser PUBLIC
+    ${tree-sitter_SOURCE_DIR}/lib/include
+    ${tree-sitter-python_SOURCE_DIR}/src
+)
+target_compile_options(tree-sitter-python-parser PRIVATE -w)
+
 # Main executable
 add_executable(ast_distance
     src/main.cpp
     src/ast_parser.cpp
     src/ast_normalizer.cpp
     src/similarity.cpp
+    src/symbol_extractor.cpp
+    src/symbol_analysis.cpp
+    src/symbol_extraction.cpp
 )
 
 target_include_directories(ast_distance PRIVATE
@@ -96,7 +116,25 @@ target_link_libraries(ast_distance PRIVATE
     tree-sitter-rust-parser
     tree-sitter-kotlin-parser
     tree-sitter-cpp-parser
+    tree-sitter-python-parser
 )
+
+# ----------------------------
+# Tests (CTEST)
+# ----------------------------
+include(CTest)
+
+find_package(Python3 COMPONENTS Interpreter)
+if (Python3_Interpreter_FOUND)
+    add_test(
+        NAME doc_comment_parsing
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_doc_comment_parsing.py"
+            "$<TARGET_FILE:ast_distance>"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/kotlin_doc_comments.kt"
+    )
+endif()
 
 # Install
 install(TARGETS ast_distance RUNTIME DESTINATION bin)

@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/read_file.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexError
+import ai.solace.coder.core.error.CodexErr
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
@@ -31,7 +31,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (payload !is ToolPayload.Function) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("read_file handler received unsupported payload")
+                            CodexErr.Fatal("read_file handler received unsupported payload")
                     )
             )
         }
@@ -42,7 +42,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
                 } catch (e: Exception) {
                     return Result.failure(
                             ai.solace.coder.core.tools.ToolError.Codex(
-                                    CodexError.Fatal(
+                                    CodexErr.Fatal(
                                             "failed to parse function arguments: ${e.message}"
                                     )
                             )
@@ -53,7 +53,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (args.offset == 0) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("offset must be a 1-indexed line number")
+                            CodexErr.Fatal("offset must be a 1-indexed line number")
                     )
             )
         }
@@ -61,7 +61,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (args.limit == 0) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("limit must be greater than zero")
+                            CodexErr.Fatal("limit must be greater than zero")
                     )
             )
         }
@@ -70,7 +70,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (!filePath.startsWith("/") && !filePath.matches(Regex("^[A-Za-z]:.*"))) {
             return Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("file_path must be an absolute path")
+                            CodexErr.Fatal("file_path must be an absolute path")
                     )
             )
         }
@@ -90,7 +90,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         } catch (e: Exception) {
             Result.failure(
                     ai.solace.coder.core.tools.ToolError.Codex(
-                            CodexError.Fatal("failed to read file: ${e.message}")
+                            CodexErr.Fatal("failed to read file: ${e.message}")
                     )
             )
         }

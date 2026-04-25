@@ -98,6 +98,7 @@ build_log*.txt
 # ast_distance build artifacts
 tools/ast_distance/build/
 tools/ast_distance/ast_distance
+tools/ast_distance/ast_distance.real
 
 # ast_distance temporary output files
 *.scan_output.txt
@@ -105,3 +106,15 @@ tools/ast_distance/ast_distance
 all_matched.txt
 files_with_headers.txt
 tasks.json
+tools/ast_distance/deep_*.txt
+tools/ast_distance/deep_current.txt
+tools/ast_distance/missing_current.txt
+
+# Generated port reports
+port_status_report.md
+high_priority_ports.md
+NEXT_ACTIONS.md
+deep_report.txt
+
+# ktreesitter plugin build output
+ktreesitter-kotlin/ktreesitter-plugin/bin/

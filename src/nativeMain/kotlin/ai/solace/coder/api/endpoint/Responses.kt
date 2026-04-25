@@ -68,9 +68,8 @@ class ResponsesClient<A : AuthProvider>(
         body: kotlinx.serialization.json.JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
     ): Result<ResponseStream> {
-        // TODO: Implement spawnResponsesStream once SSE parsing is ported
-        return streaming.stream("responses", body, configureExtraHeaders) { _, _, _ ->
-            TODO("spawnResponsesStream not yet implemented")
+        return streaming.stream("responses", body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            ai.solace.coder.api.sse.spawnResponsesStream(client, requestConfig, idleTimeout, telemetry)
         }
     }
 }

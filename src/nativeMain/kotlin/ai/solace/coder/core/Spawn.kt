@@ -47,3 +47,6 @@ expect fun platformGetSandbox(): SandboxType?
 
 /** Platform-specific macOS directory parameters */
 expect fun platformGetMacosDirParams(): List<Pair<String, String>>
+
+/** Platform-specific: set file permissions to 0600 (owner read/write only) */
+expect fun platformSetOwnerReadWritePermissions(path: String): Int
