@@ -29,7 +29,7 @@ sealed class RenderableItem : Renderable {
 
 /** A no-op renderable with zero height. */
 object EmptyRenderable : Renderable {
-    override fun render(area: Rect, buf: Buffer) {}
+    override fun render(_area: Rect, _buf: Buffer) {}
     override fun desiredHeight(width: Int): Int = 0
 }
 

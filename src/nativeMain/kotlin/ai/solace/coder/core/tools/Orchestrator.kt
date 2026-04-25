@@ -171,7 +171,7 @@ class ToolOrchestrator {
     }
 }
 
-fun buildDenialReasonFromOutput(output: ExecToolCallOutput): String {
+fun buildDenialReasonFromOutput(_output: ExecToolCallOutput): String {
     return "command failed; retry without sandbox?"
 }
 

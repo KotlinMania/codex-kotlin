@@ -161,7 +161,7 @@ class TurnDiffTracker {
         )
     }
 
-    private fun readFileContent(path: String): String {
+    private fun readFileContent(_path: String): String {
         return try {
             // Platform-specific file reading would go here
             // For now, return empty string as placeholder

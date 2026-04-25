@@ -94,7 +94,7 @@ interface Approvable<Req> {
     // type ApprovalKey
     // fun approvalKey(req: Req): ApprovalKey
 
-    fun sandboxModeForFirstAttempt(req: Req): SandboxOverride {
+    fun sandboxModeForFirstAttempt(_req: Req): SandboxOverride {
         return SandboxOverride.NoOverride
     }
 

@@ -100,7 +100,7 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
     override suspend fun run(
             req: UnifiedExecRequest,
             attempt: SandboxAttempt,
-            ctx: ToolCtx
+            _ctx: ToolCtx
     ): Result<UnifiedExecSession> {
         val specResult =
                 buildCommandSpec(
