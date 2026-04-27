@@ -1,5 +1,5 @@
 // port-lint: source core/src/error.rs
-package ai.solace.coder.core.error
+package ai.solace.coder.core
 
 import ai.solace.coder.core.ProcessedResponseItem
 import ai.solace.coder.core.ExecToolCallOutput
@@ -18,16 +18,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.native.concurrent.ThreadLocal
-
-/**
- * Result of a Codex operation that can fail with [CodexErr].
- *
- * Mirrors Rust `pub type Result<T> = std::result::Result<T, CodexErr>;` from `core/src/error.rs`.
- */
-sealed class Result<out T> {
-    data class Ok<T>(val value: T) : Result<T>()
-    data class Err(val error: CodexErr) : Result<Nothing>()
-}
 
 /** Limit UI error messages to a reasonable size while keeping useful context. */
 private const val ERROR_MESSAGE_UI_MAX_BYTES: Int = 2 * 1024 // 4 KiB
@@ -54,8 +44,8 @@ enum class RefreshTokenFailedReason {
  */
 data class RefreshTokenFailedError(
     val reason: RefreshTokenFailedReason,
-    val message: String,
-) {
+    override val message: String,
+) : Exception(message) {
     companion object {
         fun new(reason: RefreshTokenFailedReason, message: String): RefreshTokenFailedError =
             RefreshTokenFailedError(reason = reason, message = message)
@@ -74,7 +64,7 @@ data class UnexpectedResponseError(
     val body: String,
     val requestId: String? = null,
 ) {
-    private fun friendly_message(): String? {
+    private fun friendlyMessage(): String? {
         if (status != 403) return null
         if (!body.contains("Cloudflare") || !body.contains("blocked")) return null
         var message = "$CLOUDFLARE_BLOCKED_MESSAGE (status $status)"
@@ -85,7 +75,7 @@ data class UnexpectedResponseError(
     }
 
     override fun toString(): String {
-        val friendly = friendly_message()
+        val friendly = friendlyMessage()
         if (friendly != null) return friendly
         val suffix = requestId?.let { ", request id: $it" } ?: ""
         return "unexpected status $status: $body$suffix"
@@ -153,21 +143,21 @@ data class UsageLimitReachedError(
                 "You've hit your usage limit. Upgrade to Pro " +
                     "(https://openai.com/chatgpt/pricing), visit " +
                     "https://chatgpt.com/codex/settings/usage to purchase more credits" +
-                    retry_suffix_after_or(resetsAt)
+                    retrySuffixAfterOr(resetsAt)
             pt is PlanType.Known && (pt.plan == KnownPlan.Team || pt.plan == KnownPlan.Business) ->
                 "You've hit your usage limit. To get more access now, send a request to your admin" +
-                    retry_suffix_after_or(resetsAt)
+                    retrySuffixAfterOr(resetsAt)
             pt is PlanType.Known && pt.plan == KnownPlan.Free ->
                 "You've hit your usage limit. Upgrade to Plus to continue using Codex " +
                     "(https://openai.com/chatgpt/pricing)."
             pt is PlanType.Known && pt.plan == KnownPlan.Pro ->
                 "You've hit your usage limit. Visit " +
                     "https://chatgpt.com/codex/settings/usage to purchase more credits" +
-                    retry_suffix_after_or(resetsAt)
+                    retrySuffixAfterOr(resetsAt)
             pt is PlanType.Known && (pt.plan == KnownPlan.Enterprise || pt.plan == KnownPlan.Edu) ->
-                "You've hit your usage limit.${retry_suffix(resetsAt)}"
+                "You've hit your usage limit.${retrySuffix(resetsAt)}"
             else ->
-                "You've hit your usage limit.${retry_suffix(resetsAt)}"
+                "You've hit your usage limit.${retrySuffix(resetsAt)}"
         }
     }
 }
@@ -231,9 +221,6 @@ sealed class CodexErr {
     /** Minimal shim mirroring Rust `CodexErr::downcast_ref`. */
     inline fun <reified T : Any> downcastRef(): T? = this as? T
 
-    /** Rust-style spelling, mirroring `CodexErr::downcast_ref`. */
-    inline fun <reified T : Any> downcast_ref(): T? = downcastRef()
-
     companion object {
         /** Mirrors Rust `impl From<CancelErr> for CodexErr`. */
         fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
@@ -251,9 +238,6 @@ sealed class CodexErr {
         val message = if (messagePrefix != null) "$messagePrefix: $errorMessage" else errorMessage
         return ErrorEvent(message = message, codexErrorInfo = toCodexProtocolError())
     }
-
-    /** Rust-style spelling, mirroring `CodexErr::to_error_event`. */
-    fun to_error_event(message_prefix: String? = null): ErrorEvent = toErrorEvent(message_prefix)
 
     /**
      * Translate core error to client-facing protocol error.
@@ -274,9 +258,6 @@ sealed class CodexErr {
             else -> CodexErrorInfo.Other
         }
 
-    /** Rust-style spelling, mirroring `CodexErr::to_codex_protocol_error`. */
-    fun to_codex_protocol_error(): CodexErrorInfo = toCodexProtocolError()
-
     /**
      * Return the HTTP status code for this error, if any.
      *
@@ -290,9 +271,6 @@ sealed class CodexErr {
             is ResponseStreamFailed -> error.status
             else -> null
         }
-
-    /** Rust-style spelling, mirroring `CodexErr::http_status_code_value`. */
-    fun http_status_code_value(): Int? = httpStatusCodeValue()
 
     // -----------------------------------------------------------------
     // Core variants (mirror CodexErr enum in Rust)
@@ -352,7 +330,7 @@ sealed class CodexErr {
         override fun toString(): String = legacyMessage ?: error.toString()
     }
 
-    data class ResponseStreamFailed(val error: ai.solace.coder.core.error.ResponseStreamFailed) :
+    data class ResponseStreamFailed(val error: ai.solace.coder.core.ResponseStreamFailed) :
         CodexErr() {
         override fun toString(): String = error.toString()
     }
@@ -454,38 +432,38 @@ sealed class CodexErr {
  * Test-only override for "now" when formatting retry timestamps, matching Rust's
  * `NOW_OVERRIDE` thread-local.
  */
-@ThreadLocal internal var NOW_OVERRIDE: Instant? = null
+@ThreadLocal internal var nowOverride: Instant? = null
 
-private fun now_for_retry(): Instant = NOW_OVERRIDE ?: Clock.System.now()
+internal fun nowForRetry(): Instant = nowOverride ?: Clock.System.now()
 
 /** Test helper mirroring Rust `with_now_override`. */
-internal inline fun <T> with_now_override(now: Instant, f: () -> T): T {
-    val prev = NOW_OVERRIDE
-    NOW_OVERRIDE = now
+internal inline fun <T> withNowOverride(now: Instant, f: () -> T): T {
+    val prev = nowOverride
+    nowOverride = now
     try {
         return f()
     } finally {
-        NOW_OVERRIDE = prev
+        nowOverride = prev
     }
 }
 
-internal fun retry_suffix(resetsAt: Instant?): String =
-    if (resetsAt != null) " Try again at ${format_retry_timestamp(resetsAt)}."
+internal fun retrySuffix(resetsAt: Instant?): String =
+    if (resetsAt != null) " Try again at ${formatRetryTimestamp(resetsAt)}."
     else " Try again later."
 
-internal fun retry_suffix_after_or(resetsAt: Instant?): String =
-    if (resetsAt != null) " or try again at ${format_retry_timestamp(resetsAt)}."
+internal fun retrySuffixAfterOr(resetsAt: Instant?): String =
+    if (resetsAt != null) " or try again at ${formatRetryTimestamp(resetsAt)}."
     else " or try again later."
 
-internal fun format_retry_timestamp(resetsAt: Instant): String {
+internal fun formatRetryTimestamp(resetsAt: Instant): String {
     val localZone = TimeZone.currentSystemDefault()
     val localReset: LocalDateTime = resetsAt.toLocalDateTime(localZone)
-    val localNow: LocalDateTime = now_for_retry().toLocalDateTime(localZone)
+    val localNow: LocalDateTime = nowForRetry().toLocalDateTime(localZone)
     return if (localReset.date == localNow.date) {
         formatTimeHMSP(localReset)
     } else {
         val day = localReset.dayOfMonth
-        val suffix = day_suffix(day)
+        val suffix = daySuffix(day)
         val month = monthAbbrev(localReset.monthNumber)
         "$month $day$suffix, ${localReset.year} ${formatTimeHMSP(localReset)}"
     }
@@ -510,7 +488,7 @@ private fun monthAbbrev(month: Int): String = when (month) {
     else -> "???"
 }
 
-internal fun day_suffix(day: Int): String = when (day) {
+internal fun daySuffix(day: Int): String = when (day) {
     in 11..13 -> "th"
     else -> when (day % 10) {
         1 -> "st"
@@ -554,5 +532,3 @@ fun getErrorMessageUi(e: CodexErr): String {
     return truncateText(message, TruncationPolicy.Bytes(ERROR_MESSAGE_UI_MAX_BYTES))
 }
 
-/** Rust-style spelling, mirroring `get_error_message_ui`. */
-fun get_error_message_ui(e: CodexErr): String = getErrorMessageUi(e)

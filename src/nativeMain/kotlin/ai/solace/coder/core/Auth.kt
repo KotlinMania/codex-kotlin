@@ -5,6 +5,7 @@ import ai.solace.coder.core.auth.AuthCredentialsStoreMode
 import ai.solace.coder.core.auth.AuthStorageBackend
 import ai.solace.coder.core.auth.FileAuthStorage
 import ai.solace.coder.core.auth.createAuthStorage
+import ai.solace.coder.core.config.Config
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -290,18 +291,6 @@ sealed class RefreshTokenError(message: String) : Exception(message) {
         }
     }
 }
-
-enum class RefreshTokenFailedReason {
-    Expired,
-    Exhausted,
-    Revoked,
-    Other
-}
-
-data class RefreshTokenFailedError(
-    val reason: RefreshTokenFailedReason,
-    override val message: String
-) : Exception(message)
 
 // ============================================================================
 // Token Data & Storage Types
@@ -969,13 +958,4 @@ class AuthManager private constructor(
 private fun getEnvironmentVariable(name: String): String? {
     return platform.posix.getenv(name)?.toKString()
 }
-
-// Placeholder for Config type
-// TODO: Port from core/src/config.rs
-data class Config(
-    val codexHome: Path,
-    val cliAuthCredentialsStoreMode: AuthCredentialsStoreMode,
-    val forcedLoginMethod: ForcedLoginMethod?,
-    val forcedChatgptWorkspaceId: String?
-)
 

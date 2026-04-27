@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/apply_patch.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.session.FreeformTool
 import ai.solace.coder.core.session.FreeformToolFormat
 import ai.solace.coder.core.session.ResponsesApiTool

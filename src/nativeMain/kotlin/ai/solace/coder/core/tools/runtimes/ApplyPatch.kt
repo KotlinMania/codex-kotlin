@@ -5,8 +5,8 @@ import ai.solace.coder.core.Exec
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.StdoutStream
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ProvidesSandboxRetryData
@@ -159,7 +159,7 @@ class ApplyPatchRuntime(private val processExecutor: Exec) :
                 )
         }
 
-        // Helper to execute env using ProcessExecutor
+        // Helper to execute env using Exec
         private suspend fun executeEnv(
                 env: ExecEnv,
                 policy: ai.solace.coder.protocol.SandboxPolicy,

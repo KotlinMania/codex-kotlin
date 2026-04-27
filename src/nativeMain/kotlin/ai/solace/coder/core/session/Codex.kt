@@ -6,8 +6,8 @@ import ai.solace.coder.client.auth.AuthMode
 import ai.solace.coder.core.context.ContextManager
 import ai.solace.coder.core.context.TruncationPolicy
 import ai.solace.coder.core.context.truncateText
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.core.features.Feature
 import ai.solace.coder.core.features.Features
 import ai.solace.coder.core.ProcessedResponseItem
@@ -104,7 +104,7 @@ import ai.solace.coder.protocol.ExecCommandBeginEvent
 import ai.solace.coder.protocol.ExecCommandEndEvent
 import ai.solace.coder.protocol.ExecCommandSource
 import ai.solace.coder.protocol.ParsedCommand
-import ai.solace.coder.exec.process.ProcessExecutor
+import ai.solace.coder.core.Exec
 import ai.solace.coder.core.ExecParams
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.utils.git.CreateGhostCommitOptions
@@ -173,7 +173,7 @@ Be concise, structured, and focused on helping the next LLM seamlessly continue 
  */
 private const val SUMMARY_PREFIX = """Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:"""
 
-private const val CODEX_INITIAL_SUBMIT_ID = ""
+internal const val CODEX_INITIAL_SUBMIT_ID = ""
 private const val CODEX_SUBMISSION_CHANNEL_CAPACITY = 64
 
 /**
@@ -1117,7 +1117,6 @@ class Session private constructor(
             println("WARN: task $subId abort hook failed: ${e.message}")
         }
 
-        // Emit turn aborted event per-task (Rust: self.send_event(task.turn_context.as_ref(), event).await)
         sendEvent(
             runningTask.turnContext,
             EventMsg.TurnAborted(TurnAbortedEvent(reason = reason))
@@ -2702,6 +2701,82 @@ class RolloutRecorder(
     suspend fun recordItems(items: List<RolloutItem>) {}
     suspend fun flush() {}
     suspend fun shutdown() {}
+
+    companion object {
+        /**
+         * Read the contents of a rollout file and reconstruct the [InitialHistory].
+         *
+         * Mirrors Rust `RolloutRecorder::get_rollout_history` from
+         * `core/src/rollout/recorder.rs`.
+         */
+        suspend fun getRolloutHistory(path: String): CodexResult<InitialHistory> {
+            val text = try {
+                okio.FileSystem.SYSTEM.read(okio.Path.Companion.run { path.toPath() }) { readUtf8() }
+            } catch (e: okio.IOException) {
+                return CodexResult.failure(CodexErr.Io(e.message ?: "failed to read rollout file"))
+            }
+            if (text.trim().isEmpty()) {
+                return CodexResult.failure(CodexErr.Io("empty session file"))
+            }
+
+            val items: MutableList<RolloutItem> = mutableListOf()
+            var conversationId: ai.solace.coder.protocol.ConversationId? = null
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+                classDiscriminator = "type"
+            }
+
+            for (line in text.lineSequence()) {
+                if (line.trim().isEmpty()) continue
+                val rolloutLine = try {
+                    json.decodeFromString(
+                        ai.solace.coder.protocol.RolloutLine.serializer(),
+                        line,
+                    )
+                } catch (e: kotlinx.serialization.SerializationException) {
+                    // Skip malformed lines, matching the Rust behavior of warning and continuing.
+                    continue
+                }
+                // Parse the rollout line structure
+                when (val item = rolloutLine.item) {
+                    is RolloutItem.SessionMetaItem -> {
+                        // Use the FIRST SessionMeta encountered in the file as the canonical
+                        // conversation id and main session information. Keep all items intact.
+                        if (conversationId == null) {
+                            conversationId = item.payload.meta.id
+                        }
+                        items.add(item)
+                    }
+                    is RolloutItem.ResponseItemHolder -> items.add(item)
+                    is RolloutItem.Compacted -> items.add(item)
+                    is RolloutItem.TurnContextHolder -> items.add(item)
+                    is RolloutItem.EventMsgItem -> items.add(item)
+                }
+            }
+
+            val resolvedId = conversationId
+                ?: return CodexResult.failure(
+                    CodexErr.Io("failed to parse conversation ID from rollout file"),
+                )
+
+            if (items.isEmpty()) {
+                return CodexResult.success(InitialHistory.New)
+            }
+
+            return CodexResult.success(
+                InitialHistory.Resumed(
+                    ai.solace.coder.protocol.ResumedHistory(
+                        conversationId = resolvedId,
+                        history = items,
+                        rolloutPath = path,
+                    ),
+                ),
+            )
+        }
+
+        /** Rust-style spelling, mirroring `RolloutRecorder::get_rollout_history`. */
+        suspend fun get_rollout_history(path: String): CodexResult<InitialHistory> = getRolloutHistory(path)
+    }
 }
 
 private fun newRolloutRecorder(config: Config, conversationId: ConversationId): RolloutRecorder? {
@@ -3052,7 +3127,7 @@ class RegularTask : SessionTask {
 }
 
 class UserShellCommandTask(private val command: String) : SessionTask {
-    private val processExecutor = ProcessExecutor()
+    private val processExecutor = Exec()
 
     override fun kind() = TaskKind.Regular
 

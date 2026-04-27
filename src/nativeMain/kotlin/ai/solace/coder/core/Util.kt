@@ -23,7 +23,6 @@ fun backoff(attempt: Long): Duration {
 }
 
 fun errorOrPanic(message: String) {
-    // Rust gates on cfg!(debug_assertions) || pkg_version.contains("alpha").
     // In Kotlin we behave as release: log and continue.
     println("ERROR: $message")
 }

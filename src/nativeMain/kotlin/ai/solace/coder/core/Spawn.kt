@@ -3,6 +3,26 @@ package ai.solace.coder.core
 
 import ai.solace.coder.exec.process.SandboxType
 
+/// Experimental environment variable that will be set to some non-empty value
+/// if both of the following are true:
+///
+/// 1. The process was spawned by Codex as part of a shell tool call.
+/// 2. SandboxPolicy.has_full_network_access() was false for the tool call.
+///
+/// We may try to have just one environment variable for all sandboxing
+/// attributes, so this may change in the future.
+const val CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR: String = "CODEX_SANDBOX_NETWORK_DISABLED"
+
+/// Should be set when the process is spawned under a sandbox. Currently, the
+/// value is "seatbelt" for macOS, but it may change in the future to
+/// accommodate sandboxing configuration and other sandboxing mechanisms.
+const val CODEX_SANDBOX_ENV_VAR: String = "CODEX_SANDBOX"
+
+enum class StdioPolicy {
+    RedirectForShellTool,
+    Inherit,
+}
+
 /** Platform-specific process handle */
 expect class ProcessHandle {
     val pid: Int

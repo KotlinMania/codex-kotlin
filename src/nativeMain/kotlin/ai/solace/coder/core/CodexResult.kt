@@ -1,4 +1,4 @@
-package ai.solace.coder.core.error
+package ai.solace.coder.core
 
 /**
  * Result type for Codex operations that may fail.

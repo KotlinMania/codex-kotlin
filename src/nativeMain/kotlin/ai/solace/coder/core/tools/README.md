@@ -130,7 +130,7 @@ Main integration point providing unified access to all tool functionality:
 
 ```kotlin
 // Create process executor
-val processExecutor = ProcessExecutor()
+val processExecutor = Exec()
 
 // Create tool system with default configuration
 val toolSystem = ToolSystem(processExecutor)

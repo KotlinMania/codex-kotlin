@@ -25,7 +25,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build
-        run: ./gradlew build --no-configuration-cache
+        run: >
+          ./gradlew build --no-configuration-cache
+          -Dorg.gradle.jvmargs="-Xmx8g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+          -Pkotlin.daemon.jvmargs=-Xmx8g
 
   # Linux build verification (native targets)
   build-linux:
@@ -46,4 +49,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build (Linux)
-        run: ./gradlew build --no-configuration-cache
+        run: >
+          ./gradlew build --no-configuration-cache
+          -Dorg.gradle.jvmargs="-Xmx8g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+          -Pkotlin.daemon.jvmargs=-Xmx8g

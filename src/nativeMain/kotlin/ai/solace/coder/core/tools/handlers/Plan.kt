@@ -1,7 +1,7 @@
 // port-lint: source core/src/tools/handlers/plan.rs
 package ai.solace.coder.core.tools.handlers
 
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.session.ResponsesApiTool
 import ai.solace.coder.core.session.ToolSpec
 import ai.solace.coder.core.tools.AdditionalProperties

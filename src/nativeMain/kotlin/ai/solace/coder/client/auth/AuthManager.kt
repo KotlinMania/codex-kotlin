@@ -3,8 +3,8 @@
 // and codex-core (AuthManager, storage). The Kotlin file consolidates pieces from both for KMP usage.
 package ai.solace.coder.client.auth
 
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.utils.Environment
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,14 +35,16 @@ import kotlinx.coroutines.sync.withLock
 class AuthManager(
     private val codexHome: String? = null,
     private val enableCodexApiKeyEnv: Boolean = true,
-    private val authCredentialsStoreMode: AuthCredentialsStoreMode = AuthCredentialsStoreMode.File
+    private val authCredentialsStoreMode: AuthCredentialsStoreMode = AuthCredentialsStoreMode.File,
+    initialAuth: CodexAuth? = null,
 ) {
     private val mutex = Mutex()
     private var cachedAuth: CodexAuth? = null
 
     init {
-        // Load initial auth on construction
-        cachedAuth = loadAuth()
+        // If an initialAuth was provided (e.g. for testing), use it directly;
+        // otherwise load auth from environment / disk on construction.
+        cachedAuth = initialAuth ?: loadAuth()
     }
 
     /**
@@ -68,22 +70,22 @@ class AuthManager(
 
     /**
      * Refresh the bearer token (for ChatGPT auth mode).
+     *
+     * The on-disk auth.json refresh path lives in [ai.solace.coder.core.AuthManager].
+     * This client-side manager only refreshes API-key-mode auth (which is a no-op
+     * since the key never expires) and surfaces a [CodexErr.RefreshTokenFailed] for
+     * ChatGPT-mode auth so callers fall back to the core manager.
      */
     suspend fun refreshToken(): CodexResult<String?> {
         val auth = mutex.withLock { cachedAuth } ?: return CodexResult.success(null)
 
         return when (auth.mode) {
             AuthMode.ApiKey -> CodexResult.success(auth.apiKey)
-            AuthMode.ChatGPT -> {
-                // In a full implementation, this would:
-                // 1. Get the refresh token from storage
-                // 2. Call the OAuth refresh endpoint
-                // 3. Update storage with new tokens
-                // 4. Return the new access token
-                CodexResult.failure(
-                    CodexErr.RefreshTokenFailed("Token refresh not implemented")
-                )
-            }
+            AuthMode.ChatGPT -> CodexResult.failure(
+                CodexErr.RefreshTokenFailed(
+                    "ChatGPT token refresh requires the core AuthManager (with on-disk storage)",
+                ),
+            )
             AuthMode.None -> CodexResult.success(null)
         }
     }
@@ -146,17 +148,27 @@ class AuthManager(
     }
 
     /**
-     * Log out by clearing cached auth and deleting stored credentials.
+     * Log out by clearing the in-memory cached auth.
+     *
+     * On-disk auth.json deletion is the responsibility of the core
+     * [ai.solace.coder.core.AuthManager], which owns the storage backend.
      */
     suspend fun logout(): Boolean {
         return mutex.withLock {
             val hadAuth = cachedAuth != null
             cachedAuth = null
-            // In a full implementation, this would also delete auth.json
             hadAuth
         }
     }
 
+    /**
+     * Load auth from environment variables only.
+     *
+     * On-disk auth.json loading is owned by the core [ai.solace.coder.core.AuthManager],
+     * which has the storage backends (file, keychain) wired up. This client-side
+     * manager intentionally only handles env-var-based credentials so it can
+     * stay free of platform-specific storage dependencies.
+     */
     private fun loadAuth(): CodexAuth? {
         // First, check environment variables
         if (enableCodexApiKeyEnv) {
@@ -171,8 +183,6 @@ class AuthManager(
             return CodexAuth.fromApiKey(openaiApiKey)
         }
 
-        // In a full implementation, this would load from auth.json storage
-        // For now, return null if no env vars are set
         return null
     }
 
@@ -196,12 +206,28 @@ class AuthManager(
          * Create an AuthManager with a specific API key (for testing).
          */
         fun fromApiKey(apiKey: String): AuthManager {
-            val manager = AuthManager(enableCodexApiKeyEnv = false)
-            // Directly set the cached auth
-            return manager.also {
-                // Use reflection or make cachedAuth internal for testing
-            }
+            return AuthManager(
+                enableCodexApiKeyEnv = false,
+                initialAuth = CodexAuth.fromApiKey(apiKey),
+            )
         }
+
+        /**
+         * Create an AuthManager with a specific [CodexAuth], for testing only.
+         *
+         * Mirrors Rust `AuthManager::from_auth_for_testing`.
+         */
+        fun fromAuthForTesting(auth: CodexAuth): AuthManager {
+            return AuthManager(
+                codexHome = null,
+                enableCodexApiKeyEnv = false,
+                authCredentialsStoreMode = AuthCredentialsStoreMode.File,
+                initialAuth = auth,
+            )
+        }
+
+        /** Rust-style spelling, mirroring `AuthManager::from_auth_for_testing`. */
+        fun from_auth_for_testing(auth: CodexAuth): AuthManager = fromAuthForTesting(auth)
     }
 }
 

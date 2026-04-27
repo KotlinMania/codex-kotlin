@@ -1,8 +1,8 @@
 // port-lint: source core/src/exec.rs
 package ai.solace.coder.core
 
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.CommandSpec
 import ai.solace.coder.exec.sandbox.ExecEnv
@@ -79,7 +79,6 @@ data class StdoutStream(
         val txEvent: SendChannel<ai.solace.coder.protocol.Event>
 )
 
-/** Main process executor with timeout and streaming support */
 /** Main process executor with timeout and streaming support */
 class Exec {
     companion object {
@@ -348,8 +347,8 @@ class Exec {
         // Check for sandbox denial
         if (isLikelySandboxDenied(sandboxType, execOutput)) {
             // Convert to exception so caller's try/catch will turn it into a failure CodexResult
-            throw ai.solace.coder.core.error.CodexException(
-                    CodexErr.Sandbox(ai.solace.coder.core.error.SandboxErr.Denied(execOutput))
+            throw ai.solace.coder.core.CodexException(
+                    CodexErr.Sandbox(ai.solace.coder.core.SandboxErr.Denied(execOutput))
             )
         }
 

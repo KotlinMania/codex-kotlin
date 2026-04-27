@@ -22,7 +22,7 @@ import ai.solace.coder.core.AuthManager
 import ai.solace.coder.core.AuthMode
 import ai.solace.coder.core.CodexAuth
 import ai.solace.coder.core.config.Config
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt

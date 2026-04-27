@@ -2,7 +2,7 @@
 package ai.solace.coder.core.tools.runtimes
 
 import ai.solace.coder.core.ExecExpiration
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ApprovalRequirement
@@ -97,10 +97,11 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     override suspend fun run(
             req: UnifiedExecRequest,
             attempt: SandboxAttempt,
-            _ctx: ToolCtx
+            ctx: ToolCtx
     ): Result<UnifiedExecSession> {
         val specResult =
                 buildCommandSpec(
@@ -139,7 +140,7 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
                 is UnifiedExecError.SandboxDenied -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexErr.Sandbox(ai.solace.coder.core.error.SandboxErr.Denied(e.output))
+                                    CodexErr.Sandbox(ai.solace.coder.core.SandboxErr.Denied(e.output))
                             )
                     )
                 }

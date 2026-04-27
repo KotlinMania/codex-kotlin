@@ -3,7 +3,7 @@ package ai.solace.coder.exec.sandbox
 
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecToolCallOutput
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.core.isLikelySandboxDenied
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.protocol.SandboxPolicy

@@ -1,7 +1,7 @@
 // port-lint: source core/src/codex_conversation.rs
 package ai.solace.coder.core.session
 
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexResult
 import ai.solace.coder.protocol.Event
 import ai.solace.coder.protocol.Op
 import ai.solace.coder.protocol.Submission

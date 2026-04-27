@@ -189,8 +189,10 @@ class QueryTest :
 
             tree = parser.parse(
                 """
-            /// foo
-            /// bar
+            /**
+             * foo
+             * bar
+             */
                 """.trimIndent()
             )
             query = Query(

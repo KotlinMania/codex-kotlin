@@ -2,8 +2,8 @@
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.ExecToolCallOutput
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.getErrorMessageUi
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.getErrorMessageUi
 import ai.solace.coder.exec.process.SandboxType
 import ai.solace.coder.exec.sandbox.SandboxManager
 import ai.solace.coder.protocol.AskForApproval
@@ -106,7 +106,7 @@ class ToolOrchestrator {
                         return Result.failure(err)
                     }
                     val sandboxErr = codexError.error
-                    if (sandboxErr !is ai.solace.coder.core.error.SandboxErr.Denied) {
+                    if (sandboxErr !is ai.solace.coder.core.SandboxErr.Denied) {
                         return Result.failure(err)
                     }
                     val output = sandboxErr.output

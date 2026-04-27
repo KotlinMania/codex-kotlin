@@ -15,7 +15,7 @@ The execution system provides secure command execution with platform-specific sa
 
 ### Core Components
 
-#### 1. ProcessExecutor (`ai.solace.coder.exec.process.ProcessExecutor`)
+#### 1. Exec (`ai.solace.coder.core.Exec`)
 
 Main class responsible for executing commands with sandboxing and streaming support.
 
@@ -27,7 +27,7 @@ Main class responsible for executing commands with sandboxing and streaming supp
 
 **Usage:**
 ```kotlin
-val executor = ProcessExecutor()
+val executor = Exec()
 val params = ExecParams(
     command = listOf("echo", "hello"),
     cwd = "/tmp",
@@ -252,7 +252,7 @@ fun executeWithFlow(params: ExecParams): Flow<ExecOutputChunk>
 
 ### Unit Tests
 
-**Location:** `src/nativeTest/kotlin/ai/solace/coder/exec/process/ProcessExecutorTest.kt`
+**Location:** `src/nativeTest/kotlin/ai/solace/coder/exec/process/ExecTest.kt`
 
 **Coverage:**
 - Data structure validation

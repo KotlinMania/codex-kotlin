@@ -9,7 +9,7 @@ import ai.solace.coder.core.tools.ToolOutput
 import ai.solace.coder.core.tools.ToolPayload
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecParams
-import ai.solace.coder.exec.process.ProcessExecutor
+import ai.solace.coder.core.Exec
 import ai.solace.coder.protocol.SandboxPolicy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
  * Ported from Rust codex-rs/core/src/tools/handlers/grep_files.rs
  */
 class GrepFilesHandler : ToolHandler {
-    private val processExecutor: ProcessExecutor = ProcessExecutor()
+    private val processExecutor: Exec = Exec()
 
 
     override val kind: ToolKind = ToolKind.Function
@@ -129,8 +129,8 @@ class GrepFilesHandler : ToolHandler {
         }
 
         val output = when (execResult) {
-            is ai.solace.coder.core.error.CodexResult.Success -> execResult.value
-            is ai.solace.coder.core.error.CodexResult.Failure -> return Result.failure(
+            is ai.solace.coder.core.CodexResult.Success -> execResult.value
+            is ai.solace.coder.core.CodexResult.Failure -> return Result.failure(
                 FunctionCallError.RespondToModel(
                     "failed to launch rg: ${execResult.error}. Ensure ripgrep is installed and on PATH."
                 )

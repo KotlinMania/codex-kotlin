@@ -5,7 +5,7 @@ import ai.solace.coder.core.Exec
 import ai.solace.coder.core.ExecExpiration
 import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.StdoutStream
-import ai.solace.coder.core.error.CodexErr
+import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.tools.Approvable
 import ai.solace.coder.core.tools.ApprovalCtx
 import ai.solace.coder.core.tools.ApprovalRequirement
@@ -128,7 +128,7 @@ class ShellRuntime(private val processExecutor: Exec) :
 
         return try {
             executeEnv(env, attempt.policy, stdoutStream(ctx))
-        } catch (e: ai.solace.coder.core.error.CodexException) {
+        } catch (e: ai.solace.coder.core.CodexException) {
             Result.failure(ToolError.Codex(e.error))
         } catch (e: Exception) {
             Result.failure(
@@ -147,7 +147,7 @@ class ShellRuntime(private val processExecutor: Exec) :
         )
     }
 
-    // Helper to execute env using ProcessExecutor
+    // Helper to execute env using Exec
     private suspend fun executeEnv(
             env: ExecEnv,
             policy: ai.solace.coder.protocol.SandboxPolicy,
@@ -155,8 +155,8 @@ class ShellRuntime(private val processExecutor: Exec) :
     ): Result<ExecToolCallOutput> {
         val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
         return when (result) {
-            is ai.solace.coder.core.error.CodexResult.Success -> Result.success(result.value)
-            is ai.solace.coder.core.error.CodexResult.Failure ->
+            is ai.solace.coder.core.CodexResult.Success -> Result.success(result.value)
+            is ai.solace.coder.core.CodexResult.Failure ->
                     Result.failure(result.error.toException())
         }
     }

@@ -350,7 +350,7 @@ internal suspend fun processSse(
     // Stream ended
     when {
         responseCompleted != null -> {
-            val rc = responseCompleted!!
+            val rc = responseCompleted
             val event = ResponseEvent.Completed(
                 responseId = rc.id,
                 tokenUsage = rc.usage?.toTokenUsage()
@@ -358,7 +358,7 @@ internal suspend fun processSse(
             channel.send(Result.success(event))
         }
         responseError != null -> {
-            channel.send(Result.failure(responseError!!))
+            channel.send(Result.failure(responseError))
         }
         else -> {
             channel.send(Result.failure(ApiError.Stream("stream closed before response.completed")))

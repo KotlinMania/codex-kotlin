@@ -1,7 +1,7 @@
 // port-lint: source utils/pty/src/lib.rs
 package ai.solace.coder.utils.pty
 
-import ai.solace.coder.core.error.CodexResult
+import ai.solace.coder.core.CodexResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
@@ -23,7 +23,7 @@ import kotlinx.coroutines.isActive
 
 /**
  * Represents an active execution session.
- * In Rust this uses portable_pty, here we use pipes via ProcessExecutor/PlatformProcess.
+ * In Rust this uses portable_pty, here we use pipes via Exec/PlatformProcess.
  */
 class ExecCommandSession(
     private val writerTx: SendChannel<ByteArray>,
@@ -40,10 +40,8 @@ class ExecCommandSession(
     // For parity with Rust's `output_receiver() -> broadcast::Receiver`, we might need a broadcast channel.
     // But for now, let's assume single consumer or handle it in the manager.
     
-    // In Rust: pub fn writer_sender(&self) -> mpsc::Sender<Vec<u8>>
     fun writerSender(): SendChannel<ByteArray> = writerTx
 
-    // In Rust: pub fn output_receiver(&self) -> broadcast::Receiver<Vec<u8>>
     // We'll return the channel for now, or a flow.
     // The Rust code subscribes to the broadcast channel.
     fun outputReceiver(): ReceiveChannel<ByteArray> = outputTx

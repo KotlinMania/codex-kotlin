@@ -140,8 +140,10 @@ class QueryCursorTest :
 
             var tree = parser.parse(
                 """
-            /// foo
-            /// bar
+            /**
+             * foo
+             * bar
+             */
                 """.trimIndent()
             )
             var query = Query(

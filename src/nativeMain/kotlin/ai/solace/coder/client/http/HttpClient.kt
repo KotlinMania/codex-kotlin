@@ -3,9 +3,9 @@ package ai.solace.coder.client.http
 
 import ai.solace.coder.client.auth.AuthManager
 import ai.solace.coder.client.streaming.SseParser
-import ai.solace.coder.core.error.CodexErr
-import ai.solace.coder.core.error.CodexResult
-import ai.solace.coder.core.error.UnexpectedResponseError
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.CodexResult
+import ai.solace.coder.core.UnexpectedResponseError
 import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.protocol.ResponseItem
 import io.ktor.client.*
