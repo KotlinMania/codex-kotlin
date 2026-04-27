@@ -1,4 +1,4 @@
-// port-lint: source tui/src/terminal_palette.rs
+// port-lint: source tui/src/terminalPalette.rs
 package ai.solace.coder.tui
 
 import ratatui.style.Color
@@ -14,7 +14,7 @@ import platform.posix.getenv
  */
 fun bestColor(target: Triple<UByte, UByte, UByte>): Color {
     // Assume truecolor support on modern terminals.
-    // A full implementation would check supports_color equivalent.
+    // A full implementation would check supportsColor equivalent.
     return Color.Rgb(target.first, target.second, target.third)
 }
 
@@ -50,7 +50,7 @@ fun defaultBg(): Triple<UByte, UByte, UByte>? {
 @OptIn(ExperimentalForeignApi::class)
 private fun queryDefaultColors(): DefaultColors? {
     // Terminal color querying is platform-specific.
-    // On Unix, this would use crossterm's query_foreground_color/query_background_color.
+    // On Unix, this would import crossterm queryForegroundColor/queryBackgroundColor.
     // For now, return null (consistent with the non-Unix fallback in Rust).
     return null
 }

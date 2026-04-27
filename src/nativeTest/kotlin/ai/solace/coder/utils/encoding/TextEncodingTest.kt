@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 /**
  * Tests for TextEncoding utilities.
- * Ported from Rust codex-rs/core/src/text_encoding.rs tests.
+ * Ported from Rust codex-rs/core/src/textEncoding.rs tests.
  */
 class TextEncodingTest {
 
@@ -104,7 +104,7 @@ class TextEncodingTest {
 
     @Test
     fun testSingleHighByte() {
-        // Single high byte that's invalid UTF-8
+        // Single high byte that invalid UTF-8
         // Should fall back to Windows-1252 Latin fallback
         val input = byteArrayOf(
             'a'.code.toByte(),

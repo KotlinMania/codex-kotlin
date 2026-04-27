@@ -1,4 +1,4 @@
-// port-lint: source core/src/unified_exec/session.rs
+// port-lint: source core/src/unifiedExec/session.rs
 package ai.solace.coder.core.unified_exec
 
 import ai.solace.coder.core.ExecToolCallOutput
@@ -44,7 +44,7 @@ class OutputBufferState {
                 chunks.removeFirst()
             } else {
                 // Partial drain
-                // Kotlin ArrayDeque doesn't support easy partial drain of ByteArray.
+                // Kotlin ArrayDeque does not support easy partial drain of ByteArray.
                 // We'll replace the first chunk with a sliced one.
                 val newFront = front.copyOfRange(excess, front.size)
                 chunks.removeFirst()

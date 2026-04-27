@@ -1,5 +1,5 @@
-// port-lint: source codex-rs/common/src/sandbox_mode_cli_arg.rs
-//! Standard type to use with the `--sandbox` (`-s`) CLI option.
+// port-lint: source codex-rs/common/src/sandboxModeCliArg.rs
+//! Standard type to import with the `--sandbox` (`-s`) CLI option.
 //!
 //! This mirrors the variants of [`SandboxPolicy`], but without any of the
 //! associated data so it can be expressed as a simple flag on the command-line.

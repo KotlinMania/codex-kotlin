@@ -174,7 +174,7 @@ sealed class LocalShellAction {
 }
 
 /**
- * Alias for LocalShellAction.Exec - in Rust this is a standalone struct, in Kotlin it's inlined
+ * Alias for LocalShellAction.Exec - in Rust this is a standalone struct, in Kotlin it inlined
  * into the sealed class variant.
  *
  * Ported from Rust protocol/src/models.rs LocalShellExecAction.
@@ -255,13 +255,13 @@ data class FunctionCallOutputPayload(
                 /**
                  * Create a FunctionCallOutputPayload from a CallToolResult.
                  *
-                 * Ported from Rust codex-rs/protocol/src/models.rs impl From<&CallToolResult> for
+                 * Ported from Rust codex-rs/protocol/src/models.rs implementation From<&CallToolResult> for
                  * FunctionCallOutputPayload
                  */
                 fun fromCallToolResult(callToolResult: CallToolResult): FunctionCallOutputPayload {
                         val isSuccess = callToolResult.isError != true
 
-                        // If structured_content is present and not null, serialize and return it
+                        // If structuredContent is present and not null, serialize and return it
                         val structuredContent = callToolResult.structuredContent
                         if (structuredContent != null && structuredContent != JsonNull) {
                                 return try {
@@ -425,7 +425,7 @@ data class ShellToolCallParams(
         val justification: String? = null
 )
 
-/** Parameters for shell_command tool calls. */
+/** Parameters for shellCommand tool calls. */
 @Serializable
 data class ShellCommandToolCallParams(
         val command: String,

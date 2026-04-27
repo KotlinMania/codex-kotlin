@@ -12,7 +12,7 @@ class ParserTest {
         val v = buildJsonObject {
             put("status", JsonPrimitive("verifying"))
         }
-        val events = pull_events_from_value(v)
+        val events = pullEventsFromValue(v)
         assertEquals(1, events.size)
         assertTrue(events[0] is PullEvent.Status)
         assertEquals("verifying", (events[0] as PullEvent.Status).status)
@@ -20,7 +20,7 @@ class ParserTest {
         val v2 = buildJsonObject {
             put("status", JsonPrimitive("success"))
         }
-        val events2 = pull_events_from_value(v2)
+        val events2 = pullEventsFromValue(v2)
         assertEquals(2, events2.size)
         assertTrue(events2[0] is PullEvent.Status)
         assertEquals("success", (events2[0] as PullEvent.Status).status)
@@ -33,7 +33,7 @@ class ParserTest {
             put("digest", JsonPrimitive("sha256:abc"))
             put("total", JsonPrimitive(100))
         }
-        val events = pull_events_from_value(v)
+        val events = pullEventsFromValue(v)
         assertEquals(1, events.size)
         val e0 = events[0]
         assertTrue(e0 is PullEvent.ChunkProgress)
@@ -45,7 +45,7 @@ class ParserTest {
             put("digest", JsonPrimitive("sha256:def"))
             put("completed", JsonPrimitive(42))
         }
-        val events2 = pull_events_from_value(v2)
+        val events2 = pullEventsFromValue(v2)
         assertEquals(1, events2.size)
         val e1 = events2[0]
         assertTrue(e1 is PullEvent.ChunkProgress)

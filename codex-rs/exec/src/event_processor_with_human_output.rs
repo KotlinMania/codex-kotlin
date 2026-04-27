@@ -28,12 +28,10 @@ use owo_colors::OwoColorize;
 use owo_colors::Style;
 use shlex::try_join;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::event_processor::CodexStatus;
 use crate::event_processor::EventProcessor;
-use crate::event_processor::handle_last_message;
 use codex_common::create_config_summary_entries;
 use codex_protocol::plan_tool::StepStatus;
 use codex_protocol::plan_tool::UpdatePlanArgs;
@@ -60,17 +58,12 @@ pub(crate) struct EventProcessorWithHumanOutput {
     /// Whether to include `AgentReasoning` events in the output.
     show_agent_reasoning: bool,
     show_raw_agent_reasoning: bool,
-    last_message_path: Option<PathBuf>,
     last_total_token_usage: Option<codex_core::protocol::TokenUsageInfo>,
     final_message: Option<String>,
 }
 
 impl EventProcessorWithHumanOutput {
-    pub(crate) fn create_with_ansi(
-        with_ansi: bool,
-        config: &Config,
-        last_message_path: Option<PathBuf>,
-    ) -> Self {
+    pub(crate) fn create_with_ansi(with_ansi: bool, config: &Config) -> Self {
         let call_id_to_patch = HashMap::new();
 
         if with_ansi {
@@ -86,7 +79,6 @@ impl EventProcessorWithHumanOutput {
                 yellow: Style::new().yellow(),
                 show_agent_reasoning: !config.hide_agent_reasoning,
                 show_raw_agent_reasoning: config.show_raw_agent_reasoning,
-                last_message_path,
                 last_total_token_usage: None,
                 final_message: None,
             }
@@ -103,7 +95,6 @@ impl EventProcessorWithHumanOutput {
                 yellow: Style::new(),
                 show_agent_reasoning: !config.hide_agent_reasoning,
                 show_raw_agent_reasoning: config.show_raw_agent_reasoning,
-                last_message_path,
                 last_total_token_usage: None,
                 final_message: None,
             }
@@ -241,11 +232,6 @@ impl EventProcessor for EventProcessorWithHumanOutput {
                 );
             }
             EventMsg::TaskComplete(TaskCompleteEvent { last_agent_message }) => {
-                let last_message = last_agent_message.as_deref();
-                if let Some(output_file) = self.last_message_path.as_deref() {
-                    handle_last_message(last_message, output_file);
-                }
-
                 self.final_message = last_agent_message;
 
                 return CodexStatus::InitiateShutdown;

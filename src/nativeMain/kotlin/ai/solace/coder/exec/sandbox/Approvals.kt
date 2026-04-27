@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 
 /**
  * Store for caching approval decisions across tool calls.
- * Mirrors Rust's ApprovalStore from tools/sandboxing.rs
+ * Mirrors the upstream ApprovalStore from tools/sandboxing.rs
  */
 class ApprovalStore {
     @PublishedApi
@@ -45,7 +45,7 @@ class ApprovalStore {
 
 /**
  * Specifies what the tool orchestrator should do with a given tool call.
- * Mirrors Rust's ApprovalRequirement enum from tools/sandboxing.rs
+ * Mirrors the upstream ApprovalRequirement enum from tools/sandboxing.rs
  */
 sealed class ApprovalRequirement {
     /**
@@ -69,7 +69,7 @@ sealed class ApprovalRequirement {
 
 /**
  * Assessment of whether a command is safe to execute in a sandbox.
- * Mirrors Rust's SandboxCommandAssessment from protocol.
+ * Mirrors the upstream SandboxCommandAssessment from protocol.
  */
 data class SandboxCommandAssessment(
     val safe: Boolean,
@@ -78,7 +78,7 @@ data class SandboxCommandAssessment(
 
 /**
  * Tool error types.
- * Mirrors Rust's ToolError enum from tools/sandboxing.rs
+ * Mirrors the upstream ToolError enum from tools/sandboxing.rs
  */
 sealed class ToolError {
     data class Rejected(val message: String) : ToolError()
@@ -87,7 +87,7 @@ sealed class ToolError {
 
 /**
  * Captures command metadata needed to re-run a tool request without sandboxing.
- * Mirrors Rust's SandboxRetryData from tools/sandboxing.rs
+ * Mirrors the upstream SandboxRetryData from tools/sandboxing.rs
  */
 data class SandboxRetryData(
     val command: List<String>,

@@ -1,4 +1,4 @@
-// port-lint: source tui/src/key_hint.rs
+// port-lint: source tui/src/keyHint.rs
 @file:OptIn(ExperimentalNativeApi::class)
 
 package ai.solace.coder.tui
@@ -21,7 +21,7 @@ private const val SHIFT_PREFIX = "shift + "
 
 // Use macOS prefix by default; could be made platform-aware
 private val ALT_PREFIX: String = run {
-    // On macOS, use the option symbol; on other platforms, use "alt"
+    // On macOS, import the option symbol; on other platforms, use "alt"
     if (Platform.osFamily == OsFamily.MACOSX) ALT_PREFIX_MACOS else ALT_PREFIX_OTHER
 }
 

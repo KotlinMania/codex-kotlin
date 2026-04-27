@@ -49,7 +49,7 @@ data class McpServerConfig(
     @SerialName("tool_timeout_sec") val toolTimeout: Duration? = null,
     /// Explicit allow-list of tools exposed from this server. When set, only these tools will be registered.
     @SerialName("enabled_tools") val enabledTools: List<String>? = null,
-    /// Explicit deny-list of tools. These tools will be removed after applying `enabled_tools`.
+    /// Explicit deny-list of tools. These tools will be removed after applying `enabledTools`.
     @SerialName("disabled_tools") val disabledTools: List<String>? = null,
 )
 
@@ -63,7 +63,7 @@ data class RawMcpServerConfig(
     @SerialName("cwd") val cwd: String? = null,
     @SerialName("http_headers") val httpHeaders: Map<String, String>? = null,
     @SerialName("env_http_headers") val envHttpHeaders: Map<String, String>? = null,
-    // streamable_http
+    // streamableHttp
     @SerialName("url") val url: String? = null,
     @SerialName("bearer_token") val bearerToken: String? = null,
     @SerialName("bearer_token_env_var") val bearerTokenEnvVar: String? = null,
@@ -253,7 +253,7 @@ data class Notice(
     @SerialName("hide_gpt-5.1-codex-max_migration_prompt") val hideGpt5_1CodexMaxMigrationPrompt: Boolean? = null,
 ) {
     companion object {
-        /// referenced by config_edit helpers when writing notice flags
+        /// referenced by configEdit helpers when writing notice flags
         internal const val TABLE_KEY: String = "notice"
     }
 }
@@ -280,7 +280,7 @@ enum class ShellEnvironmentPolicyInherit {
 }
 
 /// Policy for building the `env` when spawning a process via either the
-/// `shell` or `local_shell` tool.
+/// `shell` or `localShell` tool.
 @Serializable
 data class ShellEnvironmentPolicyToml(
     val inherit: ShellEnvironmentPolicyInherit? = null,
@@ -294,9 +294,9 @@ data class ShellEnvironmentPolicyToml(
 )
 
 /// Wildcard pattern for matching environment variable names, equivalent to
-/// Rust's `WildMatchPattern<'*', '?'>`. Uses `*` for any sequence and `?` for
+/// the upstream `WildMatchPattern<'*', '?'>`. Uses `*` for any sequence and `?` for
 /// any single character. Always created in case-insensitive mode here, mirroring
-/// `EnvironmentVariablePattern::new_case_insensitive`.
+/// `EnvironmentVariablePattern::newCaseInsensitive`.
 data class EnvironmentVariablePattern(val pattern: String) {
     private val regex: Regex = compile(pattern)
 
@@ -327,11 +327,11 @@ data class EnvironmentVariablePattern(val pattern: String) {
 
 /// Deriving the `env` based on this policy works as follows:
 /// 1. Create an initial map based on the `inherit` policy.
-/// 2. If `ignore_default_excludes` is false, filter the map using the default
+/// 2. If `ignoreDefaultExcludes` is false, filter the map using the default
 ///    exclude pattern(s), which are: `"*KEY*"` and `"*TOKEN*"`.
 /// 3. If `exclude` is not empty, filter the map using the provided patterns.
 /// 4. Insert any entries from `r#set` into the map.
-/// 5. If non-empty, filter the map using the `include_only` patterns.
+/// 5. If non-empty, filter the map using the `includeOnly` patterns.
 data class ShellEnvironmentPolicy(
     /// Starting point when building the environment.
     val inherit: ShellEnvironmentPolicyInherit = ShellEnvironmentPolicyInherit.All,

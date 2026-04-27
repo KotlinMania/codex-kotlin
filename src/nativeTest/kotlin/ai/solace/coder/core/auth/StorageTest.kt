@@ -47,11 +47,11 @@ class StorageTest {
     @Test
     fun testComputeStoreKey() {
         // Based on Rust test: "~/.codex" -> "cli|940db7b1d0e4eb40"
-        // Since we can't easily canonicalize "~" in a unit test without OS help,
+        // Since we cannot easily canonicalize "~" in a unit test without OS help,
         // we test the core hashing logic with a fixed string.
         val path = Path("/tmp/.codex") 
         // We know from our manual python check that hashlib.sha256(b'/tmp/.codex').hexdigest()[:16]
-        // is what we expect. Let's verify our implementation produces a stable key.
+        // is what we expect. Let verify our implementation produces a stable key.
         
         val keyResult = computeStoreKey(path)
         assertTrue(keyResult.isSuccess)
@@ -73,10 +73,10 @@ class StorageTest {
             val auth = AuthDotJson(openaiApiKey = "auto-key", tokens = null, lastRefresh = null)
 
             // Setup: Keychain fails on save
-            mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we don't know exact key
+            mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we do not know exact key
             
             // This is tricky because computeStoreKey produces a real key. 
-            // Let's just use the real key.
+            // Let just import the real key.
             val key = computeStoreKey(tempDir).getOrThrow()
             mockKeychain.setError(key, Exception("Keychain failure"))
 

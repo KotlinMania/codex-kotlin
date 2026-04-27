@@ -1,4 +1,4 @@
-// port-lint: source rmcp-client/src/find_codex_home.rs
+// port-lint: source rmcp-client/src/findCodexHome.rs
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 
 package ai.solace.coder.rmcp.client

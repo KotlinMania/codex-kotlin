@@ -1,4 +1,4 @@
-// port-lint: source core/src/command_safety/is_dangerous_command.rs
+// port-lint: source core/src/commandSafety/isDangerousCommand.rs
 package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.protocol.AskForApproval

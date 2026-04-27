@@ -1,4 +1,4 @@
-// port-lint: source core/src/codex_conversation.rs
+// port-lint: source core/src/codexConversation.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.core.CodexResult

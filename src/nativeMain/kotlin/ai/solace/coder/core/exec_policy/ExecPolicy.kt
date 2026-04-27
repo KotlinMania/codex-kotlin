@@ -1,4 +1,4 @@
-// port-lint: source core/src/exec_policy.rs
+// port-lint: source core/src/execPolicy.rs
 package ai.solace.coder.core.exec_policy
 
 /*
@@ -27,7 +27,7 @@ private const val PROMPT_REASON: String = "execpolicy requires approval for this
  * policy does not match the command (caller falls back to the default
  * dangerous-command heuristic).
  *
- * Mirrors `evaluate_with_policy` in `core/src/exec_policy.rs`.
+ * Mirrors `evaluateWithPolicy` in `core/src/execPolicy.rs`.
  */
 private fun evaluateWithPolicy(
     policy: Policy,
@@ -57,7 +57,7 @@ private fun evaluateWithPolicy(
  * [policy], approval policy [approvalPolicy], sandbox configuration
  * [sandboxPolicy], and effective [sandboxPermissions].
  *
- * Mirrors `create_approval_requirement_for_command` in `core/src/exec_policy.rs`.
+ * Mirrors `createApprovalRequirementForCommand` in `core/src/execPolicy.rs`.
  */
 fun createApprovalRequirementForCommand(
     policy: Policy,

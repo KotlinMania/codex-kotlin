@@ -7,7 +7,7 @@ import ai.solace.coder.exec.process.SandboxType
 /// if both of the following are true:
 ///
 /// 1. The process was spawned by Codex as part of a shell tool call.
-/// 2. SandboxPolicy.has_full_network_access() was false for the tool call.
+/// 2. SandboxPolicy.hasFullNetworkAccess() was false for the tool call.
 ///
 /// We may try to have just one environment variable for all sandboxing
 /// attributes, so this may change in the future.
@@ -27,7 +27,7 @@ enum class StdioPolicy {
 expect class ProcessHandle {
     val pid: Int
     val stdout:
-            ByteArray? // Keep for backward compat or remove? Exec.kt uses it. I'll keep it but it
+            ByteArray? // Keep for backward compat or remove? Exec.kt uses it. I will keep it but it
     // might be empty if streamed.
     val stderr: ByteArray?
 

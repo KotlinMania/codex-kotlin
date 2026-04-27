@@ -142,7 +142,7 @@ private val GRACEFUL_INTERRUPTION_TIMEOUT = 100.milliseconds
 
 /**
  * Timeout for user shell commands (1 hour).
- * Ported from Rust codex-rs/core/src/tasks/user_shell.rs USER_SHELL_TIMEOUT_MS
+ * Ported from Rust codex-rs/core/src/tasks/userShell.rs USER_SHELL_TIMEOUT_MS
  */
 private val USER_SHELL_TIMEOUT = 60.minutes
 
@@ -169,7 +169,7 @@ Be concise, structured, and focused on helping the next LLM seamlessly continue 
 
 /**
  * Prefix for summary messages (used to identify compacted content).
- * Ported from Rust codex-rs/core/templates/compact/summary_prefix.md
+ * Ported from Rust codex-rs/core/templates/compact/summaryPrefix.md
  */
 private const val SUMMARY_PREFIX = """Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:"""
 
@@ -243,7 +243,7 @@ data class CodexSpawnOk(
 /**
  * Unique identifier for a conversation/session.
  *
- * Ported from Rust codex_protocol::ConversationId
+ * Ported from Rust codexProtocol::ConversationId
  */
 typealias ConversationId = String
 
@@ -472,7 +472,7 @@ class Session private constructor(
         sendEventRaw(event)
 
         // Send legacy events if applicable
-        // Note: EventMsg doesn't implement asLegacyEvents in this port yet
+        // Note: EventMsg does not implement asLegacyEvents in this port yet
         // TODO: Implement legacy event conversion when needed
     }
 
@@ -531,7 +531,7 @@ class Session private constructor(
     }
 
     /**
-     * Emit an exec approval request event and await the user's decision.
+     * Emit an exec approval request event and await the user decision.
      */
     suspend fun requestCommandApproval(
         turnContext: TurnContext,
@@ -570,7 +570,7 @@ class Session private constructor(
     }
 
     /**
-     * Emit a patch approval request event and await the user's decision.
+     * Emit a patch approval request event and await the user decision.
      */
     suspend fun requestPatchApproval(
         turnContext: TurnContext,
@@ -970,7 +970,7 @@ class Session private constructor(
     fun notifier(): UserNotifier = services.notifier
 
     /**
-     * Get the user's shell.
+     * Get the user shell.
      */
     fun userShell(): Shell = services.userShell
 
@@ -989,14 +989,14 @@ class Session private constructor(
     /**
      * Spawn a new task.
      *
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::spawn_task
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::spawnTask
      */
     suspend fun spawnTask(
         turnContext: TurnContext,
         input: List<UserInput>,
         task: SessionTask
     ) {
-        // Abort any existing tasks first (Rust: self.abort_all_tasks(Replaced).await)
+        // Abort any existing tasks first (Rust: self.abortAllTasks(Replaced).await)
         abortAllTasks(TurnAbortReason.Replaced)
 
         val cancellationToken = CancellationToken()
@@ -1009,7 +1009,7 @@ class Session private constructor(
             turnContext = turnContext
         )
 
-        // Register the task (Rust: self.register_new_active_task(running_task).await)
+        // Register the task (Rust: self.registerNewActiveTask(runningTask).await)
         registerNewActiveTask(runningTask)
 
         // Launch the task
@@ -1026,16 +1026,16 @@ class Session private constructor(
                 // Signal task completion
                 done.complete(Unit)
 
-                // Flush rollout after task completes (Rust: session_ctx.clone_session().flush_rollout().await)
+                // Flush rollout after task completes (Rust: sessionCtx.cloneSession().flushRollout().await)
                 flushRollout()
 
-                // Only emit TaskComplete if not cancelled (Rust: if !task_cancellation_token.is_cancelled())
+                // Only emit TaskComplete if not cancelled (Rust: if !taskCancellationToken.isCancelled())
                 if (!cancellationToken.isCancelled()) {
                     onTaskFinished(turnContext, lastAgentMessage)
                 }
             } catch (e: Exception) {
                 done.complete(Unit)
-                // Log but don't propagate - task failures are handled via events
+                // Log but do not propagate - task failures are handled via events
                 println("WARN: Task ${task.kind()} failed: ${e.message}")
             }
         }
@@ -1044,7 +1044,7 @@ class Session private constructor(
     /**
      * Abort all running tasks.
      *
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::abort_all_tasks
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::abortAllTasks
      */
     suspend fun abortAllTasks(reason: TurnAbortReason) {
         for (task in takeAllRunningTasks()) {
@@ -1055,7 +1055,7 @@ class Session private constructor(
     /**
      * Register a new active task, creating a new ActiveTurn.
      *
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::register_new_active_task
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::registerNewActiveTask
      */
     private suspend fun registerNewActiveTask(task: RunningTask) {
         activeTurn.withLock {
@@ -1068,7 +1068,7 @@ class Session private constructor(
     /**
      * Take all running tasks, clearing the active turn.
      *
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::take_all_running_tasks
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs Session::takeAllRunningTasks
      */
     private suspend fun takeAllRunningTasks(): List<RunningTask> {
         val currentTurn = activeTurn.get()
@@ -1083,7 +1083,7 @@ class Session private constructor(
     /**
      * Handle graceful abort of a single task.
      *
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs handle_task_abort
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs handleTaskAbort
      */
     private suspend fun handleTaskAbort(
         runningTask: RunningTask,
@@ -1091,7 +1091,7 @@ class Session private constructor(
     ) {
         val subId = runningTask.turnContext.subId
 
-        // Early return if already cancelled (Rust: if task.cancellation_token.is_cancelled())
+        // Early return if already cancelled (Rust: if task.cancellationToken.isCancelled())
         if (runningTask.cancellationToken.isCancelled()) {
             return
         }
@@ -1109,7 +1109,7 @@ class Session private constructor(
             println("WARN: task $subId didn't complete gracefully after ${GRACEFUL_INTERRUPTION_TIMEOUT.inWholeMilliseconds}ms")
         }
 
-        // Call the task's abort hook for cleanup (Rust: session_task.abort(session_ctx, ...).await)
+        // Call the task abort hook for cleanup (Rust: sessionTask.abort(sessionCtx, ...).await)
         val sessionContext = SessionTaskContext(this@Session)
         try {
             runningTask.task.abort(sessionContext, runningTask.turnContext)
@@ -1268,7 +1268,7 @@ class Session private constructor(
     /**
      * Create a turn context.
      *
-     * Note: In Rust, this is done in make_turn_context() which also creates the ModelClient.
+     * Note: In Rust, this is done in makeTurnContext() which also creates the ModelClient.
      * The client parameter should be passed in once ModelClient creation is integrated.
      * Model info (model, modelFamily, modelContextWindow, etc.) is accessed via client.
      */
@@ -1349,11 +1349,11 @@ data class TurnContext(
      * The model client for this turn - provides access to OTEL, config, and API calls.
      * Access model info via client.getModel(), client.getModelContextWindow(), etc.
      * TODO: Make this non-nullable once ModelClient creation is properly integrated
-     * into the turn lifecycle (see Rust codex-rs/core/src/codex.rs make_turn_context).
+     * into the turn lifecycle (see Rust codex-rs/core/src/codex.rs makeTurnContext).
      */
     val client: ai.solace.coder.core.client.ModelClient? = null,
     /**
-     * The session's current working directory. All relative paths provided by
+     * The session current working directory. All relative paths provided by
      * the model as well as sandbox policies are resolved against this path.
      */
     val cwd: String,
@@ -1379,7 +1379,7 @@ data class TurnContext(
 ) {
     // =========================================================================
     // Convenience accessors - delegate to client for model/config info
-    // These match the Rust pattern of accessing via turn_context.client.*
+    // These match the Rust pattern of accessing via turnContext.client.*
     // =========================================================================
 
     /** Get the model name. Delegates to client.getModel(). */
@@ -1405,20 +1405,20 @@ data class TurnContext(
 
     /**
      * Whether the model family supports parallel tool calls.
-     * Mirrors Rust's turn_context.client.get_model_family().supports_parallel_tool_calls.
+     * Mirrors the upstream turnContext.client.getModelFamily().supportsParallelToolCalls.
      */
     val modelFamilySupportsParallelToolCalls: Boolean
         get() = modelFamily.supportsParallelToolCalls
 
     /**
      * Get the compact prompt, falling back to SUMMARIZATION_PROMPT if not set.
-     * Ported from Rust codex-rs/core/src/codex.rs TurnContext::compact_prompt()
+     * Ported from Rust codex-rs/core/src/codex.rs TurnContext::compactPrompt()
      */
     fun compactPromptOrDefault(): String = compactPrompt ?: SUMMARIZATION_PROMPT
 
     /**
-     * Resolves a relative path against the turn's CWD.
-     * Ported from Rust codex-rs/core/src/codex.rs TurnContext::resolve_path()
+     * Resolves a relative path against the turn CWD.
+     * Ported from Rust codex-rs/core/src/codex.rs TurnContext::resolvePath()
      */
     fun resolvePath(path: String?): String {
         if (path == null) return cwd
@@ -1433,7 +1433,7 @@ data class TurnContext(
     }
 
     /**
-     * Returns the compact prompt to use for this turn.
+     * Returns the compact prompt to import for this turn.
      */
     fun getCompactPrompt(): String {
         return compactPrompt ?: TURN_CONTEXT_DEFAULT_COMPACT_PROMPT
@@ -1543,7 +1543,7 @@ enum class ExecPolicyAction { Allow, Deny, Ask }
 /**
  * Main submission loop that processes operations.
  *
- * Ported from Rust codex-rs/core/src/codex.rs submission_loop
+ * Ported from Rust codex-rs/core/src/codex.rs submissionLoop
  */
 private suspend fun submissionLoop(
     sess: Session,
@@ -1828,7 +1828,7 @@ private object Handlers {
  * - requested function calls
  * - an assistant message
  *
- * Ported from Rust codex-rs/core/src/codex.rs run_task
+ * Ported from Rust codex-rs/core/src/codex.rs runTask
  */
 suspend fun runTask(
     sess: Session,
@@ -1935,7 +1935,7 @@ suspend fun runTask(
 /**
  * Run a single turn of the conversation.
  *
- * Ported from Rust codex-rs/core/src/codex.rs run_turn
+ * Ported from Rust codex-rs/core/src/codex.rs runTurn
  */
 private suspend fun runTurn(
     sess: Session,
@@ -2016,7 +2016,7 @@ private suspend fun runTurn(
 /**
  * Try to run a single turn, handling streaming and tool calls.
  *
- * Ported from Rust codex-rs/core/src/codex.rs try_run_turn (lines 2165-2402)
+ * Ported from Rust codex-rs/core/src/codex.rs tryRunTurn (lines 2165-2402)
  */
 private suspend fun tryRunTurn(
     router: ToolRouter,
@@ -2055,7 +2055,7 @@ private suspend fun tryRunTurn(
     val streamChannel = Channel<ResponseEvent>(Channel.UNLIMITED)
 
     // In production, this would be populated by the model client stream
-    // For now, we'll process any events that come through
+    // For now, we will process any events that come through
     try {
         while (true) {
             // Check for cancellation
@@ -2071,7 +2071,7 @@ private suspend fun tryRunTurn(
                 streamChannel.receiveCatching().getOrNull()
             }
 
-            // If no events and stream is closed, we're done waiting
+            // If no events and stream is closed, we are done waiting
             // In real implementation, stream would send Completed event
             if (event == null) {
                 // For now, return success with collected items
@@ -2305,7 +2305,7 @@ private fun parseTurnItem(item: ResponseItem): TurnItem? {
         is ResponseItem.WebSearchCall -> {
             TurnItem.WebSearch(item = WebSearchItem(
                 id = item.id ?: "search_${item.hashCode()}",
-                query = "" // WebSearchCall doesn't have query info
+                query = "" // WebSearchCall does not have query info
             ))
         }
         else -> null
@@ -2330,7 +2330,7 @@ fun getLastAssistantMessageFromTurn(responses: List<ResponseItem>): String? {
 /**
  * Spawn a review thread for code review functionality.
  *
- * Ported from Rust codex-rs/core/src/codex.rs spawn_review_thread (lines 1803-1893)
+ * Ported from Rust codex-rs/core/src/codex.rs spawnReviewThread (lines 1803-1893)
  */
 private suspend fun spawnReviewThread(
     sess: Session,
@@ -2339,12 +2339,12 @@ private suspend fun spawnReviewThread(
     subId: String,
     reviewRequest: ReviewRequest
 ) {
-    // Get review model (use config review_model or fall back to main model)
-    val reviewModel = config.model // In full impl, would use config.reviewModel
+    // Get review model (import config reviewModel or fall back to main model)
+    val reviewModel = config.model // In full implementation, would import config.reviewModel
     val reviewModelFamily = findFamilyForModel(reviewModel)
         ?: deriveDefaultModelFamily("default")
 
-    // For reviews, disable web_search and view_image regardless of global settings
+    // For reviews, disable webSearch and viewImage regardless of global settings
     val reviewFeatures = config.features.copy().apply {
         disable(Feature.WebSearchRequest)
         disable(Feature.ViewImageTool)
@@ -2368,7 +2368,7 @@ private suspend fun spawnReviewThread(
 
     // Create review turn context.
     // NOTE: per-turn client (with review model/family/effort/summary) would be built
-    // in Rust here and attached to this TurnContext. We pass through the parent's
+    // in Rust here and attached to this TurnContext. We pass through the parent
     // client for now; reviewModel/reviewModelFamily/reviewReasoningEffort/
     // reviewReasoningSummary are consumed via the client when the port is completed.
     val reviewTurnContext = TurnContext(
@@ -2406,7 +2406,7 @@ private suspend fun spawnReviewThread(
 
 /**
  * Base prompt for code review functionality.
- * Ported from Rust codex-rs/core/src/client_common.rs REVIEW_PROMPT
+ * Ported from Rust codex-rs/core/src/clientCommon.rs REVIEW_PROMPT
  */
 private const val REVIEW_PROMPT = """
 You are a code review assistant. Your task is to review the code changes and provide feedback.
@@ -2425,7 +2425,7 @@ Provide your review in a clear, organized format.
 
 /**
  * Template for successful review exit message.
- * Ported from Rust codex-rs/core/templates/review/exit_success.xml
+ * Ported from Rust codex-rs/core/templates/review/exitSuccess.xml
  */
 private const val REVIEW_EXIT_SUCCESS_TMPL = """<user_action>
   <context>User initiated a review task. Here's the full review output from reviewer model. User may select one or more comments to resolve.</context>
@@ -2438,7 +2438,7 @@ private const val REVIEW_EXIT_SUCCESS_TMPL = """<user_action>
 
 /**
  * Template for interrupted review exit message.
- * Ported from Rust codex-rs/core/templates/review/exit_interrupted.xml
+ * Ported from Rust codex-rs/core/templates/review/exitInterrupted.xml
  */
 private const val REVIEW_EXIT_INTERRUPTED_TMPL = """<user_action>
   <context>User initiated a review task, but was interrupted. If user asks about this, tell them to re-initiate a review with `/review` and wait for it to complete.</context>
@@ -2599,7 +2599,7 @@ data class Prompt(
  * Tool specification.
  *
  * When serialized as JSON, this produces a valid "Tool" in the OpenAI Responses API.
- * Matches Rust's ToolSpec enum from core/src/client_common.rs.
+ * Matches the upstream ToolSpec enum from core/src/clientCommon.rs.
  */
 sealed class ToolSpec {
     /**
@@ -2634,7 +2634,7 @@ sealed class ToolSpec {
 }
 
 /**
- * Freeform tool definition (matches Rust FreeformTool in client_common.rs).
+ * Freeform tool definition (matches Rust FreeformTool in clientCommon.rs).
  */
 data class FreeformTool(
     val name: String,
@@ -2706,7 +2706,7 @@ class RolloutRecorder(
         /**
          * Read the contents of a rollout file and reconstruct the [InitialHistory].
          *
-         * Mirrors Rust `RolloutRecorder::get_rollout_history` from
+         * Mirrors Rust `RolloutRecorder::getRolloutHistory` from
          * `core/src/rollout/recorder.rs`.
          */
         suspend fun getRolloutHistory(path: String): CodexResult<InitialHistory> {
@@ -2774,8 +2774,6 @@ class RolloutRecorder(
             )
         }
 
-        /** Rust-style spelling, mirroring `RolloutRecorder::get_rollout_history`. */
-        suspend fun get_rollout_history(path: String): CodexResult<InitialHistory> = getRolloutHistory(path)
     }
 }
 
@@ -2815,7 +2813,7 @@ private fun findFamilyForModel(model: String): ModelFamily? = null
  * Convert content items to text, joining non-empty text pieces with newlines.
  * Ignores image content items.
  *
- * Ported from Rust codex-rs/core/src/compact.rs content_items_to_text
+ * Ported from Rust codex-rs/core/src/compact.rs contentItemsToText
  */
 fun contentItemsToText(content: List<ContentItem>): String? {
     val pieces = mutableListOf<String>()
@@ -2842,7 +2840,7 @@ fun contentItemsToText(content: List<ContentItem>): String? {
 /**
  * Check if a message is a summary message (starts with SUMMARY_PREFIX).
  *
- * Ported from Rust codex-rs/core/src/compact.rs is_summary_message
+ * Ported from Rust codex-rs/core/src/compact.rs isSummaryMessage
  */
 fun isSummaryMessage(message: String): Boolean {
     return message.startsWith("$SUMMARY_PREFIX\n")
@@ -2852,7 +2850,7 @@ fun isSummaryMessage(message: String): Boolean {
  * Collect user messages from history for context compaction.
  * Extracts text content from user role messages, filtering out summary messages.
  *
- * Ported from Rust codex-rs/core/src/compact.rs collect_user_messages
+ * Ported from Rust codex-rs/core/src/compact.rs collectUserMessages
  */
 private fun collectUserMessages(history: List<ResponseItem>): List<String> {
     return history.filterIsInstance<ResponseItem.Message>()
@@ -2876,7 +2874,7 @@ private fun collectUserMessages(history: List<ResponseItem>): List<String> {
  */
 /**
  * Build compacted history with token-limited user messages.
- * Ported from Rust codex-rs/core/src/compact.rs build_compacted_history
+ * Ported from Rust codex-rs/core/src/compact.rs buildCompactedHistory
  */
 private fun buildCompactedHistory(
     initial: List<ResponseItem>,
@@ -2893,7 +2891,7 @@ private fun buildCompactedHistory(
 
 /**
  * Build compacted history with configurable token limit for user messages.
- * Ported from Rust codex-rs/core/src/compact.rs build_compacted_history_with_limit
+ * Ported from Rust codex-rs/core/src/compact.rs buildCompactedHistoryWithLimit
  */
 private fun buildCompactedHistoryWithLimit(
     initial: List<ResponseItem>,
@@ -2940,7 +2938,7 @@ private fun buildCompactedHistoryWithLimit(
         summary
     }
 
-    // Add summary as a user message (matching Rust's ResponseItem::Message with role="user")
+    // Add summary as a user message (matching the upstream ResponseItem::Message with role="user")
     result.add(ResponseItem.Message(
         id = null,
         role = "user",
@@ -2953,7 +2951,7 @@ private fun buildCompactedHistoryWithLimit(
  * Check if remote compaction should be used.
  * Returns true if auth mode is ChatGPT and RemoteCompaction feature is enabled.
  *
- * Ported from Rust codex-rs/core/src/compact.rs should_use_remote_compact_task
+ * Ported from Rust codex-rs/core/src/compact.rs shouldUseRemoteCompactTask
  */
 private suspend fun shouldUseRemoteCompactTask(sess: Session): Boolean {
     val auth = sess.services.authManager.auth() ?: return false
@@ -2967,7 +2965,7 @@ private suspend fun shouldUseRemoteCompactTask(sess: Session): Boolean {
  * Ported from Rust codex-rs/core/src/compact.rs (remote compaction path)
  */
 private suspend fun runInlineRemoteAutoCompactTask(sess: Session, turnContext: TurnContext) {
-    // Remote compaction would use the ChatGPT backend for server-side compaction.
+    // Remote compaction would import the ChatGPT backend for server-side compaction.
     // For now, fall back to local compaction.
     runInlineAutoCompactTask(sess, turnContext)
 }
@@ -2975,7 +2973,7 @@ private suspend fun runInlineRemoteAutoCompactTask(sess: Session, turnContext: T
 /**
  * Run inline auto-compaction using the configured compact prompt.
  *
- * Ported from Rust codex-rs/core/src/compact.rs run_inline_auto_compact_task
+ * Ported from Rust codex-rs/core/src/compact.rs runInlineAutoCompactTask
  */
 private suspend fun runInlineAutoCompactTask(sess: Session, turnContext: TurnContext) {
     val prompt = turnContext.compactPromptOrDefault()
@@ -2986,7 +2984,7 @@ private suspend fun runInlineAutoCompactTask(sess: Session, turnContext: TurnCon
 /**
  * Run a compaction task with TaskStarted event.
  *
- * Ported from Rust codex-rs/core/src/compact.rs run_compact_task
+ * Ported from Rust codex-rs/core/src/compact.rs runCompactTask
  */
 private suspend fun runCompactTask(sess: Session, turnContext: TurnContext, input: List<UserInput>) {
     val startEvent = EventMsg.TaskStarted(TaskStartedEvent(
@@ -3000,7 +2998,7 @@ private suspend fun runCompactTask(sess: Session, turnContext: TurnContext, inpu
  * Inner implementation of compaction task.
  * Performs the actual context compaction by summarizing conversation history.
  *
- * Ported from Rust codex-rs/core/src/compact.rs run_compact_task_inner
+ * Ported from Rust codex-rs/core/src/compact.rs runCompactTaskInner
  */
 private suspend fun runCompactTaskInner(sess: Session, turnContext: TurnContext, input: List<UserInput>) {
     // Build the input item from user input
@@ -3070,7 +3068,7 @@ class InterruptedException : Exception()
 class ContextWindowExceededException : Exception()
 
 // UserInstructions and DeveloperInstructions are defined in UserInstructions.kt
-// as a faithful port of core/src/user_instructions.rs.
+// as a faithful port of core/src/userInstructions.rs.
 
 class EnvironmentContext(
     val cwd: String?,
@@ -3415,7 +3413,7 @@ class CompactTask : SessionTask {
         val compactionInput = listOf(UserInput.Text(compactionRequest))
         val summaryResult = runTask(session, turnContext, compactionInput, cancellationToken)
 
-        // Use the summary or a default if model didn't respond
+        // Use the summary or a default if model did not respond
         val summary = summaryResult ?: "[Previous conversation context compacted]"
 
         // Build initial context
@@ -3568,7 +3566,7 @@ class GhostSnapshotTask(
             }
         }
 
-        // Return null - this task runs in background and doesn't produce a direct response
+        // Return null - this task runs in background and does not produce a direct response
         return null
     }
 
@@ -3668,9 +3666,9 @@ class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
      * If the text is valid JSON matching ReviewOutputEvent, deserialize it.
      * Otherwise, attempt to extract the first JSON object substring and parse it.
      * If parsing still fails, return a structured fallback carrying the plain text
-     * in `overall_explanation`.
+     * in `overallExplanation`.
      *
-     * Ported from Rust codex-rs/core/src/tasks/review.rs parse_review_output_event
+     * Ported from Rust codex-rs/core/src/tasks/review.rs parseReviewOutputEvent
      */
     private fun parseReviewOutputEvent(text: String?): ReviewOutputEvent? {
         if (text.isNullOrBlank()) {
@@ -3709,7 +3707,7 @@ class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
 
     /**
      * Format review findings into a readable block.
-     * Ported from Rust codex-rs/core/src/review_format.rs format_review_findings_block
+     * Ported from Rust codex-rs/core/src/reviewFormat.rs formatReviewFindingsBlock
      */
     private fun formatReviewFindingsBlock(findings: List<ReviewFinding>): String {
         if (findings.isEmpty()) return ""
@@ -3734,7 +3732,7 @@ class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
      * Emits an ExitedReviewMode Event with optional ReviewOutput,
      * and optionally records a user message with the review output.
      *
-     * Ported from Rust codex-rs/core/src/tasks/review.rs exit_review_mode
+     * Ported from Rust codex-rs/core/src/tasks/review.rs exitReviewMode
      */
     private suspend fun exitReviewMode(
         session: Session,

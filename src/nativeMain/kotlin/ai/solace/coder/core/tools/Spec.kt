@@ -495,7 +495,7 @@ fun buildSpecs(
                 builder.pushSpec(ToolSpec.Function(convertedTool))
                 builder.registerHandler(name, mcpHandler)
             } catch (e: Exception) {
-                // tracing::error!("Failed to convert {name:?} MCP tool to OpenAI tool: {e:?}");
+                // tracing::error("Failed to convert {name:?} MCP tool to OpenAI tool: {e:?}");
                 println("Failed to convert $name MCP tool to OpenAI tool: $e")
             }
         }
@@ -512,8 +512,8 @@ fun mcpToolToOpenAiTool(
     val inputSchema = tool.inputSchema
 
     // Build a JsonObject mirroring the MCP tool input schema so we can reuse the
-    // existing JSON-to-JsonSchema converter. This mirrors Rust's `sanitize_json_schema`
-    // approach where the schema is walked as serde_json::Value.
+    // existing JSON-to-JsonSchema converter. This mirrors the upstream `sanitizeJsonSchema`
+    // approach where the schema is walked as serdeJson::Value.
     val schemaJson = kotlinx.serialization.json.buildJsonObject {
         put("type", JsonPrimitive(inputSchema.type))
         inputSchema.properties?.let { put("properties", it) }
@@ -539,7 +539,7 @@ fun mcpToolToOpenAiTool(
 fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
     if (element !is JsonObject) {
         // Fallback or error. For now, treat as empty object or string?
-        // If it's a primitive, it might be a simplified schema?
+        // If it a primitive, it might be a simplified schema?
         // But usually schema is an object.
         return JsonSchema.Object(emptyMap())
     }

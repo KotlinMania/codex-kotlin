@@ -73,7 +73,7 @@ enum class AggregateMode {
 
 /**
  * Stream adapter that merges token deltas into a single assistant message per turn.
- * Mirrors Rust's AggregatedStream impl Stream for AggregatedStream.
+ * Mirrors the upstream AggregatedStream implementation Stream for AggregatedStream.
  */
 class AggregatedStream private constructor(
     private val inner: ResponseStream,
@@ -85,7 +85,7 @@ class AggregatedStream private constructor(
 
     /**
      * Poll the next event from the aggregated stream.
-     * This implements the full Rust poll_next logic for event aggregation.
+     * This implements the full Rust pollNext logic for event aggregation.
      */
     override suspend fun next(): Result<ResponseEvent>? {
         // Return pending events first
@@ -125,11 +125,11 @@ class AggregatedStream private constructor(
                                 continue // Don't emit, keep looping
                             }
                             AggregateMode.Streaming -> {
-                                // In streaming mode, emit the item if we haven't accumulated anything
+                                // In streaming mode, emit the item if we have not accumulated anything
                                 if (cumulative.isEmpty()) {
                                     return Result.success(event)
                                 } else {
-                                    continue // Skip this item, we're aggregating
+                                    continue // Skip this item, we are aggregating
                                 }
                             }
                         }
@@ -192,7 +192,7 @@ class AggregatedStream private constructor(
                     if (mode == AggregateMode.Streaming) {
                         return Result.success(event)
                     } else {
-                        continue // Accumulate but don't emit
+                        continue // Accumulate but do not emit
                     }
                 }
 
@@ -201,7 +201,7 @@ class AggregatedStream private constructor(
                     if (mode == AggregateMode.Streaming) {
                         return Result.success(event)
                     } else {
-                        continue // Accumulate but don't emit
+                        continue // Accumulate but do not emit
                     }
                 }
 
@@ -229,7 +229,7 @@ class AggregatedStream private constructor(
 
 /**
  * Extension functions for ResponseStream aggregation.
- * Mirrors Rust's AggregateStreamExt trait.
+ * Mirrors the upstream AggregateStreamExt trait.
  */
 fun ResponseStream.aggregate(): AggregatedStream {
     return AggregatedStream.new(this, AggregateMode.AggregatedOnly)

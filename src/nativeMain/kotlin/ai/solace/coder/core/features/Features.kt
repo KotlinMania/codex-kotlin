@@ -40,10 +40,10 @@ enum class Feature(
     /** Enable experimental RMCP features such as OAuth login. */
     RmcpClient("rmcp_client", Stage.Experimental, false),
 
-    /** Include the freeform apply_patch tool. */
+    /** Include the freeform applyPatch tool. */
     ApplyPatchFreeform("apply_patch_freeform", Stage.Beta, false),
 
-    /** Include the view_image tool. */
+    /** Include the viewImage tool. */
     ViewImageTool("view_image_tool", Stage.Stable, true),
 
     /** Allow the model to request web searches. */

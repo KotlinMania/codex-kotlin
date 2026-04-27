@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/function_tool.rs
+// port-lint: source codex-rs/core/src/functionTool.rs
 package ai.solace.coder.core
 
 /**
@@ -24,7 +24,7 @@ sealed class FunctionCallError : Exception() {
     }
 
     /**
-     * LocalShellCall is missing a call_id or id.
+     * LocalShellCall is missing a callId or id.
      */
     data object MissingLocalShellCallId : FunctionCallError() {
         override val message: String get() = "LocalShellCall without call_id or id"

@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
  *
  * Port origins (Rust):
  * - codex-rs/core/src/auth.rs (AuthManager, storage modes)
- * - codex-rs/codex-api/src/auth.rs (AuthProvider trait, add_auth_headers)
+ * - codex-rs/codex-api/src/auth.rs (AuthProvider trait, addAuthHeaders)
  *
  * Implemented features:
  * - [x] Environment variable detection for API keys (OPENAI_API_KEY, CODEX_API_KEY)
@@ -42,7 +42,7 @@ class AuthManager(
     private var cachedAuth: CodexAuth? = null
 
     init {
-        // If an initialAuth was provided (e.g. for testing), use it directly;
+        // If an initialAuth was provided (e.g. for testing), import it directly;
         // otherwise load auth from environment / disk on construction.
         cachedAuth = initialAuth ?: loadAuth()
     }
@@ -215,7 +215,7 @@ class AuthManager(
         /**
          * Create an AuthManager with a specific [CodexAuth], for testing only.
          *
-         * Mirrors Rust `AuthManager::from_auth_for_testing`.
+         * Mirrors Rust `AuthManager::fromAuthForTesting`.
          */
         fun fromAuthForTesting(auth: CodexAuth): AuthManager {
             return AuthManager(
@@ -226,8 +226,6 @@ class AuthManager(
             )
         }
 
-        /** Rust-style spelling, mirroring `AuthManager::from_auth_for_testing`. */
-        fun from_auth_for_testing(auth: CodexAuth): AuthManager = fromAuthForTesting(auth)
     }
 }
 
@@ -263,7 +261,7 @@ data class CodexAuth(
 /**
  * Token data for OAuth-based authentication.
  *
- * Ported from Rust codex-rs/core/src/token_data.rs TokenData
+ * Ported from Rust codex-rs/core/src/tokenData.rs TokenData
  */
 data class TokenData(
     val idToken: IdTokenInfo,
@@ -275,7 +273,7 @@ data class TokenData(
 /**
  * Information extracted from the ID token.
  *
- * Ported from Rust codex-rs/core/src/token_data.rs IdTokenInfo
+ * Ported from Rust codex-rs/core/src/tokenData.rs IdTokenInfo
  */
 data class IdTokenInfo(
     val email: String?,
@@ -378,9 +376,9 @@ interface AuthProvider {
  *
  * Adds:
  * - Authorization: Bearer <token> (if bearer token available)
- * - ChatGPT-Account-ID: <account_id> (if account ID available)
+ * - ChatGPT-Account-ID: <accountId> (if account ID available)
  *
- * Ported from Rust codex-api/src/auth.rs add_auth_headers function.
+ * Ported from Rust codex-api/src/auth.rs addAuthHeaders function.
  *
  * @param auth The auth provider to get credentials from
  * @param headers Mutable map of headers to add to

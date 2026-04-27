@@ -1,4 +1,4 @@
-// port-lint: source core/src/command_safety/windows_dangerous_commands.rs
+// port-lint: source core/src/commandSafety/windowsDangerousCommands.rs
 package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.exec.shell.CommandParser
@@ -165,7 +165,7 @@ private fun looksLikeUrl(token: String): Boolean {
         .trimEnd(' ', ';', ')')
         .takeWhile { it != '"' && it != '\'' && it != ')' && it != ';' && !it.isWhitespace() }
 
-    // Check if it's a valid http/https URL
+    // Check if it a valid http/https URL
     return try {
         (candidate.startsWith("http://") || candidate.startsWith("https://")) &&
             candidate.length > 8 // At minimum "http://x"

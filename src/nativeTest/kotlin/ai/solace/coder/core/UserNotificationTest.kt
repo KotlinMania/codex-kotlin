@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/user_notification.rs
+// port-lint: source codex-rs/core/src/userNotification.rs
 package ai.solace.coder.core
 
 import kotlinx.serialization.json.Json

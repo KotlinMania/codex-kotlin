@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/exec/src/exec_events.rs
+// port-lint: source codex-rs/exec/src/execEvents.rs
 package ai.solace.coder.exec
 
 import ai.solace.coder.protocol.ContentBlock
@@ -27,7 +27,7 @@ sealed class ThreadEvent {
     data class TurnStarted(val event: TurnStartedEvent) : ThreadEvent()
 
     /**
-     * Emitted when a turn is completed. Typically right after the assistant's response.
+     * Emitted when a turn is completed. Typically right after the assistant response.
      */
     @Serializable
     @SerialName("turn.completed")
@@ -149,7 +149,7 @@ data class ThreadItem(
     val id: String,
     /**
      * Flattened details (using JsonContentPolymorphicSerializer would require more setup)
-     * In Rust this uses #[serde(flatten)], we'll handle via custom serializer or flattening manually.
+     * In Rust this uses (serde(flatten)), we will handle via custom serializer or flattening manually.
      */
     val details: ThreadItemDetails
 )
@@ -168,7 +168,7 @@ sealed class ThreadItemDetails {
     data class AgentMessage(val item: AgentMessageItem) : ThreadItemDetails()
 
     /**
-     * Agent's reasoning summary.
+     * Agent reasoning summary.
      */
     @Serializable
     @SerialName("reasoning")
@@ -207,7 +207,7 @@ sealed class ThreadItemDetails {
     data class WebSearch(val item: WebSearchItem) : ThreadItemDetails()
 
     /**
-     * Tracks the agent's running to-do list. It starts when the plan is first
+     * Tracks the agent running to-do list. It starts when the plan is first
      * issued, updates as steps change state, and completes when the turn ends.
      */
     @Serializable
@@ -232,7 +232,7 @@ data class AgentMessageItem(
 )
 
 /**
- * Agent's reasoning summary.
+ * Agent reasoning summary.
  */
 @Serializable
 data class ReasoningItem(
@@ -393,7 +393,7 @@ data class ErrorItem(
 )
 
 /**
- * An item in agent's to-do list.
+ * An item in agent to-do list.
  */
 @Serializable
 data class TodoItem(

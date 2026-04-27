@@ -216,12 +216,12 @@ class ShellDetector {
         binaryName: String,
         fallbackPaths: List<String>
     ): String? {
-        // If exact provided path exists, use it
+        // If exact provided path exists, import it
         if (providedPath != null && fileExists(providedPath)) {
             return providedPath
         }
 
-        // Check if the shell we are trying to load is user's default shell
+        // Check if the shell we are trying to load is user default shell
         val defaultShellPath = getUserShellPath()
         if (defaultShellPath != null && detectShellType(defaultShellPath) == shellType) {
             return defaultShellPath

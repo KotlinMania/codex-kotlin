@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/unified_exec.rs
+// port-lint: source core/src/tools/handlers/unifiedExec.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.CodexErr
@@ -15,7 +15,7 @@ import ai.solace.coder.core.unified_exec.WriteStdinRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Handler for the unified_exec tool. */
+/** Handler for the unifiedExec tool. */
 class UnifiedExecHandler : ToolHandler {
         override val kind: ToolKind = ToolKind.Function
 

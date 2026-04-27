@@ -1,0 +1,22 @@
+{
+  "type": "port",
+  "name": "codex-kotlin",
+  "source": {
+    "path": "codex-rs/core/src/error.rs",
+    "lang": "rust"
+  },
+  "target": {
+    "path": "src/nativeMain/kotlin/ai/solace/coder/core/Error.kt",
+    "lang": "kotlin"
+  },
+  "checks": {
+    "deep": true,
+    "missing": true,
+    "todos": true,
+    "lint": true
+  },
+  "reexport_modules": [
+    "mod.rs",
+    "lib.rs"
+  ]
+}

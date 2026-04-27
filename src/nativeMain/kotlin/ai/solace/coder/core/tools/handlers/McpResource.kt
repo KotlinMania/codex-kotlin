@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/mcp_resource.rs
+// port-lint: source core/src/tools/handlers/mcpResource.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.FunctionCallError
@@ -469,7 +469,7 @@ private inline fun <reified T> parseArgsWithDefault(arguments: JsonElement?): T 
                 // This requires T to have a no-arg constructor or default values, which data
                 // classes with
                 // defaults have.
-                // However, standard Json.decodeFromJsonElement doesn't support "default" from null
+                // However, standard Json.decodeFromJsonElement does not support "default" from null
                 // directly
                 // for non-nullable.
                 // We can try to decode an empty object if T allows it.

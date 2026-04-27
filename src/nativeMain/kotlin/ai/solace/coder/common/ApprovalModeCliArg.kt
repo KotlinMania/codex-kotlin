@@ -1,5 +1,5 @@
-// port-lint: source codex-rs/common/src/approval_mode_cli_arg.rs
-//! Standard type to use with the `--approval-mode` CLI option.
+// port-lint: source codex-rs/common/src/approvalModeCliArg.rs
+//! Standard type to import with the `--approval-mode` CLI option.
 //! Available when the `cli` feature is enabled for the crate.
 package ai.solace.coder.common
 

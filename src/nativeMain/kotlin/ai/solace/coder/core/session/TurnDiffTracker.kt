@@ -1,4 +1,4 @@
-// port-lint: source core/src/turn_diff_tracker.rs
+// port-lint: source core/src/turnDiffTracker.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.protocol.FileChange
@@ -15,7 +15,7 @@ import kotlinx.coroutines.sync.withLock
  * 3. To compute the aggregated unified diff, compares each baseline snapshot to the
  *    current file on disk.
  *
- * Ported from Rust codex-rs/core/src/turn_diff_tracker.rs
+ * Ported from Rust codex-rs/core/src/turnDiffTracker.rs
  */
 class TurnDiffTracker {
     private val mutex = Mutex()
@@ -189,7 +189,7 @@ class TurnDiffTracker {
             appendLine("@@ -1,${oldLines.size} +1,${newLines.size} @@")
 
             // Simple diff: show all old lines as removed, all new lines as added
-            // A real implementation would use Myers diff algorithm
+            // A real implementation would import Myers diff algorithm
             for (line in oldLines) {
                 appendLine("-$line")
             }

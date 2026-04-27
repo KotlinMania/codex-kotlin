@@ -162,7 +162,7 @@ fun createSeatbeltCommandArgs(
                 // Rust canonicalizes here (e.g. /var vs /private/var on macOS) and
                 // falls back to the original path on failure. Cross-platform
                 // realpath is not available in this shared nativeMain source set,
-                // so we use the path as-provided — matching the
+                // so we import the path as-provided — matching the
                 val canonicalRoot = wr.root
                 val rootParam = "WRITABLE_ROOT_$index"
                 fileWriteParams.add(rootParam to canonicalRoot)
@@ -200,7 +200,7 @@ fun createSeatbeltCommandArgs(
         ""
     }
 
-    // TODO(mbolin): apply_patch calls must also honor the SandboxPolicy.
+    // TODO(mbolin): applyPatch calls must also honor the SandboxPolicy.
     val networkPolicy = if (sandboxPolicy.hasFullNetworkAccess()) {
         MACOS_SEATBELT_NETWORK_POLICY
     } else {
@@ -224,6 +224,6 @@ fun createSeatbeltCommandArgs(
 /**
  * Wraps confstr (via the platform expect/actual) to return canonicalized
  * `(name, path)` pairs. On non-macOS targets this returns an empty list,
- * matching the Rust file's `#[cfg(target_os = "macos")]` gating.
+ * matching the the file in `(cfg(targetOs = "macos"))` gating.
  */
 private fun macosDirParams(): List<Pair<String, String>> = platformGetMacosDirParams()

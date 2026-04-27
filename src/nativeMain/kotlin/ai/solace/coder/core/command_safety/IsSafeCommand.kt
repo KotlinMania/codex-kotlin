@@ -1,4 +1,4 @@
-// port-lint: source core/src/command_safety/is_safe_command.rs
+// port-lint: source core/src/commandSafety/isSafeCommand.rs
 package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.core.bash.parseShellLcPlainCommands

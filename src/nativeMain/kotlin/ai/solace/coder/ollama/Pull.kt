@@ -111,7 +111,7 @@ class CliProgressReporter private constructor() : PullProgressReporter {
                 }
             }
             is PullEvent.Error -> {
-                // This will be handled by the caller, so we don't do anything
+                // This will be handled by the caller, so we do not do anything
                 // here or the error will be printed twice.
             }
             PullEvent.Success -> {

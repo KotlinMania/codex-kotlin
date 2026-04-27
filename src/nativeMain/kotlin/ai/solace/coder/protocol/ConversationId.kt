@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/conversation_id.rs
+// port-lint: source codex-rs/protocol/src/conversationId.rs
 package ai.solace.coder.protocol
 
 import kotlin.uuid.ExperimentalUuidApi
@@ -14,7 +14,7 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * Conversation ID wrapper.
  *
- * Ported from Rust codex-rs/protocol/src/conversation_id.rs
+ * Ported from Rust codex-rs/protocol/src/conversationId.rs
  */
 @Serializable(with = ConversationIdSerializer::class)
 data class ConversationId(
@@ -42,7 +42,7 @@ data class ConversationId(
 
         @OptIn(ExperimentalUuidApi::class)
         private fun generateUuidV7(): String {
-            // Use Kotlin's built-in UUID (random v4 for now, close enough for unique IDs)
+            // Use Kotlin built-in UUID (random v4 for now, close enough for unique IDs)
             return Uuid.random().toString()
         }
     }

@@ -15,7 +15,7 @@ import kotlinx.cinterop.*
 
 /**
  * Determine where Codex should store CLI auth credentials.
- * Mirrors Rust's AuthCredentialsStoreMode enum from auth/storage.rs
+ * Mirrors the upstream AuthCredentialsStoreMode enum from auth/storage.rs
  */
 enum class AuthCredentialsStoreMode {
     /** Persist credentials in CODEX_HOME/auth.json */
@@ -29,7 +29,7 @@ enum class AuthCredentialsStoreMode {
 }
 
 /**
- * Get the auth.json file path within codex_home.
+ * Get the auth.json file path within codexHome.
  */
 internal fun getAuthFile(codexHome: Path): Path {
     return Path(codexHome.toString(), "auth.json")
@@ -37,7 +37,7 @@ internal fun getAuthFile(codexHome: Path): Path {
 
 /**
  * Delete the auth.json file if it exists.
- * Returns true if a file was removed, false if it didn't exist.
+ * Returns true if a file was removed, false if it did not exist.
  */
 internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
     val authFile = getAuthFile(codexHome)
@@ -45,7 +45,7 @@ internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
         SystemFileSystem.delete(authFile)
         Result.success(true)
     } catch (_: kotlinx.io.IOException) {
-        // File doesn't exist
+        // File does not exist
         Result.success(false)
     } catch (e: Exception) {
         Result.failure(e)
@@ -54,7 +54,7 @@ internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
 
 /**
  * Auth storage backend trait.
- * Mirrors Rust's AuthStorageBackend trait from auth/storage.rs
+ * Mirrors the upstream AuthStorageBackend trait from auth/storage.rs
  */
 interface AuthStorageBackend {
     fun load(): Result<AuthDotJson?>
@@ -98,7 +98,7 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
         val authFile = getAuthFile(codexHome)
 
         return try {
-            // Create parent directory if it doesn't exist
+            // Create parent directory if it does not exist
             val parent = authFile.parent
             if (parent != null && !SystemFileSystem.exists(parent)) {
                 SystemFileSystem.createDirectories(parent)
@@ -215,7 +215,7 @@ class KeychainAuthStorage(
 
 /**
  * Auto auth storage - tries keychain first, falls back to file.
- * Mirrors Rust's AutoAuthStorage from auth/storage.rs
+ * Mirrors the upstream AutoAuthStorage from auth/storage.rs
  */
 class AutoAuthStorage(
     private val keychainStorage: KeychainAuthStorage,
@@ -268,10 +268,10 @@ class AutoAuthStorage(
 private const val KEYCHAIN_SERVICE = "Codex Auth"
 
 /**
- * Compute a stable, short key string from the codex_home path.
+ * Compute a stable, short key string from the codexHome path.
  * Uses SHA-256 hash truncated to 16 characters.
  *
- * Mirrors Rust's compute_store_key from auth/storage.rs
+ * Mirrors the upstream computeStoreKey from auth/storage.rs
  *
  * TODO: Implement proper path canonicalization
  * Currently uses path as-is. Should resolve symlinks and make absolute.
@@ -281,8 +281,8 @@ private const val KEYCHAIN_SERVICE = "Codex Auth"
  * - Output: "cli|940db7b1d0e4eb40"
  *
  * Reference:
- * - codex-rs/core/src/auth/storage.rs - compute_store_key()
- * - Test: keyring_auth_storage_compute_store_key_for_home_directory
+ * - codex-rs/core/src/auth/storage.rs - computeStoreKey()
+ * - Test: keyringAuthStorageComputeStoreKeyForHomeDirectory
  */
 @OptIn(ExperimentalForeignApi::class)
 internal fun computeStoreKey(codexHome: Path): Result<String> {
@@ -367,7 +367,7 @@ internal fun createAuthStorageWithKeychainStore(
 interface KeychainStore {
     /**
      * Load a value from the keychain.
-     * Returns null if the key doesn't exist.
+     * Returns null if the key does not exist.
      */
     fun load(service: String, key: String): Result<String?>
 
@@ -378,7 +378,7 @@ interface KeychainStore {
 
     /**
      * Delete a value from the keychain.
-     * Returns true if something was deleted, false if the key didn't exist.
+     * Returns true if something was deleted, false if the key did not exist.
      */
     fun delete(service: String, key: String): Result<Boolean>
 }
@@ -389,7 +389,7 @@ interface KeychainStore {
  * TODO: Implement actual keychain access via platform-specific APIs.
  *
  * This is a placeholder stub that always returns empty/failure.
- * The Rust version uses the `keyring` crate and `codex_keyring_store` module.
+ * The Rust version uses the `keyring` crate and `codexKeyringStore` module.
  *
  * Required platform implementations:
  *
@@ -419,19 +419,19 @@ interface KeychainStore {
  *   - linuxMain: libsecret implementation
  *   - mingwMain: Credential Manager implementation
  *
- * Or use a third-party Kotlin Multiplatform keychain library if available.
+ * Or import a third-party Kotlin Multiplatform keychain library if available.
  *
  * Test coverage needed (see Rust tests):
- *   - keyring_auth_storage_load_returns_deserialized_auth
- *   - keyring_auth_storage_compute_store_key_for_home_directory
- *   - keyring_auth_storage_save_persists_and_removes_fallback_file
- *   - keyring_auth_storage_delete_removes_keyring_and_file
- *   - auto_auth_storage_load_prefers_keyring_value
- *   - auto_auth_storage_load_uses_file_when_keyring_empty
- *   - auto_auth_storage_load_falls_back_when_keyring_errors
- *   - auto_auth_storage_save_prefers_keyring
- *   - auto_auth_storage_save_falls_back_when_keyring_errors
- *   - auto_auth_storage_delete_removes_keyring_and_file
+ *   - keyringAuthStorageLoadReturnsDeserializedAuth
+ *   - keyringAuthStorageComputeStoreKeyForHomeDirectory
+ *   - keyringAuthStorageSavePersistsAndRemovesFallbackFile
+ *   - keyringAuthStorageDeleteRemovesKeyringAndFile
+ *   - autoAuthStorageLoadPrefersKeyringValue
+ *   - autoAuthStorageLoadUsesFileWhenKeyringEmpty
+ *   - autoAuthStorageLoadFallsBackWhenKeyringErrors
+ *   - autoAuthStorageSavePrefersKeyring
+ *   - autoAuthStorageSaveFallsBackWhenKeyringErrors
+ *   - autoAuthStorageDeleteRemovesKeyringAndFile
  *
  * Reference:
  *   - codex-rs/keyring-store crate (codex-rs/keyring-store/src/lib.rs)
@@ -443,7 +443,7 @@ class DefaultKeychainStore : KeychainStore {
         // TODO: Implement platform-specific keychain loading
         // Should return:
         //   - Result.success(value) if key exists
-        //   - Result.success(null) if key doesn't exist
+        //   - Result.success(null) if key does not exist
         //   - Result.failure(exception) on error
         //
         // For now, return null (not found) to allow fallback to file storage
@@ -465,7 +465,7 @@ class DefaultKeychainStore : KeychainStore {
         // TODO: Implement platform-specific keychain deletion
         // Should return:
         //   - Result.success(true) if key was deleted
-        //   - Result.success(false) if key didn't exist
+        //   - Result.success(false) if key did not exist
         //   - Result.failure(exception) on error
         //
         // For now, return false (nothing deleted)
@@ -481,7 +481,7 @@ class DefaultKeychainStore : KeychainStore {
  * Mock keychain store for testing.
  *
  * TODO: Implement mock keychain store for unit tests.
- * Should mimic Rust's MockKeyringStore behavior:
+ * Should mimic the upstream MockKeyringStore behavior:
  *   - Store values in memory (HashMap)
  *   - Support setting error conditions for specific keys
  *   - Provide test helpers like:
@@ -557,14 +557,14 @@ class MockKeychainStore : KeychainStore {
  *
  * Test files from Rust (not ported):
  *   Lines 290-672 in storage.rs contain comprehensive tests:
- *   - file_storage_load_returns_auth_dot_json
- *   - file_storage_save_persists_auth_dot_json
- *   - file_storage_delete_removes_auth_file
+ *   - fileStorageLoadReturnsAuthDotJson
+ *   - fileStorageSavePersistsAuthDotJson
+ *   - fileStorageDeleteRemovesAuthFile
  *   - keyring_auth_storage_* tests (7 tests)
  *   - auto_auth_storage_* tests (7 tests)
- *   - Helper functions: seed_keyring_and_fallback_auth_file_for_delete,
- *     seed_keyring_with_auth, assert_keyring_saved_auth_and_removed_fallback,
- *     id_token_with_prefix, auth_with_prefix
+ *   - Helper functions: seedKeyringAndFallbackAuthFileForDelete,
+ *     seedKeyringWithAuth, assertKeyringSavedAuthAndRemovedFallback,
+ *     idTokenWithPrefix, authWithPrefix
  *
  * Line count: Kotlin ~480 lines vs Rust 672 lines
  *   - Rust includes 380+ lines of tests
@@ -573,7 +573,7 @@ class MockKeychainStore : KeychainStore {
  *   - Similar coverage for production features
  *
  * Next steps to reach feature parity:
- *   1. Implement SHA-256 hashing (use kotlinx-crypto or native crypto)
+ *   1. Implement SHA-256 hashing (import kotlinx-crypto or native crypto)
  *   2. Create platform-specific keychain implementations (expect/actual)
  *   3. Add Unix file permission setting (mode 0600)
  *   4. Port unit tests to Kotlin test framework

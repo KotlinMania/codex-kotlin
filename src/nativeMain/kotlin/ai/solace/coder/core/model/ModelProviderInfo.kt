@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/model_provider_info.rs
+// port-lint: source codex-rs/core/src/modelProviderInfo.rs
 package ai.solace.coder.core.model
 
 import ai.solace.coder.api.provider.Provider
@@ -13,9 +13,9 @@ import kotlin.time.Duration.Companion.milliseconds
 private const val DEFAULT_STREAM_IDLE_TIMEOUT_MS: Long = 300_000
 private const val DEFAULT_STREAM_MAX_RETRIES: Long = 5
 private const val DEFAULT_REQUEST_MAX_RETRIES: Long = 4
-/** Hard cap for user-configured `stream_max_retries`. */
+/** Hard cap for user-configured `streamMaxRetries`. */
 private const val MAX_STREAM_MAX_RETRIES: Long = 100
-/** Hard cap for user-configured `request_max_retries`. */
+/** Hard cap for user-configured `requestMaxRetries`. */
 private const val MAX_REQUEST_MAX_RETRIES: Long = 100
 
 const val DEFAULT_LMSTUDIO_PORT: Int = 1234
@@ -29,18 +29,18 @@ const val OLLAMA_OSS_PROVIDER_ID: String = "ollama"
 /**
  * Serializable representation of a provider definition.
  *
- * Ported from Rust codex-rs/core/src/model_provider_info.rs
+ * Ported from Rust codex-rs/core/src/modelProviderInfo.rs
  */
 @Serializable
 data class ModelProviderInfo(
     /** Friendly display name. */
     val name: String,
 
-    /** Base URL for the provider's OpenAI-compatible API. */
+    /** Base URL for the provider OpenAI-compatible API. */
     @SerialName("base_url")
     val baseUrl: String? = null,
 
-    /** Environment variable that stores the user's API key for this provider. */
+    /** Environment variable that stores the user API key for this provider. */
     @SerialName("env_key")
     val envKey: String? = null,
 
@@ -48,7 +48,7 @@ data class ModelProviderInfo(
     @SerialName("env_key_instructions")
     val envKeyInstructions: String? = null,
 
-    /** Value to use with `Authorization: Bearer <token>` header. */
+    /** Value to import with `Authorization: Bearer <token>` header. */
     @SerialName("experimental_bearer_token")
     val experimentalBearerToken: String? = null,
 
@@ -85,7 +85,7 @@ data class ModelProviderInfo(
     val requiresOpenAiAuth: Boolean = false
 ) {
     /**
-     * Convert to API provider for use with HTTP client.
+     * Convert to API provider for import with HTTP client.
      */
     fun toApiProvider(authMode: AuthMode?): Provider {
         val defaultBaseUrl = if (authMode == AuthMode.ChatGPT) {

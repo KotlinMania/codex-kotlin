@@ -14,7 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
  * Parser for Server-Sent Events (SSE) format.
  * Parses SSE streams from the Codex API /responses endpoint.
  * 
- * Maps to Rust's SSE parsing in eventsource-stream.
+ * Maps to the upstream SSE parsing in eventsource-stream.
  */
 class SseParser {
     private val json = Json {
@@ -139,7 +139,7 @@ class SseParser {
             }
         } catch (e: Exception) {
             // Log parse error but continue processing stream
-            // Ported from Rust codex-rs/core/src/client.rs map_response_stream error handling
+            // Ported from Rust codex-rs/core/src/client.rs mapResponseStream error handling
             println("WARN: SSE parse failed for event type '$eventType': ${e.message}")
             null
         }

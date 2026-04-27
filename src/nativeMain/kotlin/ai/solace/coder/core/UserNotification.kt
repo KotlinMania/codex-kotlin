@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/user_notification.rs
+// port-lint: source codex-rs/core/src/userNotification.rs
 package ai.solace.coder.core
 
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -34,9 +34,9 @@ sealed class UserNotification {
 }
 
 /**
- * Serializer matching Rust's
- * `#[serde(tag = "type", rename_all = "kebab-case")]` with variant
- * `#[serde(rename_all = "kebab-case")]` on fields.
+ * Serializer matching the upstream
+ * `(serde(tag = "type", renameAll = "kebab-case"))` with variant
+ * `(serde(renameAll = "kebab-case"))` on fields.
  */
 internal object UserNotificationSerializer : KSerializer<UserNotification> {
     @OptIn(ExperimentalSerializationApi::class)

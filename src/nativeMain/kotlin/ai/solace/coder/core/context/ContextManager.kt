@@ -1,4 +1,4 @@
-// port-lint: source core/src/context_manager/mod.rs
+// port-lint: source core/src/contextManager/mod.rs
 package ai.solace.coder.core.context
 
 import ai.solace.coder.protocol.TokenUsage
@@ -9,7 +9,7 @@ import ai.solace.coder.protocol.ResponseItem
 /**
  * Transcript of conversation history with token tracking.
  *
- * Ported from Rust codex-rs/core/src/context_manager/history.rs
+ * Ported from Rust codex-rs/core/src/contextManager/history.rs
  */
 class ContextManager {
     /** The oldest items are at the beginning of the list. */
@@ -17,7 +17,7 @@ class ContextManager {
     private var tokenInfo: TokenUsageInfo? = TokenUsageInfo.newOrAppend(null, null, null)
 
     /**
-     * Return a deep-enough clone mirroring Rust `#[derive(Clone)]` on `ContextManager`.
+     * Return a deep-enough clone mirroring Rust `(derive(Clone))` on `ContextManager`.
      * ResponseItem variants are immutable data classes so list-level copy suffices.
      */
     fun clone(): ContextManager {
@@ -259,7 +259,7 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
 }
 
 /**
- * Remove outputs that don't have a corresponding call.
+ * Remove outputs that do not have a corresponding call.
  */
 private fun removeOrphanOutputs(items: MutableList<ResponseItem>) {
     val functionCallIds = items.filterIsInstance<ResponseItem.FunctionCall>()

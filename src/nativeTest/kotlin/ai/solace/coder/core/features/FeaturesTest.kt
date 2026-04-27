@@ -18,7 +18,7 @@ class FeaturesTest {
         assertTrue(features.enabled(Feature.ViewImageTool))
         assertTrue(features.enabled(Feature.ShellTool))
 
-        // Experimental features should be disabled by default (unless default_enabled)
+        // Experimental features should be disabled by default (unless defaultEnabled)
         assertFalse(features.enabled(Feature.UnifiedExec))
         assertFalse(features.enabled(Feature.RmcpClient))
         assertFalse(features.enabled(Feature.ApplyPatchFreeform))
@@ -90,7 +90,7 @@ class FeaturesTest {
     fun testLegacyUsageNotRecordedForCurrentKey() {
         val features = Features.withDefaults()
 
-        // Using the current key shouldn't record legacy usage
+        // Using the current key should not record legacy usage
         features.recordLegacyUsage("unified_exec", Feature.UnifiedExec)
 
         val usages = features.legacyFeatureUsages().toList()
@@ -128,7 +128,7 @@ class FeaturesTest {
         val copy = features.copy()
         assertTrue(copy.enabled(Feature.UnifiedExec))
 
-        // Modifying copy shouldn't affect original
+        // Modifying copy should not affect original
         copy.disable(Feature.UnifiedExec)
         assertTrue(features.enabled(Feature.UnifiedExec))
         assertFalse(copy.enabled(Feature.UnifiedExec))

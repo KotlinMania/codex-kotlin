@@ -103,7 +103,7 @@ class ColumnRenderable : Renderable {
 
     /**
      * Returns the cursor position of the first child that has a cursor position, offset by the
-     * child's position in the column.
+     * child position in the column.
      *
      * It is generally assumed that either zero or one child will have a cursor position.
      */
@@ -161,7 +161,7 @@ class FlexRenderable : Renderable {
     }
 
     /**
-     * Loosely inspired by Flutter's Flex widget.
+     * Loosely inspired by Flutter Flex widget.
      *
      * Ref https://github.com/flutter/flutter/blob/3fd81edbf1e015221e143c92b2664f4371bdc04a/packages/flutter/lib/src/rendering/flex.dart#L1205-L1209
      */

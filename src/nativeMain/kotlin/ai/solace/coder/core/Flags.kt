@@ -6,7 +6,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 
 /**
- * Environment-driven flags (Rust's `env_flags!` macro).
+ * Environment-driven flags (the upstream `envFlags!` macro).
  *
  * Fixture path for offline tests (see client.rs).
  */

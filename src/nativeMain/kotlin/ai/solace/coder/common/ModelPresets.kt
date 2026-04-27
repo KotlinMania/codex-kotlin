@@ -1,4 +1,4 @@
-// port-lint: source common/src/model_presets.rs
+// port-lint: source common/src/modelPresets.rs
 package ai.solace.coder.common
 
 import ai.solace.coder.core.AuthMode

@@ -1,4 +1,4 @@
-// port-lint: source tui/src/slash_command.rs
+// port-lint: source tui/src/slashCommand.rs
 package ai.solace.coder.tui
 
 /** Commands that can be invoked by starting a message with a leading slash. */
@@ -58,7 +58,7 @@ enum class SlashCommand(val command: String) {
 
     companion object {
         /**
-         * Mirrors Rust's `cfg!(debug_assertions)`. Kotlin/Native lacks a
+         * Mirrors the upstream `cfg(debugAssertions)`. Kotlin/Native lacks a
          * direct equivalent, so we expose a single switch that can be flipped
          * for development builds. Defaults to `false` to match release
          * semantics.

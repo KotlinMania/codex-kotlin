@@ -16,7 +16,7 @@ enum class ToolKind {
 /**
  * A handler for a specific tool type.
  *
- * Implements the async_trait pattern from Rust.
+ * Implements the asyncTrait pattern from Rust.
  */
 interface ToolHandler {
     /**
@@ -85,9 +85,9 @@ class ToolRegistry(
 
         // Wait for tool gate if this is a mutating operation
         if (handler.isMutating(invocation)) {
-            // tracing::trace!("waiting for tool gate")
+            // tracing::trace("waiting for tool gate")
             invocation.turn.toolCallGate?.waitReady()
-            // tracing::trace!("tool gate released")
+            // tracing::trace("tool gate released")
         }
 
         // Execute the handler
@@ -153,7 +153,7 @@ class ToolRegistryBuilder {
      */
     fun registerHandler(name: String, handler: ToolHandler) {
         if (handlers.put(name, handler) != null) {
-            // warn!("overwriting handler for tool {name}")
+            // warn("overwriting handler for tool {name}")
             println("WARN: overwriting handler for tool $name")
         }
     }

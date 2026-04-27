@@ -1,4 +1,4 @@
-// port-lint: source core/src/unified_exec/errors.rs
+// port-lint: source core/src/unifiedExec/errors.rs
 package ai.solace.coder.core.unified_exec
 
 import ai.solace.coder.core.ExecToolCallOutput
@@ -6,7 +6,7 @@ import ai.solace.coder.core.ExecToolCallOutput
 sealed class UnifiedExecError : Exception() {
     data class CreateSession(override val message: String) : UnifiedExecError()
     
-    // Called "session" in the model's training.
+    // Called "session" in the model training.
     data class UnknownSessionId(val processId: String) : UnifiedExecError() {
         override val message: String = "Unknown session id $processId"
     }

@@ -1,4 +1,4 @@
-// port-lint: source core/src/user_shell_command.rs
+// port-lint: source core/src/userShellCommand.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.core.ExecToolCallOutput
@@ -8,7 +8,7 @@ import ai.solace.coder.protocol.ResponseItem
 /**
  * User shell command formatting utilities.
  *
- * Ported from Rust codex-rs/core/src/user_shell_command.rs
+ * Ported from Rust codex-rs/core/src/userShellCommand.rs
  */
 
 const val USER_SHELL_COMMAND_OPEN = "<user_shell_command>"
@@ -28,7 +28,7 @@ fun isUserShellCommandText(text: String): Boolean {
  */
 private fun formatDurationLine(duration: kotlin.time.Duration): String {
     val durationSeconds = duration.inWholeMilliseconds / 1000.0
-    // Manual formatting since Kotlin Native doesn't have String.format
+    // Manual formatting since Kotlin Native does not have String.format
     val intPart = durationSeconds.toLong()
     val fracPart = ((durationSeconds - intPart) * 10000).toLong()
     val fracStr = fracPart.toString().padStart(4, '0')

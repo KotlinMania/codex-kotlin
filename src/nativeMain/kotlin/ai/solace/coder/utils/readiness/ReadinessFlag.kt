@@ -53,7 +53,7 @@ suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
 }
 
 /**
- * Exception wrapper for CancelErr to use with Result.failure.
+ * Exception wrapper for CancelErr to import with Result.failure.
  */
 class CancellationException(val error: CancelErr) : Exception("Operation cancelled")
 
@@ -212,7 +212,7 @@ class ReadinessFlag : Readiness {
 
     /**
      * Creates a child token that can be used for nested readiness tracking.
-     * For use in complex workflows where multiple sub-tasks need to complete.
+     * For import in complex workflows where multiple sub-tasks need to complete.
      */
     suspend fun subscribeMultiple(count: Int): Result<List<ReadinessToken>> {
         if (ready) {

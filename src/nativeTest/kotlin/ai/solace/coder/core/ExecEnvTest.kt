@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/exec_env.rs
+// port-lint: source codex-rs/core/src/execEnv.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.core.config.EnvironmentVariablePattern

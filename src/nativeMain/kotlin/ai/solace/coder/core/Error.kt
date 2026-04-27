@@ -213,16 +213,16 @@ sealed class SandboxErr {
 }
 
 /**
- * Codex error types matching Rust's CodexErr enum.
+ * Codex error types matching the upstream CodexErr enum.
  *
  * Mirrors Rust `core/src/error.rs::CodexErr`.
  */
 sealed class CodexErr {
-    /** Minimal shim mirroring Rust `CodexErr::downcast_ref`. */
+    /** Minimal shim mirroring Rust `CodexErr::downcastRef`. */
     inline fun <reified T : Any> downcastRef(): T? = this as? T
 
     companion object {
-        /** Mirrors Rust `impl From<CancelErr> for CodexErr`. */
+        /** Mirrors Rust `implementation From<CancelErr> for CodexErr`. */
         fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
     }
 
@@ -231,7 +231,7 @@ sealed class CodexErr {
     /**
      * Produce an `ErrorEvent` for this error.
      *
-     * Mirrors Rust `CodexErr::to_error_event`.
+     * Mirrors Rust `CodexErr::toErrorEvent`.
      */
     fun toErrorEvent(messagePrefix: String? = null): ErrorEvent {
         val errorMessage = toString()
@@ -242,7 +242,7 @@ sealed class CodexErr {
     /**
      * Translate core error to client-facing protocol error.
      *
-     * Mirrors Rust `CodexErr::to_codex_protocol_error`.
+     * Mirrors Rust `CodexErr::toCodexProtocolError`.
      */
     fun toCodexProtocolError(): CodexErrorInfo =
         when (this) {
@@ -261,7 +261,7 @@ sealed class CodexErr {
     /**
      * Return the HTTP status code for this error, if any.
      *
-     * Mirrors Rust `CodexErr::http_status_code_value`.
+     * Mirrors Rust `CodexErr::httpStatusCodeValue`.
      */
     fun httpStatusCodeValue(): Int? =
         when (this) {
@@ -397,7 +397,7 @@ sealed class CodexErr {
         override fun toString(): String = message
     }
 
-    /** JSON (de)serialization error. Mirrors Rust `CodexErr::Json(serde_json::Error)`. */
+    /** JSON (de)serialization error. Mirrors Rust `CodexErr::Json(serdeJson::Error)`. */
     data class Json(val message: String) : CodexErr() {
         override fun toString(): String = message
     }
@@ -429,14 +429,14 @@ sealed class CodexErr {
 // -----------------------------------------------------------------
 
 /**
- * Test-only override for "now" when formatting retry timestamps, matching Rust's
- * `NOW_OVERRIDE` thread-local.
+ * Test-only override for "now" when formatting retry timestamps, matching the
+ * upstream `NOW_OVERRIDE` thread-local.
  */
 @ThreadLocal internal var nowOverride: Instant? = null
 
 internal fun nowForRetry(): Instant = nowOverride ?: Clock.System.now()
 
-/** Test helper mirroring Rust `with_now_override`. */
+/** Test helper mirroring Rust `withNowOverride`. */
 internal inline fun <T> withNowOverride(now: Instant, f: () -> T): T {
     val prev = nowOverride
     nowOverride = now
@@ -501,7 +501,7 @@ internal fun daySuffix(day: Int): String = when (day) {
 /**
  * Produce a user-facing error message for display in the UI.
  *
- * Mirrors Rust `core/src/error.rs::get_error_message_ui`.
+ * Mirrors Rust `core/src/error.rs::getErrorMessageUi`.
  */
 fun getErrorMessageUi(e: CodexErr): String {
     val message = when (e) {

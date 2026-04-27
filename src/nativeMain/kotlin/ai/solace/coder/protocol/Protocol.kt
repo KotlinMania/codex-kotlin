@@ -1086,7 +1086,7 @@ data class McpResource(
         @SerialName("mimeType") val mimeType: String? = null
 )
 
-// Alias for MCP protocol parity with Rust `mcp_types::Resource`.
+// Alias for MCP protocol parity with Rust `mcpTypes::Resource`.
 typealias Resource = McpResource
 
 @Serializable
@@ -1097,7 +1097,7 @@ data class McpResourceTemplate(
         @SerialName("mimeType") val mimeType: String? = null
 )
 
-// Alias for MCP protocol parity with Rust `mcp_types::ResourceTemplate`.
+// Alias for MCP protocol parity with Rust `mcpTypes::ResourceTemplate`.
 typealias ResourceTemplate = McpResourceTemplate
 
 @Serializable

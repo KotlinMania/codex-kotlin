@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
  * HTTP client for making requests to the Codex backend API.
  * Handles POST to /responses endpoint and streaming SSE responses.
  *
- * Maps to Rust's backend-client and ModelClient functionality.
+ * Maps to the upstream backend-client and ModelClient functionality.
  *
  * TODO: Port from Rust codex-rs/core/src/client.rs and codex-rs/backend-client/:
  * - [ ] ModelClient trait with full streaming response handling
@@ -249,7 +249,7 @@ class StreamingClient<A : ai.solace.coder.client.auth.AuthProvider>(
     /**
      * Add telemetry handlers to the client.
      *
-     * Ported from Rust StreamingClient::with_telemetry()
+     * Ported from Rust StreamingClient::withTelemetry()
      */
     fun withTelemetry(
         request: RequestTelemetry?,

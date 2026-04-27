@@ -53,7 +53,7 @@ const val CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY"
 
 /**
  * Authentication mode for API access.
- * Mirrors codex_app_server_protocol::AuthMode
+ * Mirrors codexAppServerProtocol::AuthMode
  */
 enum class AuthMode {
     ApiKey,
@@ -278,7 +278,7 @@ data class CodexAuth internal constructor(
 
 /**
  * Error types for refresh token operations.
- * Mirrors Rust's RefreshTokenError enum.
+ * Mirrors the upstream RefreshTokenError enum.
  */
 sealed class RefreshTokenError(message: String) : Exception(message) {
     class Permanent(val reason: RefreshTokenFailedReason, message: String) : RefreshTokenError(message)
@@ -330,7 +330,7 @@ enum class KnownPlan {
 
 /**
  * Account plan type for external API.
- * Maps to codex_protocol::account::PlanType
+ * Maps to codexProtocol::account::PlanType
  */
 enum class AccountPlanType {
     Free, Plus, Pro, Team, Business, Enterprise, Edu, Unknown
@@ -697,7 +697,7 @@ private fun extractRefreshTokenErrorCode(body: String): String? {
     val json = try {
         Json.parseToJsonElement(body).jsonObject
     } catch (_: Exception) {
-        // Return empty object on parse failure (matches Rust's unwrap_or_default)
+        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
         JsonObject(emptyMap())
     }
 
@@ -724,7 +724,7 @@ private fun parseAuthRefreshErrorMessage(body: String): String {
     val json = try {
         Json.parseToJsonElement(body).jsonObject
     } catch (_: Exception) {
-        // Return empty object on parse failure (matches Rust's unwrap_or_default)
+        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
         JsonObject(emptyMap())
     }
 
@@ -747,13 +747,13 @@ private fun parseAuthRefreshErrorMessage(body: String): String {
  * Uses the io.github.kotlinmania.jwt library to decode the JWT without verification.
  * Extracts claims from the payload:
  * - email
- * - https://api.openai.com/auth.chatgpt_plan_type
- * - https://api.openai.com/auth.chatgpt_account_id
+ * - https://api.openai.com/auth.chatgptPlanType
+ * - https://api.openai.com/auth.chatgptAccountId
  *
  * Note: Signature verification is NOT performed.
  * This is only for extracting user info from trusted tokens.
  *
- * Reference: codex-rs/core/src/token_data.rs - parse_id_token()
+ * Reference: codex-rs/core/src/tokenData.rs - parseIdToken()
  */
 private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
     return try {
@@ -827,7 +827,7 @@ private data class RefreshResponse(
  * External modifications to `auth.json` will NOT be observed until `reload()`
  * is called explicitly.
  *
- * Mirrors Rust's AuthManager from core/src/auth.rs
+ * Mirrors the upstream AuthManager from core/src/auth.rs
  */
 class AuthManager private constructor(
     private val codexHome: Path,

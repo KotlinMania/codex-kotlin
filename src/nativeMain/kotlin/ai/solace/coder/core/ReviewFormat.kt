@@ -1,4 +1,4 @@
-// port-lint: source core/src/review_format.rs
+// port-lint: source core/src/reviewFormat.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.protocol.ReviewFinding

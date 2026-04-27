@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/num_format.rs
+// port-lint: source codex-rs/protocol/src/numFormat.rs
 package ai.solace.coder.protocol
 
 import kotlin.math.pow
@@ -7,7 +7,7 @@ import kotlin.math.round
 /**
  * Number formatting utilities.
  *
- * Ported from Rust codex-rs/protocol/src/num_format.rs
+ * Ported from Rust codex-rs/protocol/src/numFormat.rs
  */
 
 /**

@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/test_sync.rs
+// port-lint: source core/src/tools/handlers/testSync.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.tools.ToolHandler

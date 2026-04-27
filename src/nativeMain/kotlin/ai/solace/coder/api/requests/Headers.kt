@@ -17,7 +17,7 @@ internal fun buildConversationHeaders(conversationId: String?, builder: HttpRequ
  * Note: The Kotlin protocol currently has SessionSource as a simple enum.
  * In Rust, SessionSource::SubAgent(SubAgentSource) is a variant containing SubAgentSource.
  * For now, we check if SessionSource is SubAgent and return a default value.
- * TODO: Update Protocol.kt to use sealed class for SessionSource matching Rust structure.
+ * TODO: Update Protocol.kt to import sealed class for SessionSource matching Rust structure.
  */
 internal fun subagentHeader(source: ai.solace.coder.protocol.SessionSource?): String? {
     return when (source) {

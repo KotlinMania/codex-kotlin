@@ -1,4 +1,4 @@
-// port-lint: source core/src/user_instructions.rs
+// port-lint: source core/src/userInstructions.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.protocol.ContentItem

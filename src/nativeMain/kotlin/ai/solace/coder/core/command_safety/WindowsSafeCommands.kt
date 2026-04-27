@@ -1,4 +1,4 @@
-// port-lint: source core/src/command_safety/windows_safe_commands.rs
+// port-lint: source core/src/commandSafety/windowsSafeCommands.rs
 package ai.solace.coder.core.command_safety
 
 import ai.solace.coder.exec.shell.CommandParser

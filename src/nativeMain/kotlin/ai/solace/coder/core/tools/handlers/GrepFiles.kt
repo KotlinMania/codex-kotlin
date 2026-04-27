@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/grep_files.rs
+// port-lint: source core/src/tools/handlers/grepFiles.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.FunctionCallError
@@ -18,10 +18,10 @@ import okio.Path.Companion.toPath
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Handler for the grep_files tool.
+ * Handler for the grepFiles tool.
  * Uses ripgrep (rg) to search for patterns in files.
  *
- * Ported from Rust codex-rs/core/src/tools/handlers/grep_files.rs
+ * Ported from Rust codex-rs/core/src/tools/handlers/grepFiles.rs
  */
 class GrepFilesHandler : ToolHandler {
     private val processExecutor: Exec = Exec()
@@ -111,7 +111,7 @@ class GrepFilesHandler : ToolHandler {
             expiration = ExecExpiration.Timeout(COMMAND_TIMEOUT)
         )
 
-        // Grep is read-only, so use ReadOnly sandbox policy
+        // Grep is read-only, so import ReadOnly sandbox policy
         val sandboxPolicy = SandboxPolicy.ReadOnly
 
         val execResult = try {
@@ -213,7 +213,7 @@ class GrepFilesHandler : ToolHandler {
 }
 
 /**
- * Arguments for the grep_files tool.
+ * Arguments for the grepFiles tool.
  */
 @Serializable
 private data class GrepFilesArgs(

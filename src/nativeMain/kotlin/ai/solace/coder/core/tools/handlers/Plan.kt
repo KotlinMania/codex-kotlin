@@ -16,9 +16,9 @@ import ai.solace.coder.protocol.UpdatePlanArgs
 import kotlinx.serialization.json.Json
 
 /**
- * Handler for the update_plan tool. Allows the model to record and update its task plan.
+ * Handler for the updatePlan tool. Allows the model to record and update its task plan.
  *
- * This tool doesn't do anything useful computationally. However, it gives the model a structured
+ * This tool does not do anything useful computationally. However, it gives the model a structured
  * way to record its plan that clients can read and render. The _inputs_ to this function are useful
  * to clients, not the outputs.
  *
@@ -51,7 +51,7 @@ class PlanHandler : ToolHandler {
                     )
                 }
 
-        // Validate that at most one step is in_progress
+        // Validate that at most one step is inProgress
         val inProgressCount = args.plan.count { it.status == StepStatus.InProgress }
         if (inProgressCount > 1) {
             return Result.failure(
@@ -76,7 +76,7 @@ class PlanHandler : ToolHandler {
     }
 }
 
-/** The update_plan tool spec. Mirrors codex-rs/core/src/tools/handlers/plan.rs PLAN_TOOL. */
+/** The updatePlan tool spec. Mirrors codex-rs/core/src/tools/handlers/plan.rs PLAN_TOOL. */
 val PLAN_TOOL: ToolSpec = run {
     val planItemProps = mutableMapOf<String, JsonSchema>()
     planItemProps["step"] = JsonSchema.String(description = null)

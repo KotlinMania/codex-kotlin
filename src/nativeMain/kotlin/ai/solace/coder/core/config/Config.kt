@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/app-server/src/config_api.rs
+// port-lint: source codex-rs/app-server/src/configApi.rs
 package ai.solace.coder.core.config
 
 import ai.solace.coder.core.auth.AuthCredentialsStoreMode

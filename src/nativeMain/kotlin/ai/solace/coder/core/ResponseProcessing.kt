@@ -1,4 +1,4 @@
-// port-lint: source core/src/response_processing.rs
+// port-lint: source core/src/responseProcessing.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.core.session.Session

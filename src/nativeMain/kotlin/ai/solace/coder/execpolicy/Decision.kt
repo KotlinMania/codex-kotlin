@@ -10,7 +10,7 @@ enum class Decision {
     @SerialName("allow")
     Allow,
 
-    /** Request explicit user approval; rejected outright when running with `approval_policy="never"`. */
+    /** Request explicit user approval; rejected outright when running with `approvalPolicy="never"`. */
     @SerialName("prompt")
     Prompt,
 

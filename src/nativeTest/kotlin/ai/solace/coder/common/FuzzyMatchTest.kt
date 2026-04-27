@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/fuzzy_match.rs
+// port-lint: source codex-rs/common/src/fuzzyMatch.rs
 package ai.solace.coder.common
 
 import kotlin.test.Test

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/custom_prompts.rs
+// port-lint: source codex-rs/protocol/src/customPrompts.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Custom prompts types.
  *
- * Ported from Rust codex-rs/protocol/src/custom_prompts.rs
+ * Ported from Rust codex-rs/protocol/src/customPrompts.rs
  */
 
 /**

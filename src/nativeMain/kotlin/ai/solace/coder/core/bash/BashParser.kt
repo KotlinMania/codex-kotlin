@@ -78,7 +78,7 @@ fun tryParseWordOnlyCommandsSequence(tree: Tree, src: String): List<List<String>
                 return null
             }
             if (kind !in allowedPunctTokens && kind.trim().isNotEmpty()) {
-                // If it's a quote token or operator it's allowed above; we also allow whitespace tokens.
+                // If it a quote token or operator it allowed above; we also allow whitespace tokens.
                 // Any other punctuation like parentheses, braces, redirects, backticks, etc are rejected.
                 return null
             }

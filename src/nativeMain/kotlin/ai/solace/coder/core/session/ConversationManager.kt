@@ -1,4 +1,4 @@
-// port-lint: source core/src/conversation_manager.rs
+// port-lint: source core/src/conversationManager.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.client.auth.AuthManager
@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
  * Represents a newly created Codex conversation, including the first event
  * (which is [`EventMsg.SessionConfigured`]).
  *
- * Mirrors Rust `core/src/conversation_manager.rs::NewConversation`.
+ * Mirrors Rust `core/src/conversationManager.rs::NewConversation`.
  */
 data class NewConversation(
     val conversationId: ProtocolConversationId,
@@ -32,7 +32,7 @@ data class NewConversation(
  * [`ConversationManager`] is responsible for creating conversations and
  * maintaining them in memory.
  *
- * Mirrors Rust `core/src/conversation_manager.rs::ConversationManager`.
+ * Mirrors Rust `core/src/conversationManager.rs::ConversationManager`.
  */
 class ConversationManager(
     private val authManager: AuthManager,
@@ -51,21 +51,12 @@ class ConversationManager(
                 authManager = AuthManager.fromAuthForTesting(auth),
                 sessionSource = SessionSource.Exec,
             )
-
-        /** Rust-style spelling, mirroring `ConversationManager::with_auth`. */
-        fun with_auth(auth: CodexAuth): ConversationManager = withAuth(auth)
     }
 
     fun sessionSource(): SessionSource = sessionSource
 
-    /** Rust-style spelling, mirroring `ConversationManager::session_source`. */
-    fun session_source(): SessionSource = sessionSource()
-
     suspend fun newConversation(config: Config): CodexResult<NewConversation> =
         spawnConversation(config, authManager)
-
-    /** Rust-style spelling, mirroring `ConversationManager::new_conversation`. */
-    suspend fun new_conversation(config: Config): CodexResult<NewConversation> = newConversation(config)
 
     private suspend fun spawnConversation(
         config: Config,
@@ -133,10 +124,6 @@ class ConversationManager(
         }
     }
 
-    /** Rust-style spelling, mirroring `ConversationManager::get_conversation`. */
-    suspend fun get_conversation(conversationId: ProtocolConversationId): CodexResult<CodexConversation> =
-        getConversation(conversationId)
-
     suspend fun resumeConversationFromRollout(
         config: Config,
         rolloutPath: String,
@@ -149,13 +136,6 @@ class ConversationManager(
         }
         return resumeConversationWithHistory(config, initialHistory, authManager)
     }
-
-    /** Rust-style spelling, mirroring `ConversationManager::resume_conversation_from_rollout`. */
-    suspend fun resume_conversation_from_rollout(
-        config: Config,
-        rollout_path: String,
-        auth_manager: AuthManager,
-    ): CodexResult<NewConversation> = resumeConversationFromRollout(config, rollout_path, auth_manager)
 
     suspend fun resumeConversationWithHistory(
         config: Config,
@@ -174,30 +154,19 @@ class ConversationManager(
         }
     }
 
-    /** Rust-style spelling, mirroring `ConversationManager::resume_conversation_with_history`. */
-    suspend fun resume_conversation_with_history(
-        config: Config,
-        initial_history: InitialHistory,
-        auth_manager: AuthManager,
-    ): CodexResult<NewConversation> = resumeConversationWithHistory(config, initial_history, auth_manager)
-
     /**
-     * Removes the conversation from the manager's internal map. The
+     * Removes the conversation from the manager internal map. The
      * conversation is shared by reference, so other references to it may exist
      * elsewhere. Returns the conversation if it was found and removed.
      */
     suspend fun removeConversation(conversationId: ProtocolConversationId): CodexConversation? =
         conversationsLock.withLock { conversations.remove(conversationId) }
 
-    /** Rust-style spelling, mirroring `ConversationManager::remove_conversation`. */
-    suspend fun remove_conversation(conversationId: ProtocolConversationId): CodexConversation? =
-        removeConversation(conversationId)
-
     /**
      * Fork an existing conversation by taking messages up to the given position
      * (not including the message at the given position) and starting a new
      * conversation with identical configuration (unless overridden by the
-     * caller's `config`). The new conversation will have a fresh id.
+     * caller `config`). The new conversation will have a fresh id.
      */
     suspend fun forkConversation(
         nthUserMessage: Int,
@@ -225,19 +194,13 @@ class ConversationManager(
         }
     }
 
-    /** Rust-style spelling, mirroring `ConversationManager::fork_conversation`. */
-    suspend fun fork_conversation(
-        nth_user_message: Int,
-        config: Config,
-        path: String,
-    ): CodexResult<NewConversation> = forkConversation(nth_user_message, config, path)
 }
 
 /**
  * Return a prefix of `items` obtained by cutting strictly before the nth user message
  * (0-based) and all items that follow it.
  *
- * Mirrors Rust `core/src/conversation_manager.rs::truncate_before_nth_user_message`.
+ * Mirrors Rust `core/src/conversationManager.rs::truncateBeforeNthUserMessage`.
  */
 internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): InitialHistory {
     // Work directly on rollout items, and cut the vector at the nth user message input.
@@ -270,6 +233,3 @@ internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Init
     }
 }
 
-/** Rust-style spelling. */
-internal fun truncate_before_nth_user_message(history: InitialHistory, n: Int): InitialHistory =
-    truncateBeforeNthUserMessage(history, n)

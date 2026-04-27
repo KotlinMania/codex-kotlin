@@ -346,7 +346,7 @@ class Exec {
 
         // Check for sandbox denial
         if (isLikelySandboxDenied(sandboxType, execOutput)) {
-            // Convert to exception so caller's try/catch will turn it into a failure CodexResult
+            // Convert to exception so caller try/catch will turn it into a failure CodexResult
             throw ai.solace.coder.core.CodexException(
                     CodexErr.Sandbox(ai.solace.coder.core.SandboxErr.Denied(execOutput))
             )

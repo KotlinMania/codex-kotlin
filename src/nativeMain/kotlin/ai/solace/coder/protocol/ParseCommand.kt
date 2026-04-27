@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/parse_command.rs
+// port-lint: source codex-rs/protocol/src/parseCommand.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Parsed command types.
  *
- * Ported from Rust codex-rs/protocol/src/parse_command.rs
+ * Ported from Rust codex-rs/protocol/src/parseCommand.rs
  */
 
 @Serializable
@@ -49,8 +49,8 @@ sealed class ParsedCommand {
 }
 
 /**
- * Best-effort classification of a shell command. Mirrors Rust's `parse_command`
- * in codex-rs/core/src/parse_command.rs.
+ * Best-effort classification of a shell command. Mirrors the upstream `parseCommand`
+ * in codex-rs/core/src/parseCommand.rs.
  *
  * NOTE: The full Rust implementation is ~900 lines of pattern-matching for
  * recognizing reads, list-files, searches, etc. This Kotlin version returns

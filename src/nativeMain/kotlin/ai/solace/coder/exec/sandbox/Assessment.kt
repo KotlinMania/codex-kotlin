@@ -6,7 +6,7 @@ import ai.solace.coder.protocol.SandboxPolicy
 import ai.solace.coder.protocol.SandboxRiskLevel
 import ai.solace.coder.protocol.SandboxRiskLevel.*
 
-/** Assess the risk of a command. Mirrors Rust's assess_command from sandboxing/assessment.rs */
+/** Assess the risk of a command. Mirrors the upstream assessCommand from sandboxing/assessment.rs */
 fun assessCommand(command: List<String>, policy: SandboxPolicy): SandboxCommandAssessment {
     if (command.isEmpty()) return SandboxCommandAssessment("Empty command", SandboxRiskLevel.Low)
 

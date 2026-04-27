@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/list_dir.rs
+// port-lint: source core/src/tools/handlers/listDir.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.FunctionCallError
@@ -15,10 +15,10 @@ import okio.Path
 import okio.Path.Companion.toPath
 
 /**
- * Handler for the list_dir tool.
+ * Handler for the listDir tool.
  * Lists directory contents with support for depth, pagination, and entry formatting.
  *
- * Ported from Rust codex-rs/core/src/tools/handlers/list_dir.rs
+ * Ported from Rust codex-rs/core/src/tools/handlers/listDir.rs
  */
 class ListDirHandler : ToolHandler {
 
@@ -225,7 +225,7 @@ class ListDirHandler : ToolHandler {
 }
 
 /**
- * Arguments for the list_dir tool.
+ * Arguments for the listDir tool.
  */
 @Serializable
 private data class ListDirArgs(

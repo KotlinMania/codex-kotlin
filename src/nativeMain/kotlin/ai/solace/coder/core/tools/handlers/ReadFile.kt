@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/read_file.rs
+// port-lint: source core/src/tools/handlers/readFile.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.CodexErr
@@ -17,10 +17,10 @@ import okio.buffer
 import okio.use
 
 /**
- * Handler for the read_file tool. Reads file contents with support for slice mode and
+ * Handler for the readFile tool. Reads file contents with support for slice mode and
  * indentation-aware block mode.
  *
- * Ported from Rust codex-rs/core/src/tools/handlers/read_file.rs
+ * Ported from Rust codex-rs/core/src/tools/handlers/readFile.rs
  */
 class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : ToolHandler {
 
@@ -260,7 +260,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 
     /**
-     * Compute effective indentation for each line. Blank lines inherit the previous line's
+     * Compute effective indentation for each line. Blank lines inherit the previous line
      * indentation.
      */
     private fun computeEffectiveIndents(records: List<LineRecord>): List<Int> {
@@ -313,7 +313,7 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
     }
 }
 
-/** Arguments for the read_file tool. */
+/** Arguments for the readFile tool. */
 @Serializable
 private data class ReadFileArgs(
         @SerialName("file_path") val filePath: String,
@@ -323,7 +323,7 @@ private data class ReadFileArgs(
         val indentation: IndentationArgs? = null
 )
 
-/** Read mode for the read_file tool. */
+/** Read mode for the readFile tool. */
 @Serializable
 enum class ReadMode {
     @SerialName("slice") Slice,

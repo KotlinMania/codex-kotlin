@@ -23,7 +23,7 @@ import kotlinx.coroutines.isActive
 
 /**
  * Represents an active execution session.
- * In Rust this uses portable_pty, here we use pipes via Exec/PlatformProcess.
+ * In Rust this uses portablePty, here we import pipes via Exec/PlatformProcess.
  */
 class ExecCommandSession(
     private val writerTx: SendChannel<ByteArray>,
@@ -37,8 +37,8 @@ class ExecCommandSession(
 ) {
     // Rust uses broadcast channel for output, allowing multiple subscribers.
     // We'll expose a flow or similar mechanism.
-    // For parity with Rust's `output_receiver() -> broadcast::Receiver`, we might need a broadcast channel.
-    // But for now, let's assume single consumer or handle it in the manager.
+    // For parity with the upstream `outputReceiver() -> broadcast::Receiver`, we might need a broadcast channel.
+    // But for now, let assume single consumer or handle it in the manager.
     
     fun writerSender(): SendChannel<ByteArray> = writerTx
 

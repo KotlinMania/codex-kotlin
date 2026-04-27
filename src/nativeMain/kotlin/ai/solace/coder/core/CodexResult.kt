@@ -3,8 +3,8 @@ package ai.solace.coder.core
 /**
  * Result type for Codex operations that may fail.
  *
- * This exists because Kotlin's stdlib `Result<T>` is awkward to use as a public return type across
- * KMP boundaries, and Rust's `type Result<T> = std::result::Result<T, CodexErr>` cannot be
+ * This exists because Kotlin stdlib `Result<T>` is awkward to import as a public return type across
+ * KMP boundaries, and the upstream `type Result<T> = std::result::Result<T, CodexErr>` cannot be
  * expressed without using `typealias` (forbidden in this project).
  */
 sealed class CodexResult<out T> {

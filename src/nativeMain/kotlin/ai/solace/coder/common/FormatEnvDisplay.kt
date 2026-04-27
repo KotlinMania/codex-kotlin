@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/format_env_display.rs
+// port-lint: source codex-rs/common/src/formatEnvDisplay.rs
 package ai.solace.coder.common
 
 fun formatEnvDisplay(env: Map<String, String>?, envVars: List<String>): String {

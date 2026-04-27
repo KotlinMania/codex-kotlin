@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/runtimes/apply_patch.rs
+// port-lint: source core/src/tools/runtimes/applyPatch.rs
 package ai.solace.coder.core.tools.runtimes
 
 import ai.solace.coder.core.Exec

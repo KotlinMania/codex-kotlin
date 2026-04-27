@@ -39,7 +39,7 @@ class FunctionCallOutputPayloadConversionTest {
     @Test
     fun testPrefersStructuredContentWhenPresent() {
         val ctr = CallToolResult(
-            // Content present but should be ignored because structured_content is set.
+            // Content present but should be ignored because structuredContent is set.
             content = listOf(ContentBlock.TextContent(text = "ignored")),
             isError =null,
             structuredContent =buildJsonObject {
@@ -50,7 +50,7 @@ class FunctionCallOutputPayloadConversionTest {
 
         val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
 
-        // structured_content takes precedence
+        // structuredContent takes precedence
         assertTrue(got.content?.contains("\"ok\":true") ?: false || got.content?.contains("\"ok\": true") ?: false)
         assertTrue(got.content?.contains("\"value\":42") ?: false || got.content?.contains("\"value\": 42") ?: false)
         assertEquals(true, got.success)
@@ -58,7 +58,7 @@ class FunctionCallOutputPayloadConversionTest {
 
     @Test
     fun testFallsBackToContentWhenStructuredIsJsonNull() {
-        // When structured_content is JsonNull, it should fall back to content.
+        // When structuredContent is JsonNull, it should fall back to content.
         // Use empty content list to avoid serialization complexity
         val ctr = CallToolResult(
             content = emptyList(),
@@ -68,7 +68,7 @@ class FunctionCallOutputPayloadConversionTest {
 
         val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
 
-        // When structured_content is JsonNull, falls back to content serialization
+        // When structuredContent is JsonNull, falls back to content serialization
         // Empty content list should serialize successfully
         assertNotNull(got.content)
         assertEquals(true, got.success)
@@ -98,7 +98,7 @@ class FunctionCallOutputPayloadConversionTest {
         val ctr = CallToolResult(
             content = emptyList(),
             isError =false
-            // Don't pass structured_content - let it default
+            // Don't pass structuredContent - let it default
         )
 
         val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
@@ -377,7 +377,7 @@ class CancellationTokenTest {
 
     @Test
     fun testChildOfCloneBehavior() {
-        // child_of_clone test from loom
+        // childOfClone test from loom
         val token = CancellationToken()
         val clone = token.clone()
         val child = clone.child()

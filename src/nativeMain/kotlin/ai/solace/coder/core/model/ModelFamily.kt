@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/model_family.rs
+// port-lint: source codex-rs/core/src/modelFamily.rs
 package ai.solace.coder.core.model
 
 import ai.solace.coder.core.context.TruncationPolicy
@@ -15,7 +15,7 @@ enum class ReasoningSummaryFormat {
 }
 
 /**
- * Type of apply_patch tool to use.
+ * Type of applyPatch tool to use.
  */
 enum class ApplyPatchToolType {
     Function,
@@ -25,7 +25,7 @@ enum class ApplyPatchToolType {
 /**
  * A model family is a group of models that share certain characteristics.
  *
- * Ported from Rust codex-rs/core/src/model_family.rs
+ * Ported from Rust codex-rs/core/src/modelFamily.rs
  */
 data class ModelFamily(
     /** The full model slug used to derive this model family, e.g. "gpt-4.1-2025-04-14". */
@@ -34,13 +34,13 @@ data class ModelFamily(
     /** The model family name, e.g. "gpt-4.1". */
     val family: String,
 
-    /** True if the model needs additional instructions on how to use the "virtual" `apply_patch` CLI. */
+    /** True if the model needs additional instructions on how to import the "virtual" `applyPatch` CLI. */
     val needsSpecialApplyPatchInstructions: Boolean = false,
 
     /** Whether the `reasoning` field can be set when making a request to this model family. */
     val supportsReasoningSummaries: Boolean = false,
 
-    /** The reasoning effort to use for this model family when none is explicitly chosen. */
+    /** The reasoning effort to import for this model family when none is explicitly chosen. */
     val defaultReasoningEffort: ReasoningEffort? = null,
 
     /** Define if we need a special handling of reasoning summary. */
@@ -49,10 +49,10 @@ data class ModelFamily(
     /** Whether this model supports parallel tool calls when using the Responses API. */
     val supportsParallelToolCalls: Boolean = false,
 
-    /** Present if the model performs better when `apply_patch` is provided as a tool call instead of just a bash command. */
+    /** Present if the model performs better when `applyPatch` is provided as a tool call instead of just a bash command. */
     val applyPatchToolType: ApplyPatchToolType? = null,
 
-    /** Instructions to use for querying the model. */
+    /** Instructions to import for querying the model. */
     val baseInstructions: String = DEFAULT_BASE_INSTRUCTIONS,
 
     /** Names of beta tools that should be exposed to this model family. */
@@ -199,7 +199,7 @@ fun findFamilyForModel(slug: String): ModelFamily? {
 }
 
 /**
- * Returns a default `ModelFamily` for models that don't match any known family.
+ * Returns a default `ModelFamily` for models that do not match any known family.
  */
 fun deriveDefaultModelFamily(model: String): ModelFamily {
     return ModelFamily(

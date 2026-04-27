@@ -1,4 +1,4 @@
-// port-lint: source core/src/unified_exec/session_manager.rs
+// port-lint: source core/src/unifiedExec/sessionManager.rs
 package ai.solace.coder.core.unified_exec
 
 import ai.solace.coder.core.context.TruncationPolicy

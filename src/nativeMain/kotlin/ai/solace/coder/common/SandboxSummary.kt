@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/sandbox_summary.rs
+// port-lint: source codex-rs/common/src/sandboxSummary.rs
 package ai.solace.coder.common
 
 import ai.solace.coder.protocol.SandboxPolicy

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/client_common.rs
+// port-lint: source codex-rs/core/src/clientCommon.rs
 package ai.solace.coder.core.prompt
 
 import ai.solace.coder.core.model.ModelFamily
@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonElement
 /**
  * API request payload for a single model turn.
  *
- * Ported from Rust codex-rs/core/src/client_common.rs `Prompt`.
+ * Ported from Rust codex-rs/core/src/clientCommon.rs `Prompt`.
  */
 data class Prompt(
     /** Conversation context input items. */
@@ -27,7 +27,7 @@ data class Prompt(
     /** Optional override for the built-in BASE_INSTRUCTIONS. */
     val baseInstructionsOverride: String? = null,
 
-    /** Optional output schema for the model's response. */
+    /** Optional output schema for the model response. */
     val outputSchema: JsonElement? = null
 ) {
     fun getFullInstructions(modelFamily: ModelFamily): String {

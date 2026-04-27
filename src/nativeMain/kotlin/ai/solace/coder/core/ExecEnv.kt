@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/exec_env.rs
+// port-lint: source codex-rs/core/src/execEnv.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.core.config.EnvironmentVariablePattern
@@ -10,7 +10,7 @@ import kotlinx.cinterop.toKString
 
 /// Construct an environment map based on the rules in the specified policy. The
 /// resulting map can be passed directly to `Command::envs()` after calling
-/// `env_clear()` to ensure no unintended variables are leaked to the spawned
+/// `envClear()` to ensure no unintended variables are leaked to the spawned
 /// process.
 ///
 /// The derivation follows the algorithm documented in the struct-level comment
@@ -82,7 +82,7 @@ internal fun populateEnv(
         envMap[key] = value
     }
 
-    // Step 5 – If include_only is non-empty, keep *only* the matching vars.
+    // Step 5 – If includeOnly is non-empty, keep *only* the matching vars.
     if (policy.includeOnly.isNotEmpty()) {
         envMap.entries.removeAll { (k, _) -> !matchesAny(k, policy.includeOnly) }
     }

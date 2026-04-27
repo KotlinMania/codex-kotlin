@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/user_input.rs
+// port-lint: source codex-rs/protocol/src/userInput.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * User input types.
  *
- * Ported from Rust codex-rs/protocol/src/user_input.rs
+ * Ported from Rust codex-rs/protocol/src/userInput.rs
  */
 
 @Serializable

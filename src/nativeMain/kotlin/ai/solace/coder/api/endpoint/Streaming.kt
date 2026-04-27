@@ -30,9 +30,9 @@ internal typealias StreamSpawner = suspend (
 /**
  * Internal streaming client that handles HTTP streaming with auth and telemetry.
  *
- * Note: full retry policy / `run_with_request_telemetry` plumbing is not yet
+ * Note: full retry policy / `runWithRequestTelemetry` plumbing is not yet
  * ported. Today the stream is spawned directly; once retry telemetry lands the
- * Rust `run_with_request_telemetry(self.provider.retry.to_policy(), ..., builder, |req| transport.stream(req))`
+ * Rust `runWithRequestTelemetry(self.provider.retry.toPolicy(), ..., builder, |req| transport.stream(req))`
  * loop should wrap the spawner call.
  */
 internal class StreamingClient<A : AuthProvider>(
@@ -61,8 +61,8 @@ internal class StreamingClient<A : AuthProvider>(
         spawner: StreamSpawner,
     ): Result<ResponseStream> {
         return try {
-            // Build the request configuration block. Mirrors Rust's `builder` closure
-            // in run_with_request_telemetry: each retry attempt re-applies the same
+            // Build the request configuration block. Mirrors the upstream `builder` closure
+            // in runWithRequestTelemetry: each retry attempt re-applies the same
             // headers/body, so we capture the configuration as a lambda the spawner
             // can pass to ktor `prepareGet`/`prepareRequest`.
             val builtBuilder = provider.buildRequest(HttpMethod.Post, path) {

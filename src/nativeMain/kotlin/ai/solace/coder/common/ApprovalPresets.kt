@@ -1,4 +1,4 @@
-// port-lint: source common/src/approval_presets.rs
+// port-lint: source common/src/approvalPresets.rs
 package ai.solace.coder.common
 
 import ai.solace.coder.protocol.AskForApproval

@@ -71,7 +71,6 @@ pub async fn run_main(cli: Cli, codex_linux_sandbox_exe: Option<PathBuf>) -> any
         skip_git_repo_check,
         add_dir,
         color,
-        last_message_file,
         json: json_mode,
         sandbox_mode: sandbox_mode_cli_arg,
         prompt,
@@ -280,12 +279,8 @@ pub async fn run_main(cli: Cli, codex_linux_sandbox_exe: Option<PathBuf>) -> any
     }
 
     let mut event_processor: Box<dyn EventProcessor> = match json_mode {
-        true => Box::new(EventProcessorWithJsonOutput::new(last_message_file.clone())),
-        _ => Box::new(EventProcessorWithHumanOutput::create_with_ansi(
-            stdout_with_ansi,
-            &config,
-            last_message_file.clone(),
-        )),
+        true => Box::new(EventProcessorWithJsonOutput::new()),
+        _ => Box::new(EventProcessorWithHumanOutput::create_with_ansi(stdout_with_ansi, &config)),
     };
 
     if oss {

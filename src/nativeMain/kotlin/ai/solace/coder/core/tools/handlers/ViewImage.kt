@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/view_image.rs
+// port-lint: source core/src/tools/handlers/viewImage.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.CodexErr
@@ -14,9 +14,9 @@ import okio.FileSystem
 import okio.Path.Companion.toPath
 
 /**
- * Handler for the view_image tool. Attaches a local image file to the conversation.
+ * Handler for the viewImage tool. Attaches a local image file to the conversation.
  *
- * Ported from Rust codex-rs/core/src/tools/handlers/view_image.rs
+ * Ported from Rust codex-rs/core/src/tools/handlers/viewImage.rs
  */
 class ViewImageHandler : ToolHandler {
 
@@ -59,7 +59,7 @@ class ViewImageHandler : ToolHandler {
             )
         }
 
-        // Check if it's a file (not a directory)
+        // Check if it a file (not a directory)
         val metadata = FileSystem.SYSTEM.metadataOrNull(path)
         if (metadata == null || !metadata.isRegularFile) {
             return Result.failure(
@@ -67,7 +67,7 @@ class ViewImageHandler : ToolHandler {
             )
         }
 
-        // Verify it's a supported image format
+        // Verify it a supported image format
         val extension = path.name.substringAfterLast('.', "").lowercase()
         if (!SUPPORTED_EXTENSIONS.contains(extension)) {
             return Result.failure(
@@ -94,5 +94,5 @@ class ViewImageHandler : ToolHandler {
     }
 }
 
-/** Arguments for the view_image tool. */
+/** Arguments for the viewImage tool. */
 @Serializable private data class ViewImageArgs(val path: String)

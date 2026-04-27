@@ -1,4 +1,4 @@
-// port-lint: source cli/src/exit_status.rs
+// port-lint: source cli/src/exitStatus.rs
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class, kotlin.experimental.ExperimentalNativeApi::class)
 
 package ai.solace.coder.cli
@@ -18,7 +18,7 @@ data class ProcessExitStatus(val code: Int?, val signal: Int? = null)
 
 /**
  * Translate a child process exit status into a process exit, matching the
- * semantics of `cli/src/exit_status.rs`.
+ * semantics of `cli/src/exitStatus.rs`.
  *
  * On Unix, a child killed by a signal exits with `128 + signal`. When no code
  * or signal is available, fall back to `1`.

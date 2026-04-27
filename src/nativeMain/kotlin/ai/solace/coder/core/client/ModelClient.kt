@@ -44,7 +44,7 @@ import kotlin.time.Duration
  * Manages authentication, API client creation, and streaming responses
  * through the Chat Completions or Responses API endpoints.
  *
- * Mirrors Rust's ModelClient from core/src/client.rs
+ * Mirrors the upstream ModelClient from core/src/client.rs
  */
 class ModelClient(
     private val config: Config,
@@ -503,7 +503,7 @@ class OtelEventManager {
 // Placeholder functions that need to be ported from other modules
 
 private fun getModelInfo(modelFamily: ModelFamily): ModelInfo? {
-    // TODO: Port from openai_model_info.rs
+    // TODO: Port from openaiModelInfo.rs
     return null
 }
 
@@ -518,12 +518,12 @@ private fun createToolsJsonForResponsesApi(tools: List<Any>): List<JsonElement>?
 }
 
 private fun authProviderFromAuth(auth: CodexAuth?, provider: ModelProviderInfo): AuthProvider? {
-    // TODO: Port from api_bridge.rs
+    // TODO: Port from apiBridge.rs
     return null
 }
 
 private fun buildHttpClient(): HttpClient {
-    // TODO: Port from default_client.rs
+    // TODO: Port from defaultClient.rs
     return HttpClient()
 }
 

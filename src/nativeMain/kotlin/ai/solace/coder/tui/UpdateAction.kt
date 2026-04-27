@@ -1,4 +1,4 @@
-// port-lint: source tui/src/update_action.rs
+// port-lint: source tui/src/updateAction.rs
 package ai.solace.coder.tui
 
 import ai.solace.coder.utils.Environment
@@ -32,7 +32,7 @@ enum class UpdateAction {
 /**
  * Pure detection logic for `UpdateAction`. Exposed so callers can supply the
  * current executable path and environment flags; matches
- * `detect_update_action` in the Rust original.
+ * `detectUpdateAction` in the Rust original.
  */
 fun detectUpdateAction(
     isMacos: Boolean,
@@ -50,7 +50,7 @@ fun detectUpdateAction(
 /**
  * Resolve an `UpdateAction` from the current process environment. Callers
  * supply the resolved path of the currently-running executable because there
- * is no portable cross-platform helper for `std::env::current_exe()` in
+ * is no portable cross-platform helper for `std::env::currentExe()` in
  * Kotlin/Native.
  */
 fun getUpdateAction(currentExe: String, isMacos: Boolean): UpdateAction? =
@@ -62,7 +62,7 @@ fun getUpdateAction(currentExe: String, isMacos: Boolean): UpdateAction? =
     )
 
 /**
- * Best-effort `shlex::try_join` equivalent. Returns `null` if any token
+ * Best-effort `shlex::tryJoin` equivalent. Returns `null` if any token
  * contains a NUL byte (matching the Rust implementation), otherwise returns a
  * POSIX-quoted shell command string.
  */

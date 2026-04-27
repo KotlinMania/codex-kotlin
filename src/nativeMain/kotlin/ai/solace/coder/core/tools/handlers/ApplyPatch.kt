@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/apply_patch.rs
+// port-lint: source core/src/tools/handlers/applyPatch.rs
 package ai.solace.coder.core.tools.handlers
 
 import ai.solace.coder.core.CodexErr
@@ -22,9 +22,9 @@ import okio.buffer
 import okio.use
 
 /**
- * Handler for the apply_patch tool. Applies unified diff patches to files.
+ * Handler for the applyPatch tool. Applies unified diff patches to files.
  *
- * Ported from Rust codex-rs/core/src/tools/handlers/apply_patch.rs
+ * Ported from Rust codex-rs/core/src/tools/handlers/applyPatch.rs
  */
 class ApplyPatchHandler : ToolHandler {
 
@@ -374,7 +374,7 @@ class ApplyPatchHandler : ToolHandler {
     }
 }
 
-/** Arguments for the apply_patch tool. */
+/** Arguments for the applyPatch tool. */
 @Serializable private data class ApplyPatchArgs(val input: String)
 
 /** File operations parsed from a patch. */
@@ -395,7 +395,7 @@ private sealed class HunkLine {
     data class Add(val text: String) : HunkLine()
 }
 
-/** Lark grammar for the apply_patch freeform tool. Mirrors codex-rs/core/src/tools/handlers/tool_apply_patch.lark */
+/** Lark grammar for the applyPatch freeform tool. Mirrors codex-rs/core/src/tools/handlers/toolApplyPatch.lark */
 const val APPLY_PATCH_LARK_GRAMMAR: String =
     "start: begin_patch hunk+ end_patch\n" +
     "begin_patch: \"*** Begin Patch\" LF\n" +

@@ -12,7 +12,7 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Handler for MCP tool calls. Dispatches to `Session.callTool` and wraps the
- * result into a `ToolOutput.Mcp` value. Mirrors Rust's McpHandler in
+ * result into a `ToolOutput.Mcp` value. Mirrors the upstream McpHandler in
  * codex-rs/core/src/tools/handlers/mcp.rs.
  */
 class McpHandler : ToolHandler {

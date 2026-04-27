@@ -1,4 +1,4 @@
-// port-lint: source tui/src/update_action.rs
+// port-lint: source tui/src/updateAction.rs
 package ai.solace.coder.tui
 
 import kotlin.test.Test

@@ -8,7 +8,7 @@ import kotlin.time.Duration
 /**
  * API error types.
  *
- * Mirrors Rust's ApiError from codex-api/src/error.rs
+ * Mirrors the upstream ApiError from codex-api/src/error.rs
  */
 sealed class ApiError : Exception() {
     /**

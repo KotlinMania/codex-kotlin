@@ -1,4 +1,4 @@
-// port-lint: source core/src/mcp_connection_manager.rs
+// port-lint: source core/src/mcpConnectionManager.rs
 package ai.solace.coder.mcp.connection
 
 import ai.solace.coder.protocol.CallToolResult
@@ -26,7 +26,7 @@ data class McpServerConfig(
  * Manages connections to MCP (Model Context Protocol) servers and provides tool execution
  * capabilities.
  *
- * TODO: Port full implementation from Rust codex-rs/mcp-client/src/connection_manager.rs
+ * TODO: Port full implementation from Rust codex-rs/mcp-client/src/connectionManager.rs
  */
 class McpConnectionManager {
     private val tools = mutableMapOf<String, McpTool>()
@@ -55,7 +55,7 @@ class McpConnectionManager {
         return tools.toMap()
     }
 
-    /** Parse an MCP tool name into server and tool parts. Format: "mcp__servername__toolname" */
+    /** Parse an MCP tool name into server and tool parts. Format: "mcpServernameToolname" */
     fun parseToolName(toolName: String): Pair<String, String>? {
         if (!toolName.startsWith("mcp__")) return null
         val parts = toolName.removePrefix("mcp__").split("__", limit = 2)

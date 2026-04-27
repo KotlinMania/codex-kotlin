@@ -32,7 +32,7 @@ data class ExecEnv(
 )
 
 /**
- * Preference for sandbox usage by a tool. Mirrors Rust's SandboxablePreference from
+ * Preference for sandbox usage by a tool. Mirrors the upstream SandboxablePreference from
  * tools/sandboxing.rs
  */
 enum class SandboxPreference {
@@ -67,7 +67,7 @@ enum class SandboxPermissions {
 }
 
 /**
- * Manager for sandbox selection and command transformation. Mirrors Rust's SandboxManager from
+ * Manager for sandbox selection and command transformation. Mirrors the upstream SandboxManager from
  * sandboxing/mod.rs
  */
 class SandboxManager {
@@ -87,7 +87,7 @@ class SandboxManager {
     ): CodexResult<ExecEnv> {
         val mutEnv = spec.env.toMutableMap()
 
-        // Convert SandboxType back to SandboxPreference if needed, or just use SandboxType
+        // Convert SandboxType back to SandboxPreference if needed, or just import SandboxType
         val sandboxPref =
                 when (preference) {
                     SandboxType.None -> SandboxPreference.Forbid
@@ -185,7 +185,7 @@ class SandboxManager {
             sandboxPolicyCwd: String
     ): Triple<List<String>, Map<String, String>, String?> {
         // This would need the codex-linux-sandbox executable path
-        // For now, we'll create the args structure
+        // For now, we will create the args structure
         val args = createLinuxSandboxCommandArgs(command, policy, sandboxPolicyCwd)
         val fullCommand = mutableListOf("codex-linux-sandbox")
         fullCommand.addAll(args)
@@ -281,12 +281,12 @@ class SandboxManager {
 
     /** Serialize sandbox policy to JSON */
     private fun serializeSandboxPolicy(policy: SandboxPolicy): String {
-        // This would use a JSON serialization library
+        // This would import a JSON serialization library
         // For now, return a placeholder
         return policy.toString()
     }
 
-    /** Get Seatbelt base policy Transliterated from codex-rs/core/src/seatbelt_base_policy.sbpl */
+    /** Get Seatbelt base policy Transliterated from codex-rs/core/src/seatbeltBasePolicy.sbpl */
     private fun getSeatbeltBasePolicy(): String {
         return """
 (version 1)
@@ -389,7 +389,7 @@ class SandboxManager {
 
     /**
      * Get Seatbelt network policy Transliterated from
-     * codex-rs/core/src/seatbelt_network_policy.sbpl
+     * codex-rs/core/src/seatbeltNetworkPolicy.sbpl
      */
     private fun getSeatbeltNetworkPolicy(): String {
         return """

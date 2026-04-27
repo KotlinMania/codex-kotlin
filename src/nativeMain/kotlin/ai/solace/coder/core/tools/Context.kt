@@ -120,8 +120,8 @@ sealed class ToolOutput {
 }
 
 fun telemetryPreview(content: String): String {
-    // Kotlin implementation of take_bytes_at_char_boundary logic
-    // For simplicity, we'll just take characters for now, but ideally should respect byte limit
+    // Kotlin implementation of takeBytesAtCharBoundary logic
+    // For simplicity, we will just take characters for now, but ideally should respect byte limit
     // TELEMETRY_PREVIEW_MAX_BYTES is defined in Tools.kt (mod.rs)
 
     val truncatedSlice =

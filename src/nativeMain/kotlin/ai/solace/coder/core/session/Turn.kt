@@ -38,7 +38,7 @@ class ActiveTurn {
     }
 
     /**
-     * Remove a task by sub_id. Returns true if no tasks remain.
+     * Remove a task by subId. Returns true if no tasks remain.
      */
     fun removeTask(subId: String): Boolean {
         tasks.remove(subId)
@@ -190,7 +190,7 @@ interface SessionTask {
      * Gives the task a chance to perform cleanup after an abort.
      *
      * The default implementation is a no-op; override this if additional
-     * teardown or notifications are required once abort_all_tasks cancels the task.
+     * teardown or notifications are required once abortAllTasks cancels the task.
      */
     suspend fun abort(sessionContext: SessionTaskContext, turnContext: TurnContext) {
         // Default no-op
@@ -209,7 +209,7 @@ class SessionTaskContext(
 
     /**
      * Get the auth manager for API authentication.
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext::auth_manager
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext::authManager
      */
     fun authManager(): AuthManager = session.services.authManager
 }
@@ -217,7 +217,7 @@ class SessionTaskContext(
 /**
  * User input for a turn.
  *
- * Ported from Rust codex-rs/protocol/src/user_input.rs
+ * Ported from Rust codex-rs/protocol/src/userInput.rs
  */
 sealed class UserInput {
     /**
