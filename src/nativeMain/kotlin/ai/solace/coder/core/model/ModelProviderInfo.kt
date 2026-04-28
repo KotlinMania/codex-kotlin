@@ -1,14 +1,25 @@
-// port-lint: source codex-rs/core/src/modelProviderInfo.rs
+// port-lint: source modelProviderInfo.rs
+// Registry of model providers supported by Codex.
+//
+// Providers can be defined in two places:
+//   1. Built-in defaults compiled into the binary so Codex works out-of-the-box.
+//   2. User-defined entries inside `~/.codex/config.toml` under the model providers
+//      key. These override or extend the defaults at runtime.
 package ai.solace.coder.core.model
 
-import ai.solace.coder.api.provider.Provider
-import ai.solace.coder.api.provider.RetryConfig
-import ai.solace.coder.api.provider.WireApi
+import ai.solace.coder.api.provider.Provider as ApiProvider
+import ai.solace.coder.api.provider.RetryConfig as ApiRetryConfig
+import ai.solace.coder.api.provider.WireApi as ApiWireApi
 import ai.solace.coder.core.AuthMode
+import ai.solace.coder.core.CodexErr
+import ai.solace.coder.core.EnvVarError
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.toKString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import platform.posix.getenv
 
 private const val DEFAULT_STREAM_IDLE_TIMEOUT_MS: Long = 300_000
 private const val DEFAULT_STREAM_MAX_RETRIES: Long = 5
@@ -18,37 +29,54 @@ private const val MAX_STREAM_MAX_RETRIES: Long = 100
 /** Hard cap for user-configured `requestMaxRetries`. */
 private const val MAX_REQUEST_MAX_RETRIES: Long = 100
 
-const val DEFAULT_LMSTUDIO_PORT: Int = 1234
-const val DEFAULT_OLLAMA_PORT: Int = 11434
+/**
+ * Wire protocol that the provider speaks. Most third-party services only
+ * implement the classic OpenAI Chat Completions JSON schema, whereas OpenAI
+ * itself (and a handful of others) additionally expose the more modern
+ * Responses API. The two protocols use different request/response shapes
+ * and cannot be auto-detected at runtime, therefore each provider entry
+ * must declare which one it expects.
+ */
+@Serializable
+enum class WireApi {
+    /** The Responses API exposed by OpenAI at `/v1/responses`. */
+    @SerialName("responses")
+    Responses,
 
-const val LMSTUDIO_OSS_PROVIDER_ID: String = "lmstudio"
-const val OLLAMA_OSS_PROVIDER_ID: String = "ollama"
+    /** Regular Chat Completions compatible with `/v1/chat/completions`. */
+    @SerialName("chat")
+    Chat;
 
-// AuthMode imported from ai.solace.coder.core
+    companion object {
+        val Default: WireApi = Chat
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun envVar(name: String): String? = getenv(name)?.toKString()
 
 /**
  * Serializable representation of a provider definition.
- *
- * Ported from Rust codex-rs/core/src/modelProviderInfo.rs
  */
 @Serializable
 data class ModelProviderInfo(
     /** Friendly display name. */
     val name: String,
-
     /** Base URL for the provider OpenAI-compatible API. */
     @SerialName("base_url")
     val baseUrl: String? = null,
-
     /** Environment variable that stores the user API key for this provider. */
     @SerialName("env_key")
     val envKey: String? = null,
 
-    /** Optional instructions to help the user get a valid value for the variable and set it. */
+    /** Optional instructions to help the user get a valid value for the
+     *  variable and set it. */
     @SerialName("env_key_instructions")
     val envKeyInstructions: String? = null,
 
-    /** Value to import with `Authorization: Bearer <token>` header. */
+    /** Value to use with `Authorization: Bearer <token>` header. Use of this
+     *  config is discouraged in favor of `envKey` for security reasons, but
+     *  this may be necessary when using this programmatically. */
     @SerialName("experimental_bearer_token")
     val experimentalBearerToken: String? = null,
 
@@ -60,11 +88,15 @@ data class ModelProviderInfo(
     @SerialName("query_params")
     val queryParams: Map<String, String>? = null,
 
-    /** Additional HTTP headers to include in requests to this provider. */
+    /** Additional HTTP headers to include in requests to this provider where
+     *  the (key, value) pairs are the header name and value. */
     @SerialName("http_headers")
     val httpHeaders: Map<String, String>? = null,
 
-    /** HTTP headers from environment variables. */
+    /** Optional HTTP headers to include in requests to this provider where the
+     *  (key, value) pairs are the header name and environment variable whose
+     *  value should be used. If the environment variable is not set, or the
+     *  value is empty, the header will not be included in the request. */
     @SerialName("env_http_headers")
     val envHttpHeaders: Map<String, String>? = null,
 
@@ -76,135 +108,179 @@ data class ModelProviderInfo(
     @SerialName("stream_max_retries")
     val streamMaxRetries: Long? = null,
 
-    /** Idle timeout (in milliseconds) to wait for activity on a streaming response. */
+    /** Idle timeout (in milliseconds) to wait for activity on a streaming response before treating
+     *  the connection as lost. */
     @SerialName("stream_idle_timeout_ms")
     val streamIdleTimeoutMs: Long? = null,
 
-    /** Does this provider require an OpenAI API Key or ChatGPT login token? */
+    /** Does this provider require an OpenAI API Key or ChatGPT login token? If true,
+     *  user is presented with login screen on first run, and login preference and token/key
+     *  are stored in auth.json. If false (which is the default), login screen is skipped,
+     *  and API key (if needed) comes from the "envKey" environment variable. */
     @SerialName("requires_openai_auth")
-    val requiresOpenAiAuth: Boolean = false
+    val requiresOpenaiAuth: Boolean = false,
 ) {
-    /**
-     * Convert to API provider for import with HTTP client.
-     */
-    fun toApiProvider(authMode: AuthMode?): Provider {
-        val defaultBaseUrl = if (authMode == AuthMode.ChatGPT) {
-            "https://chatgpt.com/backend-api/codex"
-        } else {
-            "https://api.openai.com/v1"
-        }
-        val actualBaseUrl = baseUrl ?: defaultBaseUrl
-
-        val headers = buildHeaders()
-        val retry = RetryConfig(
-            maxAttempts = requestMaxRetries(),
-            baseDelay = 200.milliseconds,
-            retry429 = false,
-            retry5xx = true,
-            retryTransport = true
-        )
-
-        return Provider(
-            name = name,
-            baseUrl = actualBaseUrl,
-            queryParams = queryParams,
-            wire = wireApi,
-            defaultHeaders = headers,
-            retry = retry,
-            streamIdleTimeout = streamIdleTimeout()
-        )
-    }
-
-    /**
-     * Build HTTP headers from config.
-     */
-    private fun buildHeaders(): Map<String, String> {
+    private fun buildHeaderMap(): Map<String, String> {
         val headers = mutableMapOf<String, String>()
-
-        httpHeaders?.forEach { (k, v) ->
-            headers[k] = v
+        val extra = httpHeaders
+        if (extra != null) {
+            for ((k, v) in extra) {
+                headers[k] = v
+            }
         }
 
-        // Note: In Kotlin Native, environment variable access is platform-specific
-        // This is a simplified implementation
-        envHttpHeaders?.forEach { (header, envVar) ->
-            // In a real implementation, this would read from platform env vars
-            // For now, we skip env-based headers
+        val envHeaders = envHttpHeaders
+        if (envHeaders != null) {
+            for ((header, envName) in envHeaders) {
+                val value = envVar(envName)
+                if (value != null && value.trim().isNotEmpty()) {
+                    headers[header] = value
+                }
+            }
         }
 
         return headers
     }
 
+    fun toApiProvider(authMode: AuthMode?): ApiProvider {
+        val defaultBaseUrl = if (authMode == AuthMode.ChatGPT) {
+            "https://chatgpt.com/backend-api/codex"
+        } else {
+            "https://api.openai.com/v1"
+        }
+        val resolvedBaseUrl = baseUrl ?: defaultBaseUrl
+
+        val headers = buildHeaderMap()
+        val retry = ApiRetryConfig(
+            maxAttempts = requestMaxRetries(),
+            baseDelay = 200.milliseconds,
+            retry429 = false,
+            retry5xx = true,
+            retryTransport = true,
+        )
+
+        return ApiProvider(
+            name = name,
+            baseUrl = resolvedBaseUrl,
+            queryParams = queryParams,
+            wire = when (wireApi) {
+                WireApi.Responses -> ApiWireApi.Responses
+                WireApi.Chat -> ApiWireApi.Chat
+            },
+            defaultHeaders = headers,
+            retry = retry,
+            streamIdleTimeout = streamIdleTimeout(),
+        )
+    }
+
     /**
-     * If `envKey` is Some, returns the API key for this provider if present.
-     * Note: Environment variable access in Kotlin Native is platform-specific.
+     * If `envKey` is Some, returns the API key for this provider if present
+     * (and non-empty) in the environment. If `envKey` is required but
+     * cannot be found, returns an error.
      */
     fun apiKey(): String? {
-        // In a real implementation, this would read from platform env vars
-        return null
+        val envKey = this.envKey ?: return null
+        val envValue = envVar(envKey)
+        if (envValue == null || envValue.trim().isEmpty()) {
+            throw CodexErr.EnvVar(
+                EnvVarError(
+                    varName = envKey,
+                    instructions = envKeyInstructions,
+                ),
+            ).toException()
+        }
+        return envValue
     }
 
-    /**
-     * Effective maximum number of request retries for this provider.
-     */
-    fun requestMaxRetries(): Long {
-        return (requestMaxRetries ?: DEFAULT_REQUEST_MAX_RETRIES).coerceAtMost(MAX_REQUEST_MAX_RETRIES)
-    }
+    /** Effective maximum number of request retries for this provider. */
+    fun requestMaxRetries(): Long =
+        (requestMaxRetries ?: DEFAULT_REQUEST_MAX_RETRIES).coerceAtMost(MAX_REQUEST_MAX_RETRIES)
 
-    /**
-     * Effective maximum number of stream reconnection attempts for this provider.
-     */
-    fun streamMaxRetries(): Long {
-        return (streamMaxRetries ?: DEFAULT_STREAM_MAX_RETRIES).coerceAtMost(MAX_STREAM_MAX_RETRIES)
-    }
+    /** Effective maximum number of stream reconnection attempts for this provider. */
+    fun streamMaxRetries(): Long =
+        (streamMaxRetries ?: DEFAULT_STREAM_MAX_RETRIES).coerceAtMost(MAX_STREAM_MAX_RETRIES)
 
-    /**
-     * Effective idle timeout for streaming responses.
-     */
-    fun streamIdleTimeout(): Duration {
-        return (streamIdleTimeoutMs ?: DEFAULT_STREAM_IDLE_TIMEOUT_MS).milliseconds
-    }
+    /** Effective idle timeout for streaming responses. */
+    fun streamIdleTimeout(): Duration =
+        (streamIdleTimeoutMs ?: DEFAULT_STREAM_IDLE_TIMEOUT_MS).milliseconds
 }
 
-/**
- * Built-in default provider list.
- */
+const val DEFAULT_LMSTUDIO_PORT: Int = 1234
+const val DEFAULT_OLLAMA_PORT: Int = 11434
+
+const val LMSTUDIO_OSS_PROVIDER_ID: String = "lmstudio"
+const val OLLAMA_OSS_PROVIDER_ID: String = "ollama"
+
+/** Built-in default provider list. */
 fun builtInModelProviders(): Map<String, ModelProviderInfo> {
-    return mapOf(
+    // We do not want to be in the business of adjucating which third-party
+    // providers are bundled with Codex CLI, so we only include the OpenAI and
+    // open source ("oss") providers by default. Users are encouraged to add to
+    // modelProviders in config.toml to add their own providers.
+    // `modelProviders` in config.toml to add their own providers.
+    return listOf(
         "openai" to ModelProviderInfo(
             name = "OpenAI",
-            baseUrl = null, // Uses default
+            // Allow users to override the default OpenAI endpoint by
+            // exporting `OPENAI_BASE_URL`. This is useful when pointing
+            // Codex at a proxy, mock server, or Azure-style deployment
+            // without requiring a full TOML override for the built-in
+            // OpenAI provider.
+            baseUrl = envVar("OPENAI_BASE_URL")?.takeIf { it.trim().isNotEmpty() },
             envKey = null,
+            envKeyInstructions = null,
+            experimentalBearerToken = null,
             wireApi = WireApi.Responses,
-            httpHeaders = mapOf("version" to "1.0.0"),
+            queryParams = null,
+            httpHeaders = mapOf("version" to CARGO_PKG_VERSION),
             envHttpHeaders = mapOf(
                 "OpenAI-Organization" to "OPENAI_ORGANIZATION",
-                "OpenAI-Project" to "OPENAI_PROJECT"
+                "OpenAI-Project" to "OPENAI_PROJECT",
             ),
-            requiresOpenAiAuth = true
+            // Use global defaults for retry/timeout unless overridden in config.toml.
+            requestMaxRetries = null,
+            streamMaxRetries = null,
+            streamIdleTimeoutMs = null,
+            requiresOpenaiAuth = true,
         ),
         OLLAMA_OSS_PROVIDER_ID to createOssProvider(DEFAULT_OLLAMA_PORT, WireApi.Chat),
-        LMSTUDIO_OSS_PROVIDER_ID to createOssProvider(DEFAULT_LMSTUDIO_PORT, WireApi.Responses)
-    )
+        LMSTUDIO_OSS_PROVIDER_ID to createOssProvider(DEFAULT_LMSTUDIO_PORT, WireApi.Responses),
+    ).associate { (k, v) -> k to v }
 }
 
-/**
- * Create an OSS provider with the given port and wire API.
- */
+private const val CARGO_PKG_VERSION: String = "0.0.0"
+
 fun createOssProvider(defaultProviderPort: Int, wireApi: WireApi): ModelProviderInfo {
-    val baseUrl = "http://localhost:$defaultProviderPort/v1"
-    return createOssProviderWithBaseUrl(baseUrl, wireApi)
+    // These CODEX_OSS_ environment variables are experimental: we may
+    // switch to reading values from config.toml instead.
+    val codexOssBaseUrl = run {
+        val explicit = envVar("CODEX_OSS_BASE_URL")?.takeIf { it.trim().isNotEmpty() }
+        if (explicit != null) {
+            explicit
+        } else {
+            val port = envVar("CODEX_OSS_PORT")
+                ?.takeIf { it.trim().isNotEmpty() }
+                ?.toIntOrNull()
+                ?: defaultProviderPort
+            "http://localhost:$port/v1"
+        }
+    }
+    return createOssProviderWithBaseUrl(codexOssBaseUrl, wireApi)
 }
 
-/**
- * Create an OSS provider with the given base URL and wire API.
- */
-fun createOssProviderWithBaseUrl(baseUrl: String, wireApi: WireApi): ModelProviderInfo {
-    return ModelProviderInfo(
+fun createOssProviderWithBaseUrl(baseUrl: String, wireApi: WireApi): ModelProviderInfo =
+    ModelProviderInfo(
         name = "gpt-oss",
         baseUrl = baseUrl,
         envKey = null,
+        envKeyInstructions = null,
+        experimentalBearerToken = null,
         wireApi = wireApi,
-        requiresOpenAiAuth = false
+        queryParams = null,
+        httpHeaders = null,
+        envHttpHeaders = null,
+        requestMaxRetries = null,
+        streamMaxRetries = null,
+        streamIdleTimeoutMs = null,
+        requiresOpenaiAuth = false,
     )
-}

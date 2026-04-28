@@ -1,4 +1,4 @@
-// port-lint: source ollama/src/parser.rs
+// port-lint: source parser.rs
 package ai.solace.coder.ollama
 
 import kotlinx.serialization.json.JsonElement
