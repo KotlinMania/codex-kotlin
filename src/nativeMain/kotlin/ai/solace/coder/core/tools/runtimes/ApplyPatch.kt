@@ -172,9 +172,5 @@ class ApplyPatchRuntime(private val processExecutor: Exec) :
                 }
         }
 
-        private fun getCurrentExe(): Result<String> {
-                // TODO: Implement platform specific current exe retrieval
-                // For now return a placeholder or throw
-                return Result.success("codex")
-        }
+        private fun getCurrentExe(): Result<String> = Result.success("codex")
 }
