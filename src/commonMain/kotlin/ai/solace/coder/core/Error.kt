@@ -17,7 +17,6 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.native.concurrent.ThreadLocal
 
 /** Limit UI error messages to a reasonable size while keeping useful context. */
 private const val ERROR_MESSAGE_UI_MAX_BYTES: Int = 2 * 1024 // 4 KiB
@@ -27,8 +26,6 @@ private const val CLOUDFLARE_BLOCKED_MESSAGE: String =
 
 /**
  * Reason a token refresh failed.
- *
- * Mirrors Rust `RefreshTokenFailedReason`.
  */
 enum class RefreshTokenFailedReason {
     Expired,
@@ -39,8 +36,6 @@ enum class RefreshTokenFailedReason {
 
 /**
  * Error from a failed token refresh attempt.
- *
- * Mirrors Rust `RefreshTokenFailedError`.
  */
 data class RefreshTokenFailedError(
     val reason: RefreshTokenFailedReason,
@@ -56,8 +51,6 @@ data class RefreshTokenFailedError(
 
 /**
  * Error from an unexpected HTTP status code.
- *
- * Mirrors Rust `UnexpectedResponseError`.
  */
 data class UnexpectedResponseError(
     val status: Int,
@@ -84,8 +77,6 @@ data class UnexpectedResponseError(
 
 /**
  * Error returned when the retry limit has been exhausted.
- *
- * Mirrors Rust `RetryLimitReachedError`.
  */
 data class RetryLimitReachedError(
     val status: Int,
@@ -99,8 +90,6 @@ data class RetryLimitReachedError(
 
 /**
  * Error raised when the underlying HTTP connection failed.
- *
- * Mirrors Rust `ConnectionFailedError`.
  */
 data class ConnectionFailedError(
     val source: Throwable,
@@ -111,8 +100,6 @@ data class ConnectionFailedError(
 
 /**
  * Error raised when a response stream fails mid-transfer.
- *
- * Mirrors Rust `ResponseStreamFailed`.
  */
 data class ResponseStreamFailed(
     val source: Throwable,
@@ -128,8 +115,6 @@ data class ResponseStreamFailed(
 
 /**
  * Error indicating a usage limit has been reached.
- *
- * Mirrors Rust `UsageLimitReachedError`.
  */
 data class UsageLimitReachedError(
     val planType: PlanType? = null,
@@ -164,8 +149,6 @@ data class UsageLimitReachedError(
 
 /**
  * Environment-variable configuration error.
- *
- * Mirrors Rust `EnvVarError`.
  */
 data class EnvVarError(
     /** Name of the environment variable that is missing. */
@@ -179,11 +162,7 @@ data class EnvVarError(
     }
 }
 
-/**
- * Sandbox error types matching Rust `SandboxErr`.
- *
- * Mirrors Rust `core/src/error.rs::SandboxErr`.
- */
+/** Sandbox error types. */
 sealed class SandboxErr {
     data class Denied(val output: ExecToolCallOutput) : SandboxErr() {
         override fun toString(): String =
@@ -214,15 +193,12 @@ sealed class SandboxErr {
 
 /**
  * Codex error types matching the upstream CodexErr enum.
- *
- * Mirrors Rust `core/src/error.rs::CodexErr`.
  */
 sealed class CodexErr {
     /** Minimal shim mirroring Rust `CodexErr::downcastRef`. */
     inline fun <reified T : Any> downcastRef(): T? = this as? T
 
     companion object {
-        /** Mirrors Rust `implementation From<CancelErr> for CodexErr`. */
         fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
     }
 
@@ -230,8 +206,6 @@ sealed class CodexErr {
 
     /**
      * Produce an `ErrorEvent` for this error.
-     *
-     * Mirrors Rust `CodexErr::toErrorEvent`.
      */
     fun toErrorEvent(messagePrefix: String? = null): ErrorEvent {
         val errorMessage = toString()
@@ -241,8 +215,6 @@ sealed class CodexErr {
 
     /**
      * Translate core error to client-facing protocol error.
-     *
-     * Mirrors Rust `CodexErr::toCodexProtocolError`.
      */
     fun toCodexProtocolError(): CodexErrorInfo =
         when (this) {
@@ -260,8 +232,6 @@ sealed class CodexErr {
 
     /**
      * Return the HTTP status code for this error, if any.
-     *
-     * Mirrors Rust `CodexErr::httpStatusCodeValue`.
      */
     fun httpStatusCodeValue(): Int? =
         when (this) {
@@ -273,7 +243,7 @@ sealed class CodexErr {
         }
 
     // -----------------------------------------------------------------
-    // Core variants (mirror CodexErr enum in Rust)
+    // Core variants
     // -----------------------------------------------------------------
 
     data class TurnAborted(val danglingArtifacts: List<ProcessedResponseItem> = emptyList()) : CodexErr() {
@@ -392,12 +362,12 @@ sealed class CodexErr {
     // Automatic conversions for common external error types
     // -----------------------------------------------------------------
 
-    /** Generic I/O error. Mirrors Rust `CodexErr::Io(io::Error)`. */
+    /** Generic I/O error. */
     data class Io(val message: String) : CodexErr() {
         override fun toString(): String = message
     }
 
-    /** JSON (de)serialization error. Mirrors Rust `CodexErr::Json(serdeJson::Error)`. */
+    /** JSON (de)serialization error. */
     data class Json(val message: String) : CodexErr() {
         override fun toString(): String = message
     }
@@ -410,7 +380,7 @@ sealed class CodexErr {
         override fun toString(): String = message
     }
 
-    /** Join error from structured concurrency. Mirrors Rust `CodexErr::TokioJoin(JoinError)`. */
+    /** Join error from structured concurrency. */
     data class TokioJoin(val message: String) : CodexErr() {
         override fun toString(): String = message
     }
@@ -432,7 +402,7 @@ sealed class CodexErr {
  * Test-only override for "now" when formatting retry timestamps, matching the
  * upstream `NOW_OVERRIDE` thread-local.
  */
-@ThreadLocal internal var nowOverride: Instant? = null
+internal var nowOverride: Instant? = null
 
 internal fun nowForRetry(): Instant = nowOverride ?: Clock.System.now()
 
@@ -500,8 +470,6 @@ internal fun daySuffix(day: Int): String = when (day) {
 
 /**
  * Produce a user-facing error message for display in the UI.
- *
- * Mirrors Rust `core/src/error.rs::getErrorMessageUi`.
  */
 fun getErrorMessageUi(e: CodexErr): String {
     val message = when (e) {
