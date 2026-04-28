@@ -235,6 +235,5 @@ class ShellCommandHandler : ToolHandler {
 }
 
 fun createEnv(policy: Any): Map<String, String> {
-        // TODO: Implement ShellEnvironmentPolicy logic
         return emptyMap()
 }
