@@ -25,6 +25,17 @@ private const val CLOUDFLARE_BLOCKED_MESSAGE: String =
     "Access blocked by Cloudflare. This usually happens when connecting from a restricted region"
 
 /**
+ * Result type alias in Rust (`pub type Result<T> = std::result::Result<T, CodexErr>`).
+ *
+ * Kotlin already has `kotlin.Result`, so we model the same shape explicitly.
+ */
+sealed interface Result<out T> {
+    data class Ok<T>(val value: T) : Result<T>
+
+    data class Err(val error: CodexErr) : Result<Nothing>
+}
+
+/**
  * Reason a token refresh failed.
  */
 enum class RefreshTokenFailedReason {
@@ -58,20 +69,36 @@ data class UnexpectedResponseError(
     val requestId: String? = null,
 ) {
     private fun friendlyMessage(): String? {
-        if (status != 403) return null
-        if (!body.contains("Cloudflare") || !body.contains("blocked")) return null
+        if (status != 403) {
+            return null
+        }
+
+        if (!body.contains("Cloudflare") || !body.contains("blocked")) {
+            return null
+        }
+
         var message = "$CLOUDFLARE_BLOCKED_MESSAGE (status $status)"
+        val requestId = requestId
         if (requestId != null) {
             message += ", request id: $requestId"
         }
+
         return message
     }
 
     override fun toString(): String {
+        return fmt()
+    }
+
+    fun fmt(): String {
         val friendly = friendlyMessage()
-        if (friendly != null) return friendly
-        val suffix = requestId?.let { ", request id: $it" } ?: ""
-        return "unexpected status $status: $body$suffix"
+        return if (friendly != null) {
+            friendly
+        } else {
+            val requestId = requestId
+            val suffix = if (requestId != null) ", request id: $requestId" else ""
+            "unexpected status " + status + ": " + body + suffix
+        }
     }
 }
 
@@ -83,8 +110,14 @@ data class RetryLimitReachedError(
     val requestId: String? = null,
 ) {
     override fun toString(): String {
-        val suffix = requestId?.let { ", request id: $it" } ?: ""
-        return "exceeded retry limit, last status: $status$suffix"
+        return fmt()
+    }
+
+    fun fmt(): String {
+        val requestId = requestId
+        val suffix = if (requestId != null) ", request id: $requestId" else ""
+        val status = status
+        return "exceeded retry limit, last status: " + status + suffix
     }
 }
 
@@ -95,7 +128,12 @@ data class ConnectionFailedError(
     val source: Throwable,
     val status: Int? = null,
 ) {
-    override fun toString(): String = "Connection failed: ${source.message ?: source::class.simpleName}"
+    override fun toString(): String = fmt()
+
+    fun fmt(): String {
+        val source = source
+        return "Connection failed: " + source
+    }
 }
 
 /**
@@ -107,9 +145,14 @@ data class ResponseStreamFailed(
     val status: Int? = null,
 ) {
     override fun toString(): String {
-        val base = source.message ?: source::class.simpleName ?: "unknown error"
-        val suffix = requestId?.let { ", request id: $it" } ?: ""
-        return "Error while reading the server response: $base$suffix"
+        return fmt()
+    }
+
+    fun fmt(): String {
+        val source = source
+        val requestId = requestId
+        val requestSuffix = if (requestId != null) ", request id: $requestId" else ""
+        return "Error while reading the server response: " + source + requestSuffix
     }
 }
 
@@ -122,28 +165,37 @@ data class UsageLimitReachedError(
     val rateLimits: RateLimitSnapshot? = null,
 ) {
     override fun toString(): String {
-        val pt = planType
-        return when {
-            pt is PlanType.Known && pt.plan == KnownPlan.Plus ->
-                "You've hit your usage limit. Upgrade to Pro " +
-                    "(https://openai.com/chatgpt/pricing), visit " +
-                    "https://chatgpt.com/codex/settings/usage to purchase more credits" +
-                    retrySuffixAfterOr(resetsAt)
-            pt is PlanType.Known && (pt.plan == KnownPlan.Team || pt.plan == KnownPlan.Business) ->
-                "You've hit your usage limit. To get more access now, send a request to your admin" +
-                    retrySuffixAfterOr(resetsAt)
-            pt is PlanType.Known && pt.plan == KnownPlan.Free ->
-                "You've hit your usage limit. Upgrade to Plus to continue using Codex " +
-                    "(https://openai.com/chatgpt/pricing)."
-            pt is PlanType.Known && pt.plan == KnownPlan.Pro ->
-                "You've hit your usage limit. Visit " +
-                    "https://chatgpt.com/codex/settings/usage to purchase more credits" +
-                    retrySuffixAfterOr(resetsAt)
-            pt is PlanType.Known && (pt.plan == KnownPlan.Enterprise || pt.plan == KnownPlan.Edu) ->
-                "You've hit your usage limit.${retrySuffix(resetsAt)}"
-            else ->
-                "You've hit your usage limit.${retrySuffix(resetsAt)}"
-        }
+        return fmt()
+    }
+
+    fun fmt(): String {
+        val planType = planType
+        val resetsAt = resetsAt
+        val message =
+            when (planType) {
+                is PlanType.Known ->
+                    when (planType.plan) {
+                        KnownPlan.Plus ->
+                            "You've hit your usage limit. Upgrade to Pro (https://openai.com/chatgpt/pricing), " +
+                                "visit https://chatgpt.com/codex/settings/usage to purchase more credits" +
+                                retrySuffixAfterOr(resetsAt)
+                        KnownPlan.Team, KnownPlan.Business ->
+                            "You've hit your usage limit. To get more access now, send a request to your admin" +
+                                retrySuffixAfterOr(resetsAt)
+                        KnownPlan.Free ->
+                            "You've hit your usage limit. Upgrade to Plus to continue using Codex " +
+                                "(https://openai.com/chatgpt/pricing)."
+                        KnownPlan.Pro ->
+                            "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits" +
+                                retrySuffixAfterOr(resetsAt)
+                        KnownPlan.Enterprise, KnownPlan.Edu ->
+                            "You've hit your usage limit.${retrySuffix(resetsAt)}"
+                    }
+                else ->
+                    "You've hit your usage limit.${retrySuffix(resetsAt)}"
+            }
+
+        return message
     }
 }
 
@@ -157,8 +209,15 @@ data class EnvVarError(
     val instructions: String? = null,
 ) {
     override fun toString(): String {
-        val suffix = instructions?.let { " $it" } ?: ""
-        return "Missing environment variable: `$varName`.$suffix"
+        return fmt()
+    }
+
+    fun fmt(): String {
+        var message = "Missing environment variable: `$varName`."
+        if (instructions != null) {
+            message += " $instructions"
+        }
+        return message
     }
 }
 
@@ -196,7 +255,7 @@ sealed class SandboxErr {
  */
 sealed class CodexErr {
     /** Minimal shim mirroring Rust `CodexErr::downcastRef`. */
-    inline fun <reified T : Any> downcastRef(): T? = this as? T
+    inline fun <reified T : Any> downcastRef(): T? = (this as Any) as? T
 
     companion object {
         fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
@@ -216,31 +275,49 @@ sealed class CodexErr {
     /**
      * Translate core error to client-facing protocol error.
      */
-    fun toCodexProtocolError(): CodexErrorInfo =
-        when (this) {
-            is ContextWindowExceeded -> CodexErrorInfo.ContextWindowExceeded
-            is UsageLimitReached, is QuotaExceeded, is UsageNotIncluded -> CodexErrorInfo.UsageLimitExceeded
-            is RetryLimit -> CodexErrorInfo.ResponseTooManyFailedAttempts(httpStatusCode = httpStatusCodeValue())
-            is ConnectionFailed -> CodexErrorInfo.HttpConnectionFailed(httpStatusCode = httpStatusCodeValue())
-            is ResponseStreamFailed -> CodexErrorInfo.ResponseStreamConnectionFailed(httpStatusCode = httpStatusCodeValue())
-            is RefreshTokenFailed -> CodexErrorInfo.Unauthorized
-            is SessionConfiguredNotFirstEvent, is InternalServerError, is InternalAgentDied -> CodexErrorInfo.InternalServerError
-            is UnsupportedOperation, is ConversationNotFound -> CodexErrorInfo.BadRequest
-            is Sandbox -> CodexErrorInfo.SandboxError
-            else -> CodexErrorInfo.Other
+    fun toCodexProtocolError(): CodexErrorInfo {
+        return when (this) {
+            is ContextWindowExceeded ->
+                CodexErrorInfo.ContextWindowExceeded
+            is UsageLimitReached,
+            is QuotaExceeded,
+            is UsageNotIncluded ->
+                CodexErrorInfo.UsageLimitExceeded
+            is RetryLimit ->
+                CodexErrorInfo.ResponseTooManyFailedAttempts(httpStatusCode = httpStatusCodeValue())
+            is ConnectionFailed ->
+                CodexErrorInfo.HttpConnectionFailed(httpStatusCode = httpStatusCodeValue())
+            is ResponseStreamFailed ->
+                CodexErrorInfo.ResponseStreamConnectionFailed(httpStatusCode = httpStatusCodeValue())
+            is RefreshTokenFailed ->
+                CodexErrorInfo.Unauthorized
+            is SessionConfiguredNotFirstEvent,
+            is InternalServerError,
+            is InternalAgentDied ->
+                CodexErrorInfo.InternalServerError
+            is UnsupportedOperation,
+            is ConversationNotFound ->
+                CodexErrorInfo.BadRequest
+            is Sandbox ->
+                CodexErrorInfo.SandboxError
+            else ->
+                CodexErrorInfo.Other
         }
+    }
 
     /**
      * Return the HTTP status code for this error, if any.
      */
-    fun httpStatusCodeValue(): Int? =
-        when (this) {
+    fun httpStatusCodeValue(): Int? {
+        val httpStatusCode: Int? = when (this) {
             is RetryLimit -> error.status
             is UnexpectedStatus -> error.status
             is ConnectionFailed -> error.status
             is ResponseStreamFailed -> error.status
             else -> null
         }
+        return httpStatusCode
+    }
 
     // -----------------------------------------------------------------
     // Core variants
@@ -404,17 +481,12 @@ sealed class CodexErr {
  */
 internal var nowOverride: Instant? = null
 
-internal fun nowForRetry(): Instant = nowOverride ?: Clock.System.now()
-
-/** Test helper mirroring Rust `withNowOverride`. */
-internal inline fun <T> withNowOverride(now: Instant, f: () -> T): T {
-    val prev = nowOverride
-    nowOverride = now
-    try {
-        return f()
-    } finally {
-        nowOverride = prev
+internal fun nowForRetry(): Instant {
+    val now = nowOverride
+    if (now != null) {
+        return now
     }
+    return Clock.System.now()
 }
 
 internal fun retrySuffix(resetsAt: Instant?): String =
