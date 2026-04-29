@@ -1,3 +1,4 @@
+// port-lint: source core/src/tools/context.rs
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.protocol.ResponseInputItem
