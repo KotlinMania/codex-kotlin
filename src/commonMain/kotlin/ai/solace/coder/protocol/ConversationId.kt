@@ -1,4 +1,4 @@
-// port-lint: source conversation_id.rs
+// port-lint: source protocol/src/conversation_id.rs
 package ai.solace.coder.protocol
 
 import io.github.kotlinmania.schemars.Schema
@@ -14,28 +14,29 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+@OptIn(ExperimentalUuidApi::class)
 @Serializable(with = ConversationIdSerializer::class)
 data class ConversationId(
-    private val uuid: Uuid,
+    internal val uuid: Uuid,
 ) {
     companion object {
         fun new(): ConversationId {
-            val uuid = nowV7()
-            return ConversationId(uuid = uuid)
+            return ConversationId(
+                uuid = Uuid.random(),
+            )
         }
 
-        @OptIn(ExperimentalUuidApi::class)
-        fun fromString(s: String): kotlin.Result<ConversationId> = runCatching {
-            val uuid = Uuid.parse(s)
-            ConversationId(uuid = uuid)
+        fun fromString(s: String): kotlin.Result<ConversationId> {
+            return runCatching {
+                ConversationId(
+                    uuid = Uuid.parse(s),
+                )
+            }
         }
 
         fun default(): ConversationId {
             return new()
         }
-
-        @OptIn(ExperimentalUuidApi::class)
-        private fun nowV7(): Uuid = Uuid.random()
 
         fun schemaName(): String {
             return "ConversationId"
@@ -47,20 +48,17 @@ data class ConversationId(
     }
 
     override fun toString(): String {
-        return fmt()
-    }
-
-    fun fmt(): String {
-        return uuid.toString()
+        return "$uuid"
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 object ConversationIdSerializer : KSerializer<ConversationId> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ConversationId", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: ConversationId) {
-        encoder.collectStr(value.uuid.toString())
+        encoder.encodeString(value.uuid.toString())
     }
 
     override fun deserialize(decoder: Decoder): ConversationId {
@@ -68,8 +66,4 @@ object ConversationIdSerializer : KSerializer<ConversationId> {
         val uuid = Uuid.parse(value)
         return ConversationId(uuid = uuid)
     }
-}
-
-private fun Encoder.collectStr(value: String) {
-    encodeString(value)
 }
