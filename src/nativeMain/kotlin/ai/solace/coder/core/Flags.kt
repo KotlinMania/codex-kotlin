@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/flags.rs
+// port-lint: source flags.rs
 package ai.solace.coder.core
 
 import platform.posix.getenv

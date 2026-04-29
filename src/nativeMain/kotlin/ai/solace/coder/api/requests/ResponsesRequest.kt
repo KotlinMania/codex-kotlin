@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/requests/responses.rs
+// port-lint: source responses.rs
 package ai.solace.coder.api.requests
 
 import ai.solace.coder.api.common.Reasoning

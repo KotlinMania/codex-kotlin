@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/linux-sandbox/src/main.rs
+// port-lint: source main.rs
 import io.github.kotlinmania.jwt.JWT
 import io.github.kotlinmania.jwt.algorithms.Algorithm
 import kotlin.time.Clock

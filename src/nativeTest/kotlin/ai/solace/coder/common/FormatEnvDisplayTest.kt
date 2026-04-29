@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/formatEnvDisplay.rs
+// port-lint: source format_env_display.rs
 package ai.solace.coder.common
 
 import kotlin.test.Test

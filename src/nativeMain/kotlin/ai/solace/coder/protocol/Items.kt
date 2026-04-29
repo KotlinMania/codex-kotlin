@@ -1,8 +1,9 @@
-// port-lint: source codex-rs/protocol/src/items.rs
+// port-lint: source items.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 /**
  * Turn item types for conversation history.
@@ -51,25 +52,9 @@ data class UserMessageItem(
     companion object {
         fun new(content: List<UserInput>): UserMessageItem {
             return UserMessageItem(
-                id = generateUuid(),
+                id = Uuid.random().toString(),
                 content = content
             )
-        }
-
-        private fun generateUuid(): String {
-            val chars = "0123456789abcdef"
-            return buildString {
-                repeat(8) { append(chars.random()) }
-                append("-")
-                repeat(4) { append(chars.random()) }
-                append("-4") // Version 4
-                repeat(3) { append(chars.random()) }
-                append("-")
-                append(chars.filter { it in "89ab" }.random())
-                repeat(3) { append(chars.random()) }
-                append("-")
-                repeat(12) { append(chars.random()) }
-            }
         }
     }
 
@@ -81,10 +66,10 @@ data class UserMessageItem(
     }
 
     fun message(): String {
-        return content.mapNotNull { c ->
+        return content.map { c ->
             when (c) {
                 is UserInput.Text -> c.text
-                else -> null
+                else -> ""
             }
         }.joinToString("")
     }
@@ -114,25 +99,9 @@ data class AgentMessageItem(
     companion object {
         fun new(content: List<AgentMessageContent>): AgentMessageItem {
             return AgentMessageItem(
-                id = generateUuid(),
+                id = Uuid.random().toString(),
                 content = content
             )
-        }
-
-        private fun generateUuid(): String {
-            val chars = "0123456789abcdef"
-            return buildString {
-                repeat(8) { append(chars.random()) }
-                append("-")
-                repeat(4) { append(chars.random()) }
-                append("-4")
-                repeat(3) { append(chars.random()) }
-                append("-")
-                append(chars.filter { it in "89ab" }.random())
-                repeat(3) { append(chars.random()) }
-                append("-")
-                repeat(12) { append(chars.random()) }
-            }
         }
     }
 

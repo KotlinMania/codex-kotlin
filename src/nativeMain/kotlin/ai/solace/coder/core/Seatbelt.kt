@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/seatbelt.rs
+// port-lint: source seatbelt.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.protocol.SandboxPolicy

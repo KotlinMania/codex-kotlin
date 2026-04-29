@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/error.rs
+// port-lint: source error.rs
 package ai.solace.coder.api.error
 
 import ai.solace.coder.client.error.TransportError

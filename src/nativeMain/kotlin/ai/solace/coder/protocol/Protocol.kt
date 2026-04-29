@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/protocol.rs
+// port-lint: source protocol.rs
 package ai.solace.coder.protocol
 
 import kotlinx.cinterop.*
@@ -1086,9 +1086,6 @@ data class McpResource(
         @SerialName("mimeType") val mimeType: String? = null
 )
 
-// Alias for MCP protocol parity with Rust `mcpTypes::Resource`.
-typealias Resource = McpResource
-
 @Serializable
 data class McpResourceTemplate(
         @SerialName("uriTemplate") val uriTemplate: String,
@@ -1096,9 +1093,6 @@ data class McpResourceTemplate(
         val description: String? = null,
         @SerialName("mimeType") val mimeType: String? = null
 )
-
-// Alias for MCP protocol parity with Rust `mcpTypes::ResourceTemplate`.
-typealias ResourceTemplate = McpResourceTemplate
 
 @Serializable
 data class McpResult<T, E>(val value: T? = null, val error: E? = null) {

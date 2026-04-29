@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/ollama/src/url.rs
+// port-lint: source url.rs
 package ai.solace.coder.ollama
 
 import kotlin.test.Test

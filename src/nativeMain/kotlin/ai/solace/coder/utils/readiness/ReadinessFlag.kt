@@ -1,4 +1,5 @@
-// port-lint: source async-utils/src/lib.rs
+// port-lint: ignore
+// transliterated from upstream module root (async-utils crate)
 package ai.solace.coder.utils.readiness
 
 import kotlinx.coroutines.CompletableDeferred

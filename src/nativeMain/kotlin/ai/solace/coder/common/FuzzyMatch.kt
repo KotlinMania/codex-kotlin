@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/fuzzyMatch.rs
+// port-lint: source fuzzy_match.rs
 package ai.solace.coder.common
 
 import kotlin.math.max

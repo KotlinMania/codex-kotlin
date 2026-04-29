@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/otel/src/config.rs
+// port-lint: source config.rs
 package ai.solace.coder.otel
 
 import kotlinx.io.files.Path

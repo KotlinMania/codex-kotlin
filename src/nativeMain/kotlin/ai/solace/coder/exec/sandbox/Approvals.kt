@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/tools/sandboxing.rs
+// port-lint: source sandboxing.rs
 package ai.solace.coder.exec.sandbox
 
 import ai.solace.coder.protocol.ReviewDecision

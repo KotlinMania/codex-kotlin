@@ -1,8 +1,10 @@
-// port-lint: source codex-rs/ollama/src/url.rs
+// port-lint: source url.rs
 package ai.solace.coder.ollama
 
+import kotlin.test.Test
+
 /** Identify whether a baseUrl points at an OpenAI-compatible root (".../v1"). */
-internal fun isOpenAiCompatibleBaseUrl(baseUrl: String): Boolean {
+internal fun isOpenaiCompatibleBaseUrl(baseUrl: String): Boolean {
     return baseUrl.trimEnd('/').endsWith("/v1")
 }
 
@@ -13,8 +15,15 @@ internal fun isOpenAiCompatibleBaseUrl(baseUrl: String): Boolean {
 fun baseUrlToHostRoot(baseUrl: String): String {
     val trimmed = baseUrl.trimEnd('/')
     return if (trimmed.endsWith("/v1")) {
-        trimmed.removeSuffix("/v1").trimEnd('/')
+        trimmed.trimEnd('/').removeSuffix("/v1").trimEnd('/')
     } else {
         trimmed
     }
+}
+
+@Test
+internal fun testBaseUrlToHostRoot() {
+    check(baseUrlToHostRoot("http://localhost:11434/v1") == "http://localhost:11434")
+    check(baseUrlToHostRoot("http://localhost:11434") == "http://localhost:11434")
+    check(baseUrlToHostRoot("http://localhost:11434/") == "http://localhost:11434")
 }

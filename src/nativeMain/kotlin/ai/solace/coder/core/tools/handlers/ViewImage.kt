@@ -75,11 +75,11 @@ class ViewImageHandler : ToolHandler {
             )
         }
 
-        // Return success with image attachment info
-        // The actual image injection into the session happens at a higher level
-        // via the ToolOutput.ImageAttachment output type
         return Result.success(
-                ToolOutput.ImageAttachment(path = absPath, message = "attached local image path")
+                ToolOutput.Function(
+                        content = "attached local image path: $absPath",
+                        success = true
+                )
         )
     }
 

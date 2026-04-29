@@ -23,12 +23,12 @@ internal fun blend(fg: Triple<UByte, UByte, UByte>, bg: Triple<UByte, UByte, UBy
  */
 internal fun perceptualDistance(a: Triple<UByte, UByte, UByte>, b: Triple<UByte, UByte, UByte>): Float {
     // Convert sRGB to linear RGB
-    fun srgbToLinear(c: UByte): Float {
-        val cv = c.toFloat() / 255.0f
-        return if (cv <= 0.04045f) {
-            cv / 12.92f
+    fun srgbToLinear(c0: UByte): Float {
+        val c = c0.toFloat() / 255.0f
+        return if (c <= 0.04045f) {
+            c / 12.92f
         } else {
-            ((cv + 0.055f) / 1.055f).pow(2.4f)
+            ((c + 0.055f) / 1.055f).pow(2.4f)
         }
     }
 
@@ -51,7 +51,8 @@ internal fun perceptualDistance(a: Triple<UByte, UByte, UByte>, b: Triple<UByte,
         val yr = y / 1.00000f
         val zr = z / 1.08883f
 
-        fun f(t: Float): Float {
+        fun f(t0: Float): Float {
+            val t = t0
             return if (t > 0.008856f) {
                 t.pow(1.0f / 3.0f)
             } else {

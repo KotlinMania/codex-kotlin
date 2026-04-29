@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/streaming.rs
+// port-lint: source streaming.rs
 package ai.solace.coder.api.endpoint
 
 import ai.solace.coder.api.AuthProvider
@@ -20,13 +20,6 @@ import kotlinx.serialization.json.JsonElement
  * adapted for Kotlin: the request is delivered as a configured
  * [HttpRequestBuilder] block and an [HttpClient].
  */
-internal typealias StreamSpawner = suspend (
-    httpClient: HttpClient,
-    request: HttpRequestBuilder.() -> Unit,
-    idleTimeout: Duration,
-    telemetry: SseTelemetry?,
-) -> ResponseStream
-
 /**
  * Internal streaming client that handles HTTP streaming with auth and telemetry.
  *
@@ -58,7 +51,13 @@ internal class StreamingClient<A : AuthProvider>(
         path: String,
         body: JsonElement,
         configureExtraHeaders: HttpRequestBuilder.() -> Unit,
-        spawner: StreamSpawner,
+        spawner:
+            suspend (
+                httpClient: HttpClient,
+                request: HttpRequestBuilder.() -> Unit,
+                idleTimeout: Duration,
+                telemetry: SseTelemetry?,
+            ) -> ResponseStream,
     ): Result<ResponseStream> {
         return try {
             // Build the request configuration block. Mirrors the upstream `builder` closure
@@ -83,4 +82,3 @@ internal class StreamingClient<A : AuthProvider>(
         }
     }
 }
-

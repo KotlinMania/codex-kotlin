@@ -1,4 +1,4 @@
-// port-lint: source core/src/conversationManager.rs
+// port-lint: source core/src/conversation_manager.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.client.auth.AuthManager
@@ -6,10 +6,12 @@ import ai.solace.coder.client.auth.CodexAuth
 import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.CodexResult
 import ai.solace.coder.protocol.ConversationId as ProtocolConversationId
+import ai.solace.coder.protocol.ContentItem
 import ai.solace.coder.protocol.Event
 import ai.solace.coder.protocol.EventMsg
 import ai.solace.coder.protocol.InitialHistory
 import ai.solace.coder.protocol.ResponseItem
+import ai.solace.coder.protocol.ReasoningItemReasoningSummary
 import ai.solace.coder.protocol.RolloutItem
 import ai.solace.coder.protocol.SessionConfiguredEvent
 import ai.solace.coder.protocol.SessionSource
@@ -46,8 +48,18 @@ class ConversationManager(
      * Used for integration tests: should not be used by ordinary business logic.
      */
     companion object {
+        fun new(
+            authManager: AuthManager,
+            sessionSource: SessionSource,
+        ): ConversationManager {
+            return ConversationManager(
+                authManager = authManager,
+                sessionSource = sessionSource,
+            )
+        }
+
         fun withAuth(auth: CodexAuth): ConversationManager =
-            ConversationManager(
+            new(
                 authManager = AuthManager.fromAuthForTesting(auth),
                 sessionSource = SessionSource.Exec,
             )
@@ -211,7 +223,11 @@ internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Init
     for ((idx, item) in items.withIndex()) {
         if (item is RolloutItem.ResponseItemHolder) {
             val payload = item.payload
-            if (payload is ResponseItem.Message && payload.role == "user") {
+            if (
+                payload is ResponseItem.Message &&
+                    payload.role == "user" &&
+                    !UserInstructions.isUserInstructions(payload.content)
+            ) {
                 userPositions.add(idx)
             }
         }
@@ -233,3 +249,111 @@ internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Init
     }
 }
 
+internal fun userMsg(text: String): ResponseItem {
+    return ResponseItem.Message(
+        id = null,
+        role = "user",
+        content = listOf(
+            ContentItem.OutputText(
+                text = text,
+            ),
+        ),
+    )
+}
+
+internal fun assistantMsg(text: String): ResponseItem {
+    return ResponseItem.Message(
+        id = null,
+        role = "assistant",
+        content = listOf(
+            ContentItem.OutputText(
+                text = text,
+            ),
+        ),
+    )
+}
+
+internal fun dropsFromLastUserOnly() {
+    val items =
+        listOf(
+            userMsg("u1"),
+            assistantMsg("a1"),
+            assistantMsg("a2"),
+            userMsg("u2"),
+            assistantMsg("a3"),
+            ResponseItem.Reasoning(
+                id = "r1",
+                summary = listOf(
+                    ReasoningItemReasoningSummary.SummaryText(
+                        text = "s",
+                    ),
+                ),
+                content = null,
+                encryptedContent = null,
+            ),
+            ResponseItem.FunctionCall(
+                id = null,
+                name = "tool",
+                arguments = "{}",
+                callId = "c1",
+            ),
+            assistantMsg("a4"),
+        )
+
+    val initial = items.map { RolloutItem.ResponseItemHolder(payload = it) }
+    val truncated = truncateBeforeNthUserMessage(InitialHistory.Forked(initial), 1)
+    val gotItems = truncated.getRolloutItems()
+    val expectedItems =
+        listOf(
+            RolloutItem.ResponseItemHolder(payload = items[0]),
+            RolloutItem.ResponseItemHolder(payload = items[1]),
+            RolloutItem.ResponseItemHolder(payload = items[2]),
+        )
+
+    check(gotItems == expectedItems)
+
+    val initial2 = items.map { RolloutItem.ResponseItemHolder(payload = it) }
+    val truncated2 = truncateBeforeNthUserMessage(InitialHistory.Forked(initial2), 2)
+    check(truncated2 is InitialHistory.New)
+}
+
+internal fun ignoresSessionPrefixMessagesWhenTruncating() {
+    val prefix =
+        listOf(
+            DeveloperInstructions("dev").toResponseItem(),
+            UserInstructions(directory = "/tmp/project", text = "instructions").toResponseItem(),
+            ResponseItem.Message(
+                id = null,
+                role = "user",
+                content = listOf(
+                    ContentItem.InputText(
+                        text = "<environment_context>test_text</environment_context>",
+                    ),
+                ),
+            ),
+        )
+
+    val items =
+        prefix +
+            listOf(
+                userMsg("feature request"),
+                assistantMsg("ack"),
+                userMsg("second question"),
+                assistantMsg("answer"),
+            )
+
+    val rolloutItems = items.map { RolloutItem.ResponseItemHolder(payload = it) }
+    val truncated = truncateBeforeNthUserMessage(InitialHistory.Forked(rolloutItems), 1)
+    val gotItems = truncated.getRolloutItems()
+
+    val expected =
+        listOf(
+            RolloutItem.ResponseItemHolder(payload = items[0]),
+            RolloutItem.ResponseItemHolder(payload = items[1]),
+            RolloutItem.ResponseItemHolder(payload = items[2]),
+            RolloutItem.ResponseItemHolder(payload = items[3]),
+            RolloutItem.ResponseItemHolder(payload = items[4]),
+        )
+
+    check(gotItems == expected)
+}

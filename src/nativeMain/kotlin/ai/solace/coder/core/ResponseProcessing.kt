@@ -63,7 +63,7 @@ class ToolCallProcessor(
                 is ResponseInputItem.McpToolCallOutput -> {
                     val output = when {
                         response.result.isSuccess && response.result.value != null -> {
-                            FunctionCallOutputPayload.fromCallToolResult(response.result.value)
+                            FunctionCallOutputPayload.from(response.result.value)
                         }
                         response.result.isSuccess -> {
                             FunctionCallOutputPayload(

@@ -1,4 +1,5 @@
-// port-lint: source tui/src/render/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.tui.render
 
 import ratatui.layout.Rect

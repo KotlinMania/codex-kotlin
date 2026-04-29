@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/powershell.rs
+// port-lint: source powershell.rs
 package ai.solace.coder.core
 
 import kotlin.test.Test

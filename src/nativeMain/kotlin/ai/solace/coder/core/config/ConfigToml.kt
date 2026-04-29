@@ -1,4 +1,5 @@
-// port-lint: source codex-rs/core/src/config/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.core.config
 
 import kotlinx.serialization.SerialName

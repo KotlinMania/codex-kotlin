@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/modelFamily.rs
+// port-lint: source model_family.rs
 package ai.solace.coder.core.model
 
 import ai.solace.coder.core.context.TruncationPolicy

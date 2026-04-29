@@ -1,4 +1,4 @@
-// port-lint: source core/src/conversationManager.rs
+// port-lint: source core/src/conversation_manager.rs
 package ai.solace.coder.core.session
 
 import ai.solace.coder.protocol.ContentItem
@@ -26,7 +26,7 @@ private fun assistantMsg(text: String): ResponseItem =
 
 class ConversationManagerTest {
     @Test
-    fun drops_from_last_user_only() {
+    fun dropsFromLastUserOnly() {
         val items = listOf(
             userMsg("u1"),
             assistantMsg("a1"),

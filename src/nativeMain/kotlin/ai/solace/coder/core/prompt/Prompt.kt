@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/clientCommon.rs
+// port-lint: source client_common.rs
 package ai.solace.coder.core.prompt
 
 import ai.solace.coder.core.model.ModelFamily

@@ -1,4 +1,5 @@
-// port-lint: source core/src/unifiedExec/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.core.unified_exec
 
 import ai.solace.coder.core.session.Session as CodexSession

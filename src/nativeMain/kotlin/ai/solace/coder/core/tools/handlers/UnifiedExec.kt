@@ -108,25 +108,9 @@ class UnifiedExecHandler : ToolHandler {
                                         val response = sessionManager.execCommand(request, context)
 
                                         Result.success(
-                                                ToolOutput.Exec(
-                                                        ai.solace.coder.core.ExecToolCallOutput(
-                                                                exitCode = response.exitCode ?: -1,
-                                                                stdout =
-                                                                        ai.solace.coder.core
-                                                                                .StreamOutput(
-                                                                                        response.output
-                                                                                ),
-                                                                stderr =
-                                                                        ai.solace.coder.core
-                                                                                .StreamOutput(""),
-                                                                aggregatedOutput =
-                                                                        ai.solace.coder.core
-                                                                                .StreamOutput(
-                                                                                        response.output
-                                                                                ),
-                                                                duration = response.wallTime,
-                                                                timedOut = false
-                                                        )
+                                                ToolOutput.Function(
+                                                        content = response.output,
+                                                        success = response.exitCode == 0
                                                 )
                                         )
                                 }

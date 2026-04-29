@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/client.rs
+// port-lint: source client.rs
 package ai.solace.coder.core.client
 
 import ai.solace.coder.api.AuthProvider
@@ -27,8 +27,8 @@ import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.prompt.Prompt
 import ai.solace.coder.protocol.ConversationId
-import ai.solace.coder.protocol.ReasoningEffortConfig
-import ai.solace.coder.protocol.ReasoningSummaryConfig
+import ai.solace.coder.protocol.ReasoningEffort
+import ai.solace.coder.protocol.ReasoningSummary
 import ai.solace.coder.protocol.ResponseItem
 import ai.solace.coder.protocol.SessionSource
 import io.ktor.client.*
@@ -52,8 +52,8 @@ class ModelClient(
     private val otelEventManager: OtelEventManager,
     private val provider: ModelProviderInfo,
     private val conversationId: ConversationId,
-    private val effort: ReasoningEffortConfig?,
-    private val summary: ReasoningSummaryConfig,
+    private val effort: ReasoningEffort?,
+    private val summary: ReasoningSummary,
     private val sessionSource: SessionSource,
 ) {
 
@@ -271,9 +271,9 @@ class ModelClient(
 
     fun getModelFamily(): ModelFamily = config.modelFamily
 
-    fun getReasoningEffort(): ReasoningEffortConfig? = effort
+    fun getReasoningEffort(): ReasoningEffort? = effort
 
-    fun getReasoningSummary(): ReasoningSummaryConfig = summary
+    fun getReasoningSummary(): ReasoningSummary = summary
 
     fun getAuthManager(): AuthManager? = authManager
 

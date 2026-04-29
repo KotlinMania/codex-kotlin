@@ -10,7 +10,16 @@ import ratatui.widgets.paragraph.Paragraph
 interface Renderable {
     fun render(area: Rect, buf: Buffer)
     fun desiredHeight(width: Int): Int
-    fun cursorPos(area: Rect): Pair<Int, Int>? = null
+
+    fun cursorPos(area: Rect): Pair<Int, Int>? {
+        return null
+    }
+
+    companion object {
+        fun from(value: Renderable): Renderable {
+            return value
+        }
+    }
 }
 
 sealed class RenderableItem : Renderable {
@@ -25,11 +34,37 @@ sealed class RenderableItem : Renderable {
         override fun desiredHeight(width: Int): Int = child.desiredHeight(width)
         override fun cursorPos(area: Rect): Pair<Int, Int>? = child.cursorPos(area)
     }
+
+    override fun render(area: Rect, buf: Buffer) {
+        when (this) {
+            is Owned -> child.render(area, buf)
+            is Borrowed -> child.render(area, buf)
+        }
+    }
+
+    override fun desiredHeight(width: Int): Int {
+        return when (this) {
+            is Owned -> child.desiredHeight(width)
+            is Borrowed -> child.desiredHeight(width)
+        }
+    }
+
+    override fun cursorPos(area: Rect): Pair<Int, Int>? {
+        return when (this) {
+            is Owned -> child.cursorPos(area)
+            is Borrowed -> child.cursorPos(area)
+        }
+    }
+
+    companion object {
+        fun from(value: Renderable): RenderableItem {
+            return Owned(value)
+        }
+    }
 }
 
 /** A no-op renderable with zero height. */
 object EmptyRenderable : Renderable {
-    @Suppress("UNUSED_PARAMETER")
     override fun render(area: Rect, buf: Buffer) {}
     override fun desiredHeight(width: Int): Int = 0
 }
@@ -73,11 +108,18 @@ class ParagraphRenderable(private val paragraph: Paragraph) : Renderable {
 /** A renderable that delegates to an optional inner renderable. */
 class OptionalRenderable(private val inner: Renderable?) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
-        inner?.render(area, buf)
+        val renderable = inner
+        if (renderable != null) {
+            renderable.render(area, buf)
+        }
     }
 
     override fun desiredHeight(width: Int): Int {
-        return inner?.desiredHeight(width) ?: 0
+        val renderable = inner
+        if (renderable != null) {
+            return renderable.desiredHeight(width)
+        }
+        return 0
     }
 }
 

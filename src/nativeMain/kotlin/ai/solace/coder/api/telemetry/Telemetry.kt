@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/telemetry.rs
+// port-lint: source telemetry.rs
 package ai.solace.coder.api.telemetry
 
 import io.ktor.http.*

@@ -1,14 +1,8 @@
-// port-lint: source codex-rs/protocol/src/numFormat.rs
+// port-lint: source num_format.rs
 package ai.solace.coder.protocol
 
 import kotlin.math.pow
 import kotlin.math.round
-
-/**
- * Number formatting utilities.
- *
- * Ported from Rust codex-rs/protocol/src/numFormat.rs
- */
 
 /**
  * Format an i64 with locale-aware digit separators (e.g. "12345" -> "12,345"

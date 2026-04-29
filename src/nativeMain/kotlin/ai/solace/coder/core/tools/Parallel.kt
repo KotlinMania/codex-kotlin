@@ -3,7 +3,7 @@ package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.session.Session
-import ai.solace.coder.core.session.SharedTurnDiffTracker
+import ai.solace.coder.core.tools.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.ResponseInputItem

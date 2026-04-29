@@ -67,8 +67,6 @@ class OutputBufferState {
     }
 }
 
-typealias OutputBuffer = Mutex // Wrapping OutputBufferState
-
 data class OutputHandles(
         val outputState: OutputBufferStateWrapper,
         val outputNotify: Notify,

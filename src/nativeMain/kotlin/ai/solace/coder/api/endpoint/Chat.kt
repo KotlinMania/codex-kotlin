@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/chat.rs
+// port-lint: source chat.rs
 package ai.solace.coder.api.endpoint
 
 import ai.solace.coder.api.AuthProvider

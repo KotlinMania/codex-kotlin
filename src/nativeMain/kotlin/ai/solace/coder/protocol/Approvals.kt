@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/approvals.rs
+// port-lint: source approvals.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName

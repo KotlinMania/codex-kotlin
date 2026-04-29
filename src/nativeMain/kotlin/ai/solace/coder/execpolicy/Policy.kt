@@ -6,9 +6,9 @@ import kotlinx.serialization.Serializable
 
 /** A policy indexing rules by their program name (the first command token). */
 data class Policy(
-    val rulesByProgram: Map<String, List<RuleRef>>,
+    val rulesByProgram: Map<String, List<Rule>>,
 ) {
-    fun rules(): Map<String, List<RuleRef>> = rulesByProgram
+    fun rules(): Map<String, List<Rule>> = rulesByProgram
 
     fun check(cmd: List<String>): Evaluation {
         val first = cmd.firstOrNull() ?: return Evaluation.NoMatch

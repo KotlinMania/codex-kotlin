@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/auth.rs
+// port-lint: source auth.rs
 package ai.solace.coder.api
 
 import io.ktor.client.request.*

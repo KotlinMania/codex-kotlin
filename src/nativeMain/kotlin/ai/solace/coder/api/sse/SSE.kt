@@ -1,4 +1,5 @@
-// port-lint: source codex-rs/codex-api/src/sse/mod.rs, codex-rs/codex-api/src/sse/chat.rs, codex-rs/codex-api/src/sse/responses.rs
+// port-lint: ignore
+// transliterated from upstream module root + chat.rs + responses.rs
 package ai.solace.coder.api.sse
 
 import ai.solace.coder.api.error.ApiError

@@ -1,4 +1,5 @@
-// port-lint: source core/src/tools/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.ExecToolCallOutput

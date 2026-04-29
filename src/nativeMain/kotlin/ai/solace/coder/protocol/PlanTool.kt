@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/planTool.rs
+// port-lint: source plan_tool.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName

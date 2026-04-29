@@ -1,10 +1,8 @@
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 
-// port-lint: source ollama/src/pull.rs
+// port-lint: source pull.rs
 package ai.solace.coder.ollama
 
-import kotlin.math.pow
-import kotlin.math.round
 import kotlin.time.TimeSource
 import platform.posix.fflush
 import platform.posix.fputs
@@ -43,13 +41,13 @@ private data class TotalAndCompleted(
 )
 
 /** A minimal CLI reporter that writes inline progress to stderr. */
-class CliProgressReporter private constructor() : PullProgressReporter {
-    private var printedHeader: Boolean = false
-    private var lastLineLen: Int = 0
-    private var lastCompletedSum: Long = 0
-    private var lastInstant = TimeSource.Monotonic.markNow()
-    private val totalsByDigest: MutableMap<String, TotalAndCompleted> = HashMap()
-
+class CliProgressReporter private constructor(
+    private var printedHeader: Boolean,
+    private var lastLineLen: Int,
+    private var lastCompletedSum: Long,
+    private var lastInstant: TimeSource.Monotonic.ValueTimeMark,
+    private val totalsByDigest: MutableMap<String, TotalAndCompleted>,
+) : PullProgressReporter {
     override fun onEvent(event: PullEvent) {
         when (event) {
             is PullEvent.Status -> {
@@ -61,8 +59,8 @@ class CliProgressReporter private constructor() : PullProgressReporter {
                 val pad = (lastLineLen - status.length).coerceAtLeast(0)
                 val line = "\r$status" + " ".repeat(pad)
                 lastLineLen = status.length
-                writeStderr(line)
-                flushStderr()
+                fputs(line, stderr)
+                fflush(stderr)
             }
             is PullEvent.ChunkProgress -> {
                 if (event.total != null) {
@@ -74,26 +72,23 @@ class CliProgressReporter private constructor() : PullProgressReporter {
                     entry.completed = event.completed
                 }
 
-                var sumTotal = 0L
-                var sumCompleted = 0L
-                for ((total, completed) in totalsByDigest.values) {
-                    sumTotal += total
-                    sumCompleted += completed
+                val (sumTotal, sumCompleted) = totalsByDigest.values.fold(0L to 0L) { acc, tc ->
+                    (acc.first + tc.total) to (acc.second + tc.completed)
                 }
 
                 if (sumTotal > 0) {
                     if (!printedHeader) {
                         val gb = sumTotal.toDouble() / (1024.0 * 1024.0 * 1024.0)
                         val header = "Downloading model: total ${formatDouble(gb, 2)} GB\n"
-                        writeStderr("\r\u001b[2K")
-                        writeStderr(header)
+                        fputs("\r\u001b[2K", stderr)
+                        fputs(header, stderr)
                         printedHeader = true
                     }
 
-                    val dtSeconds = (lastInstant.elapsedNow().inWholeNanoseconds.toDouble() / 1e9)
+                    val dt = (lastInstant.elapsedNow().inWholeNanoseconds.toDouble() / 1e9)
                         .coerceAtLeast(0.001)
                     val dbytes = (sumCompleted - lastCompletedSum).coerceAtLeast(0).toDouble()
-                    val speedMbS = dbytes / (1024.0 * 1024.0) / dtSeconds
+                    val speedMbS = dbytes / (1024.0 * 1024.0) / dt
                     lastCompletedSum = sumCompleted
                     lastInstant = TimeSource.Monotonic.markNow()
 
@@ -106,8 +101,8 @@ class CliProgressReporter private constructor() : PullProgressReporter {
                     val pad = (lastLineLen - text.length).coerceAtLeast(0)
                     val line = "\r$text" + " ".repeat(pad)
                     lastLineLen = text.length
-                    writeStderr(line)
-                    flushStderr()
+                    fputs(line, stderr)
+                    fflush(stderr)
                 }
             }
             is PullEvent.Error -> {
@@ -115,14 +110,26 @@ class CliProgressReporter private constructor() : PullProgressReporter {
                 // here or the error will be printed twice.
             }
             PullEvent.Success -> {
-                writeStderr("\n")
-                flushStderr()
+                fputs("\n", stderr)
+                fflush(stderr)
             }
         }
     }
 
     companion object {
-        fun new(): CliProgressReporter = CliProgressReporter()
+        fun default(): CliProgressReporter {
+            return new()
+        }
+
+        fun new(): CliProgressReporter {
+            return CliProgressReporter(
+                printedHeader = false,
+                lastLineLen = 0,
+                lastCompletedSum = 0,
+                lastInstant = TimeSource.Monotonic.markNow(),
+                totalsByDigest = HashMap(),
+            )
+        }
     }
 }
 
@@ -137,36 +144,3 @@ class TuiProgressReporter(
         inner.onEvent(event)
     }
 }
-
-private fun writeStderr(text: String) {
-    fputs(text, stderr)
-}
-
-private fun flushStderr() {
-    fflush(stderr)
-}
-
-private fun formatDouble(value: Double, decimals: Int): String {
-    if (decimals == 0) {
-        return value.toLong().toString()
-    }
-    val multiplier = when (decimals) {
-        1 -> 10.0
-        2 -> 100.0
-        else -> 10.0.pow(decimals.toDouble())
-    }
-    val rounded = round(value * multiplier) / multiplier
-    val str = rounded.toString()
-    val dotIndex = str.indexOf('.')
-    return if (dotIndex < 0) {
-        str + "." + "0".repeat(decimals)
-    } else {
-        val decimalPart = str.substring(dotIndex + 1)
-        if (decimalPart.length >= decimals) {
-            str.substring(0, dotIndex + 1 + decimals)
-        } else {
-            str + "0".repeat(decimals - decimalPart.length)
-        }
-    }
-}
-

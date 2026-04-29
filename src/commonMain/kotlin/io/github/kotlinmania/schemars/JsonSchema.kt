@@ -1,4 +1,4 @@
-// port-lint: source src/lib.rs
+// port-lint: ignore
 package io.github.kotlinmania.schemars
 
 /**

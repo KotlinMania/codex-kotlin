@@ -70,10 +70,9 @@ import ai.solace.coder.protocol.TokenUsageInfo
 import ai.solace.coder.protocol.RateLimitSnapshot
 import ai.solace.coder.protocol.HistoryEntry
 import ai.solace.coder.protocol.FileChange
+import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.protocol.ReasoningEffort
-import ai.solace.coder.protocol.ReasoningEffortConfig
 import ai.solace.coder.protocol.ReasoningSummary
-import ai.solace.coder.protocol.ReasoningSummaryConfig
 import ai.solace.coder.protocol.TurnContextItem
 import ai.solace.coder.protocol.TurnDiffEvent
 import ai.solace.coder.protocol.AgentMessageContentDeltaEvent
@@ -239,13 +238,6 @@ data class CodexSpawnOk(
     val codex: Codex,
     val conversationId: ConversationId
 )
-
-/**
- * Unique identifier for a conversation/session.
- *
- * Ported from Rust codexProtocol::ConversationId
- */
-typealias ConversationId = String
 
 /**
  * Spawn a new [Codex] and initialize the session.
@@ -1180,7 +1172,7 @@ class Session private constructor(
 
             val conversationId: ConversationId = when (initialHistory) {
                 is InitialHistory.New, is InitialHistory.Forked -> generateConversationId()
-                is InitialHistory.Resumed -> initialHistory.payload.conversationId.toString()
+                is InitialHistory.Resumed -> initialHistory.payload.conversationId
             }
 
             // Initialize services
@@ -1250,15 +1242,7 @@ class Session private constructor(
             return session
         }
 
-        private fun generateConversationId(): ConversationId {
-            val chars = "0123456789abcdef"
-            return buildString {
-                append("conv_")
-                repeat(16) {
-                    append(chars.random())
-                }
-            }
-        }
+        private fun generateConversationId(): ConversationId = ConversationId.new()
 
         private fun isAbsolutePath(path: String): Boolean {
             return path.startsWith("/") || (path.length >= 3 && path[1] == ':' && path[2] == '\\')
@@ -1392,10 +1376,10 @@ data class TurnContext(
     val modelContextWindow: Long? get() = client?.getModelContextWindow()
 
     /** Get the reasoning effort config. Delegates to client.getReasoningEffort(). */
-    val reasoningEffort: ReasoningEffortConfig? get() = client?.getReasoningEffort()
+    val reasoningEffort: ReasoningEffort? get() = client?.getReasoningEffort()
 
     /** Get the reasoning summary config. Delegates to client.getReasoningSummary(). */
-    val reasoningSummary: ReasoningSummaryConfig get() = client?.getReasoningSummary() ?: ReasoningSummary.Auto
+    val reasoningSummary: ReasoningSummary get() = client?.getReasoningSummary() ?: ReasoningSummary.Auto
 
     /** Get the auto-compact token limit. Delegates to client.getAutoCompactTokenLimit(). */
     val autoCompactTokenLimit: Long? get() = client?.getAutoCompactTokenLimit()
@@ -1452,8 +1436,8 @@ data class TurnContext(
 data class SessionConfiguration(
     val provider: ModelProviderInfo,
     val model: String,
-    val modelReasoningEffort: ReasoningEffortConfig? = null,
-    val modelReasoningSummary: ReasoningSummaryConfig = ReasoningSummary.Auto,
+    val modelReasoningEffort: ReasoningEffort? = null,
+    val modelReasoningSummary: ReasoningSummary = ReasoningSummary.Auto,
     val developerInstructions: String? = null,
     val userInstructions: String? = null,
     val baseInstructions: String? = null,
@@ -1493,8 +1477,8 @@ data class SessionSettingsUpdate(
     val approvalPolicy: AskForApproval? = null,
     val sandboxPolicy: SandboxPolicy? = null,
     val model: String? = null,
-    val reasoningEffort: ReasoningEffortConfig? = null,
-    val reasoningSummary: ReasoningSummaryConfig? = null,
+    val reasoningEffort: ReasoningEffort? = null,
+    val reasoningSummary: ReasoningSummary? = null,
     val finalOutputJsonSchema: JsonElement? = null
 )
 

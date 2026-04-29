@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/util.rs
+// port-lint: source util.rs
 package ai.solace.coder.core
 
 import kotlin.math.pow

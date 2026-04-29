@@ -5,7 +5,7 @@ import ai.solace.coder.core.ExecToolCallOutput
 import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.session.Session
-import ai.solace.coder.core.session.SharedTurnDiffTracker
+import ai.solace.coder.core.tools.SharedTurnDiffTracker
 import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.EventMsg
 import ai.solace.coder.protocol.ExecCommandBeginEvent

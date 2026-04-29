@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/requests/headers.rs
+// port-lint: source headers.rs
 package ai.solace.coder.api.requests
 
 import io.ktor.client.request.*

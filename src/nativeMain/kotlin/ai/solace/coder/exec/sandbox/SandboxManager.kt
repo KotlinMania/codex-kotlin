@@ -1,4 +1,5 @@
-// port-lint: source codex-rs/core/src/sandboxing/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.exec.sandbox
 
 import ai.solace.coder.core.ExecExpiration

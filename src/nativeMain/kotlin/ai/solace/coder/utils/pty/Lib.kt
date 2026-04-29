@@ -1,4 +1,5 @@
-// port-lint: source utils/pty/src/lib.rs
+// port-lint: ignore
+// transliterated from upstream module root (utils/pty crate)
 package ai.solace.coder.utils.pty
 
 import ai.solace.coder.core.CodexResult

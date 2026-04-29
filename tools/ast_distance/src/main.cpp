@@ -5105,12 +5105,26 @@ int main(int argc, char* argv[]) {
 
             const float source_total = static_cast<float>(funcs1.size());
             const float matched_total = static_cast<float>(reports.size());
-            const float coverage = source_total > 0.0f ? matched_total / source_total : 0.0f;
-            const float overall_score = source_total > 0.0f ? total_combined / source_total : 0.0f;
-            const float matched_avg = matched_total > 0.0f ? total_combined / matched_total : 0.0f;
-            const float ast_avg = matched_total > 0.0f ? total_ast_cosine / matched_total : 0.0f;
-            const float id_avg = matched_total > 0.0f ? total_id_cosine / matched_total : 0.0f;
-            const float line_balance_avg = matched_total > 0.0f ? total_line_balance / matched_total : 0.0f;
+            const float coverage = [&]() -> float {
+                if (source_total > 0.0f) {
+                    return matched_total / source_total;
+                }
+                return funcs2.empty() ? 1.0f : 0.0f;
+            }();
+            const float overall_score = [&]() -> float {
+                if (source_total > 0.0f) {
+                    return total_combined / source_total;
+                }
+                return funcs2.empty() ? 1.0f : 0.0f;
+            }();
+            const float matched_avg =
+                matched_total > 0.0f ? total_combined / matched_total : overall_score;
+            const float ast_avg =
+                matched_total > 0.0f ? total_ast_cosine / matched_total : overall_score;
+            const float id_avg =
+                matched_total > 0.0f ? total_id_cosine / matched_total : overall_score;
+            const float line_balance_avg =
+                matched_total > 0.0f ? total_line_balance / matched_total : overall_score;
 
             std::cout << "\n=== Function-by-Function Comparison (required score) ===\n";
             if (lang1 == Language::RUST && lang2 == Language::KOTLIN) {
@@ -5130,7 +5144,11 @@ int main(int argc, char* argv[]) {
             std::cout << "Function body score (missing source functions count as 0): "
                       << std::fixed << std::setprecision(3) << overall_score << "\n";
             if (funcs1.empty()) {
-                std::cout << "Function comparison failed: no source function bodies were extracted.\n";
+                if (funcs2.empty()) {
+                    std::cout << "No functions in either file; treating function similarity as 1.000.\n";
+                } else {
+                    std::cout << "No source functions; target defines functions (score forced to 0.000).\n";
+                }
             } else if (funcs2.empty()) {
                 std::cout << "Function comparison failed: no target function bodies were extracted.\n";
             } else if (unmatched_source > 0) {
@@ -5396,7 +5414,11 @@ int main(int argc, char* argv[]) {
                           << function_result.target_total << " functions, matched "
                           << function_result.matched_pairs << "\n";
                 if (function_result.source_total == 0) {
-                    std::cout << "Function comparison failed: no source function bodies were extracted.\n";
+                    if (function_result.target_total == 0) {
+                        std::cout << "No functions in either file; treating function similarity as 1.000.\n";
+                    } else {
+                        std::cout << "No source functions; target defines functions (score forced to 0.000).\n";
+                    }
                 } else if (function_result.target_total == 0) {
                     std::cout << "Function comparison failed: no target function bodies were extracted.\n";
                 } else if (function_result.unmatched_source > 0) {

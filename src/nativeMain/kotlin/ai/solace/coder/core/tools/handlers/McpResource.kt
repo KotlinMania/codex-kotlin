@@ -18,11 +18,11 @@ import ai.solace.coder.protocol.McpInvocation
 import ai.solace.coder.protocol.McpResult
 import ai.solace.coder.protocol.McpToolCallBeginEvent
 import ai.solace.coder.protocol.McpToolCallEndEvent
+import ai.solace.coder.protocol.McpResource
+import ai.solace.coder.protocol.McpResourceTemplate
 import ai.solace.coder.protocol.ReadResourceRequestParams
 import ai.solace.coder.protocol.ReadResourceResult
-import ai.solace.coder.protocol.Resource
 import ai.solace.coder.protocol.ResourceContent
-import ai.solace.coder.protocol.ResourceTemplate
 import kotlin.time.TimeSource
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -101,7 +101,7 @@ data class ResourceWithServer(
 ) {
         constructor(
                 server: String,
-                resource: Resource
+                resource: McpResource
         ) : this(
                 server = server,
                 uri = resource.uri,
@@ -121,7 +121,7 @@ data class ResourceTemplateWithServer(
 ) {
         constructor(
                 server: String,
-                template: ResourceTemplate
+                template: McpResourceTemplate
         ) : this(
                 server = server,
                 uriTemplate = template.uriTemplate,

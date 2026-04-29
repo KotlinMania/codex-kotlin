@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/login/src/deviceCodeAuth.rs
+// port-lint: source device_code_auth.rs
 package ai.solace.coder.core.auth
 
 class Sha256MessageDigest {

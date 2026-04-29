@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/spawn.rs
+// port-lint: source spawn.rs
 package ai.solace.coder.core
 
 import ai.solace.coder.exec.process.SandboxType

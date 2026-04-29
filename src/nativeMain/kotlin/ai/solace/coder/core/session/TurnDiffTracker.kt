@@ -259,33 +259,4 @@ enum class ChangeType {
     Renamed
 }
 
-/**
- * Thread-safe wrapper for TurnDiffTracker that can be shared across tasks.
- *
- * Ported from Rust codex-rs/core/src/tools/context.rs SharedTurnDiffTracker
- */
-class SharedTurnDiffTracker {
-    private val tracker = TurnDiffTracker()
-
-    suspend fun onPatchBegin(changes: Map<String, FileChange>) {
-        tracker.onPatchBegin(changes)
-    }
-
-    suspend fun computeUnifiedDiff(): String {
-        return tracker.computeUnifiedDiff()
-    }
-
-    suspend fun getChangedFiles(): List<ChangedFile> {
-        return tracker.getChangedFiles()
-    }
-
-    suspend fun clear() {
-        tracker.clear()
-    }
-
-    suspend fun hasChanges(): Boolean {
-        return tracker.hasChanges()
-    }
-}
-
 // FileChange is imported from ai.solace.coder.protocol.FileChange

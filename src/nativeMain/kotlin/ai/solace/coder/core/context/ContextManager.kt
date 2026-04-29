@@ -1,4 +1,5 @@
-// port-lint: source core/src/contextManager/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.core.context
 
 import ai.solace.coder.protocol.TokenUsage

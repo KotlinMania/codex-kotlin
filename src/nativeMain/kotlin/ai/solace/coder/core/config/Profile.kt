@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/config/profile.rs
+// port-lint: source profile.rs
 package ai.solace.coder.core.config
 
 import ai.solace.coder.protocol.AskForApproval

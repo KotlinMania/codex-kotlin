@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/common/src/elapsed.rs
+// port-lint: source elapsed.rs
 package ai.solace.coder.common
 
 import kotlin.math.round

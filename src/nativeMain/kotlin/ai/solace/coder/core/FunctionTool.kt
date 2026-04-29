@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/functionTool.rs
+// port-lint: source function_tool.rs
 package ai.solace.coder.core
 
 /**

@@ -8,7 +8,7 @@ import ai.solace.coder.core.FunctionCallError
 import ai.solace.coder.core.command_safety.isKnownSafeCommand
 import ai.solace.coder.core.session.Session
 import ai.solace.coder.core.session.TurnContext
-import ai.solace.coder.core.session.SharedTurnDiffTracker
+import ai.solace.coder.core.tools.SharedTurnDiffTracker
 import ai.solace.coder.core.tools.ToolError
 import ai.solace.coder.core.tools.ToolHandler
 import ai.solace.coder.core.tools.ToolInvocation
@@ -163,7 +163,27 @@ class ShellHandler : ToolHandler {
                                 )
 
                         return result.fold(
-                                onSuccess = { output -> Result.success(ToolOutput.Exec(output)) },
+                                onSuccess = { output ->
+                                        val aggregated = output.aggregatedOutput.text
+                                        val stderr = output.stderr.text
+                                        val stdout = output.stdout.text
+                                        val content =
+                                                if (aggregated.isNotEmpty()) {
+                                                        aggregated
+                                                } else if (stderr.isNotEmpty() && stdout.isNotEmpty()) {
+                                                        "$stderr\n$stdout"
+                                                } else if (stderr.isNotEmpty()) {
+                                                        stderr
+                                                } else {
+                                                        stdout
+                                                }
+                                        Result.success(
+                                                ToolOutput.Function(
+                                                        content = content,
+                                                        success = output.exitCode == 0
+                                                )
+                                        )
+                                },
                                 onFailure = { error ->
                                         val msg = error.message ?: "Unknown error"
                                         Result.failure(ToolError.Rejected(msg))

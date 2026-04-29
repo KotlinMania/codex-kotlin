@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/configTypes.rs
+// port-lint: source config_types.rs
 package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
@@ -107,13 +107,3 @@ enum class TrustLevel {
     @SerialName("untrusted")
     Untrusted
 }
-
-/**
- * Type alias matching Rust: `import codexProtocol::configTypes::ReasoningEffort as ReasoningEffortConfig`
- */
-typealias ReasoningEffortConfig = ReasoningEffort
-
-/**
- * Type alias matching Rust: `import codexProtocol::configTypes::ReasoningSummary as ReasoningSummaryConfig`
- */
-typealias ReasoningSummaryConfig = ReasoningSummary

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/openaiModelInfo.rs
+// port-lint: source openai_model_info.rs
 package ai.solace.coder.core.model
 
 // Shared constants for commonly used window/token sizes.

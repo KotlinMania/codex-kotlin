@@ -1,17 +1,14 @@
-// port-lint: source codex-rs/codex-api/src/common.rs
+// port-lint: source common.rs
 package ai.solace.coder.api.common
 
 import ai.solace.coder.protocol.ResponseItem
 import ai.solace.coder.protocol.TokenUsage
 import ai.solace.coder.protocol.RateLimitSnapshot
-import ai.solace.coder.protocol.ReasoningEffortConfig
-import ai.solace.coder.protocol.ReasoningSummaryConfig
+import ai.solace.coder.protocol.ReasoningEffort
+import ai.solace.coder.protocol.ReasoningSummary
 import ai.solace.coder.protocol.Verbosity
 import ai.solace.coder.protocol.ResponseEvent
 import kotlinx.serialization.json.JsonElement
-
-// Type alias matching Rust usage pattern
-typealias VerbosityConfig = Verbosity
 
 /**
  * Canonical prompt input for Chat and Responses endpoints.
@@ -36,8 +33,8 @@ data class CompactionInput(
 
 /** Reasoning config payload. */
 data class Reasoning(
-    val effort: ReasoningEffortConfig?,
-    val summary: ReasoningSummaryConfig?,
+    val effort: ReasoningEffort?,
+    val summary: ReasoningSummary?,
 )
 
 /** Text formatting types used by OpenAI text controls. */
@@ -60,10 +57,10 @@ data class TextControls(
 /** Verbosity mapping for OpenAI. */
 enum class OpenAiVerbosity { Low, Medium, High }
 
-fun openAiVerbosityConfig(v: VerbosityConfig): OpenAiVerbosity = when (v) {
-    VerbosityConfig.Low -> OpenAiVerbosity.Low
-    VerbosityConfig.Medium -> OpenAiVerbosity.Medium
-    VerbosityConfig.High -> OpenAiVerbosity.High
+fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity = when (v) {
+    Verbosity.Low -> OpenAiVerbosity.Low
+    Verbosity.Medium -> OpenAiVerbosity.Medium
+    Verbosity.High -> OpenAiVerbosity.High
 }
 
 /** Responses API request payload. */
@@ -84,7 +81,7 @@ data class ResponsesApiRequest(
 
 /** Create text param controls from verbosity and optional output schema. */
 fun createTextParamForRequest(
-    verbosity: VerbosityConfig?,
+    verbosity: Verbosity?,
     outputSchema: JsonElement?,
 ): TextControls? {
     if (verbosity == null && outputSchema == null) return null
@@ -113,4 +110,3 @@ interface ResponseStream {
      */
     suspend fun next(): Result<ResponseEvent>?
 }
-

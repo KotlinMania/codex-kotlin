@@ -75,8 +75,6 @@ interface Rule {
     fun matches(cmd: List<String>): RuleMatch?
 }
 
-typealias RuleRef = Rule
-
 private fun tryJoin(tokens: List<String>): String =
     tokens.joinToString(" ") { token ->
         if (token.isEmpty() || token.any { it.isWhitespace() || it in "\"'\\$`" }) {
@@ -87,7 +85,7 @@ private fun tryJoin(tokens: List<String>): String =
     }
 
 /** Count how many rules match each provided example and error if any example is unmatched. */
-internal fun validateMatchExamples(rules: List<RuleRef>, matches: List<List<String>>) {
+internal fun validateMatchExamples(rules: List<Rule>, matches: List<List<String>>) {
     val unmatchedExamples = mutableListOf<String>()
 
     for (example in matches) {
@@ -106,7 +104,7 @@ internal fun validateMatchExamples(rules: List<RuleRef>, matches: List<List<Stri
 }
 
 /** Ensure that no rule matches any provided negative example. */
-internal fun validateNotMatchExamples(rules: List<RuleRef>, notMatches: List<List<String>>) {
+internal fun validateNotMatchExamples(rules: List<Rule>, notMatches: List<List<String>>) {
     for (example in notMatches) {
         val rule = rules.firstOrNull { it.matches(example) != null }
         if (rule != null) {

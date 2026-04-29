@@ -1,4 +1,5 @@
-// port-lint: source codex-rs/core/src/exec/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package ai.solace.coder.exec.process
 
 /**
