@@ -34,10 +34,23 @@ kotlin {
     linuxX64()
 
     sourceSets {
-        val nativeMain by getting {
-            kotlin {
-                exclude("ai/solace/coder/protocol/**")
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
             }
+        }
+
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+            }
+        }
+
+        val nativeMain by getting {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
@@ -45,11 +58,11 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
 
                 // Ktor HTTP client for native platforms
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-client-curl:2.3.7")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
-                implementation("io.ktor:ktor-client-auth:2.3.7")
+                implementation("io.ktor:ktor-client-core:3.4.3")
+                implementation("io.ktor:ktor-client-curl:3.4.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
+                implementation("io.ktor:ktor-client-auth:3.4.3")
                 
                 // File I/O
                 implementation("com.squareup.okio:okio:3.9.0")
@@ -78,10 +91,6 @@ kotlin {
             }
         }
         
-        val nativeTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-            }
-        }
+        val nativeTest by getting
     }
 }

@@ -7,6 +7,7 @@ import ai.solace.coder.core.tools.ToolInvocation
 import ai.solace.coder.core.tools.ToolKind
 import ai.solace.coder.core.tools.ToolOutput
 import ai.solace.coder.core.tools.ToolPayload
+import ai.solace.coder.protocol.McpResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -49,6 +50,13 @@ class McpHandler : ToolHandler {
 
         // Mirrors Rust: the MCP call always produces a successful ToolOutput.Mcp,
         // with the inner Result carrying the per-call success/failure.
-        return Result.success(ToolOutput.Mcp(callResult))
+        return Result.success(
+            ToolOutput.Mcp(
+                callResult.fold(
+                    onSuccess = { McpResult<ai.solace.coder.protocol.CallToolResult, String>(value = it) },
+                    onFailure = { McpResult<ai.solace.coder.protocol.CallToolResult, String>(error = it.message ?: "Unknown error") }
+                )
+            )
+        )
     }
 }

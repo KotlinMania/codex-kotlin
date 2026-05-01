@@ -88,7 +88,7 @@ class ConversationManager(
 
     private suspend fun finalizeSpawn(
         codex: Codex,
-        conversationId: String,
+        conversationId: ProtocolConversationId,
     ): CodexResult<NewConversation> {
         // The first event must be `SessionInitialized`. Validate and forward it
         // to the caller so that they can display it in the conversation
@@ -107,18 +107,17 @@ class ConversationManager(
             }
         }
 
-        val protocolConversationId = ProtocolConversationId.fromString(conversationId).getOrThrow()
         val conversation = CodexConversation(
             codex = codex,
             rolloutPath = sessionConfigured.rolloutPath,
         )
         conversationsLock.withLock {
-            conversations[protocolConversationId] = conversation
+            conversations[conversationId] = conversation
         }
 
         return CodexResult.success(
             NewConversation(
-                conversationId = protocolConversationId,
+                conversationId = conversationId,
                 conversation = conversation,
                 sessionConfigured = sessionConfigured,
             ),

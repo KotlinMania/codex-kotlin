@@ -13,10 +13,12 @@ import ai.solace.coder.core.features.Features
 import ai.solace.coder.core.ProcessedResponseItem
 import ai.solace.coder.core.ToolCallProcessor
 import ai.solace.coder.core.tools.JsonSchema
+import ai.solace.coder.core.tools.SharedTurnDiffTracker
 import ai.solace.coder.core.tools.ToolCall
 import ai.solace.coder.core.tools.ToolCallRuntime
 import ai.solace.coder.core.tools.ToolRegistry
 import ai.solace.coder.core.tools.ToolRouter
+import ai.solace.coder.core.tools.newToolsConfig
 import ai.solace.coder.core.model.ApplyPatchToolType
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
@@ -488,7 +490,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemStarted(ItemStartedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = conversationId,
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -502,7 +504,7 @@ class Session private constructor(
         sendEvent(
             turnContext,
             EventMsg.ItemCompleted(ItemCompletedEvent(
-                threadId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                threadId = conversationId,
                 turnId = turnContext.subId,
                 item = item
             ))
@@ -1207,7 +1209,7 @@ class Session private constructor(
             val event = Event(
                 id = CODEX_INITIAL_SUBMIT_ID,
                 msg = EventMsg.SessionConfigured(SessionConfiguredEvent(
-                    sessionId = ai.solace.coder.protocol.ConversationId.fromString(conversationId).getOrThrow(),
+                    sessionId = conversationId,
                     model = sessionConfiguration.model,
                     modelProviderId = config.modelProviderId ?: "",
                     approvalPolicy = sessionConfiguration.approvalPolicy,
@@ -1267,7 +1269,7 @@ class Session private constructor(
         val modelFamily = findFamilyForModel(sessionConfiguration.model)
             ?: sessionConfiguration.modelFamily
 
-        val toolsConfig = ai.solace.coder.core.tools.ToolsConfig.new(
+        val toolsConfig = newToolsConfig(
             ai.solace.coder.core.tools.ToolsConfigParams(
                 modelFamily = modelFamily,
                 features = sessionConfiguration.features
@@ -1884,7 +1886,7 @@ suspend fun runTask(
                 if (processResult.responses.isEmpty()) {
                     lastAgentMessage = getLastAssistantMessageFromTurn(processResult.itemsToRecord)
                     sess.notifier().notify(UserNotification.AgentTurnComplete(
-                        threadId = sess.conversationId,
+                        threadId = sess.conversationId.toString(),
                         turnId = turnContext.subId,
                         cwd = turnContext.cwd,
                         inputMessages = turnInputMessages,
@@ -2172,7 +2174,7 @@ private suspend fun tryRunTurn(
                     val active = activeItem
                     if (active != null) {
                         val deltaEvent = AgentMessageContentDeltaEvent(
-                            threadId = sess.conversationId,
+                            threadId = sess.conversationId.toString(),
                             turnId = turnContext.subId,
                             itemId = active.id(),
                             delta = event.delta
@@ -2187,7 +2189,7 @@ private suspend fun tryRunTurn(
                     val active = activeItem
                     if (active != null) {
                         val deltaEvent = ReasoningContentDeltaEvent(
-                            threadId = sess.conversationId,
+                            threadId = sess.conversationId.toString(),
                             turnId = turnContext.subId,
                             itemId = active.id(),
                             delta = event.delta,
@@ -2216,7 +2218,7 @@ private suspend fun tryRunTurn(
                     val active = activeItem
                     if (active != null) {
                         val deltaEvent = ReasoningRawContentDeltaEvent(
-                            threadId = sess.conversationId,
+                            threadId = sess.conversationId.toString(),
                             turnId = turnContext.subId,
                             itemId = active.id(),
                             delta = event.delta,
@@ -2335,7 +2337,7 @@ private suspend fun spawnReviewThread(
     }
 
     // Create tools config for review
-    val toolsConfig = ai.solace.coder.core.tools.ToolsConfig.new(
+    val toolsConfig = newToolsConfig(
         ai.solace.coder.core.tools.ToolsConfigParams(
             modelFamily = reviewModelFamily,
             features = reviewFeatures

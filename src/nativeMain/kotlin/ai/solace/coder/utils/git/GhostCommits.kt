@@ -25,6 +25,11 @@ data class CreateGhostCommitOptions(
     val message: String? = null,
     val forceInclude: List<String> = emptyList()
 ) {
+    companion object {
+        fun new(repoPath: String): CreateGhostCommitOptions =
+            CreateGhostCommitOptions(repoPath = repoPath)
+    }
+
     fun withMessage(message: String): CreateGhostCommitOptions {
         return copy(message = message)
     }

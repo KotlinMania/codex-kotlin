@@ -1,4 +1,6 @@
 // port-lint: source models.rs
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package ai.solace.coder.protocol
 
 import ai.solace.coder.utils.git.GhostCommit
@@ -212,16 +214,13 @@ sealed class ResponseItem {
                                         FunctionCallOutput(callId = item.callId, output = item.output)
                                 is ResponseInputItem.McpToolCallOutput -> {
                                         val output =
-                                                when (val result = item.result) {
-                                                        is McpResult.Ok ->
-                                                                FunctionCallOutputPayload.from(result.value)
-                                                        is McpResult.Err ->
-                                                                FunctionCallOutputPayload(
-                                                                        content = "err: ${result.error}",
-                                                                        contentItems = null,
-                                                                        success = false,
-                                                                )
-                                                }
+                                                item.result.value?.let { result ->
+                                                        FunctionCallOutputPayload.from(result)
+                                                } ?: FunctionCallOutputPayload(
+                                                        content = "err: ${item.result.error ?: "missing result"}",
+                                                        contentItems = null,
+                                                        success = false,
+                                                )
                                         FunctionCallOutput(callId = item.callId, output = output)
                                 }
                                 is ResponseInputItem.CustomToolCallOutput ->
@@ -389,8 +388,17 @@ data class FunctionCallOutputPayload(
                                 }
                         }
 
-                        // Serialize content blocks
                         val content = callToolResult.content
+                        val convertedItems = convertContentBlocksToItems(content)
+                        if (convertedItems != null) {
+                                return FunctionCallOutputPayload(
+                                        content = "",
+                                        contentItems = convertedItems,
+                                        success = isSuccess
+                                )
+                        }
+
+                        // Serialize content blocks
                         val serializedContent =
                                 try {
                                         json.encodeToString(
@@ -406,9 +414,6 @@ data class FunctionCallOutputPayload(
                                                 contentItems = null
                                         )
                                 }
-
-                        // Convert content blocks to items
-                        val convertedItems = convertContentBlocksToItems(content)
 
                         return FunctionCallOutputPayload(
                                 content = serializedContent,

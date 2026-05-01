@@ -5,6 +5,7 @@ import ai.solace.coder.core.config.Config
 import ai.solace.coder.core.model.ModelProviderInfo
 import ai.solace.coder.core.model.OLLAMA_OSS_PROVIDER_ID
 import ai.solace.coder.core.model.WireApi
+import ai.solace.coder.core.model.builtInModelProviders
 import ai.solace.coder.core.model.createOssProviderWithBaseUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -15,6 +16,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -24,9 +26,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlin.test.Test
-import platform.posix.getenv
-import ai.solace.coder.core.CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR
 
 private const val OLLAMA_CONNECTION_ERROR: String =
     "No running Ollama server detected. Start it with: `ollama serve` (after installing). " +
@@ -41,7 +40,7 @@ class OllamaClient private constructor(
     companion object {
         suspend fun tryFromOssProvider(config: Config): OllamaClient {
             val provider =
-                config.modelProviders[OLLAMA_OSS_PROVIDER_ID]
+                builtInModelProviders()[OLLAMA_OSS_PROVIDER_ID]
                     ?: error("Built-in provider $OLLAMA_OSS_PROVIDER_ID not found")
             return tryFromProvider(provider)
         }
@@ -104,8 +103,7 @@ class OllamaClient private constructor(
         val models = (element as? JsonObject)?.get("models") as? JsonArray ?: return emptyList()
         return models.mapNotNull { v ->
             val obj = v as? JsonObject ?: return@mapNotNull null
-            val name = (obj.get("name") as? JsonPrimitive)?.contentOrNull
-            name?.toString()
+            (obj.get("name") as? JsonPrimitive)?.contentOrNull
         }
     }
 
@@ -153,61 +151,20 @@ class OllamaClient private constructor(
     /** High-level helper to pull a model and drive a progress reporter. */
     suspend fun pullWithReporter(model: String, reporter: PullProgressReporter) {
         reporter.onEvent(PullEvent.Status("Pulling model $model..."))
+        var completed = false
         pullModelStream(model).collect { event ->
             reporter.onEvent(event)
             when (event) {
-                PullEvent.Success -> return
+                PullEvent.Success -> completed = true
                 is PullEvent.Error -> throw IllegalStateException("Pull failed: ${event.message}")
                 is PullEvent.ChunkProgress, is PullEvent.Status -> {}
             }
         }
+        if (completed) {
+            return
+        }
         throw IllegalStateException("Pull stream ended unexpectedly without success.")
     }
-}
-
-@Test
-fun testFetchModelsHappyPath() {
-    if (getenv(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null) {
-        return
-    }
-    val client = OllamaClient.fromHostRoot("http://localhost:11434")
-    runCatching {
-        client.fetchModels()
-    }
-}
-
-@Test
-fun testProbeServerHappyPathOpenaiCompatAndNative() {
-    if (getenv(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null) {
-        return
-    }
-    runCatching {
-        OllamaClient.fromHostRoot("http://localhost:11434")
-    }
-    runCatching {
-        OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1")
-    }
-}
-
-@Test
-fun testTryFromOssProviderOkWhenServerRunning() {
-    if (getenv(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null) {
-        return
-    }
-    runCatching {
-        OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1")
-    }
-}
-
-@Test
-fun testTryFromOssProviderErrWhenServerMissing() {
-    if (getenv(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null) {
-        return
-    }
-    val result = runCatching {
-        OllamaClient.tryFromProviderWithBaseUrl("http://127.0.0.1:1/v1")
-    }
-    check(result.isFailure)
 }
 
 // Test-only helpers in upstream are `impl` associated functions. Keep thin wrappers here so

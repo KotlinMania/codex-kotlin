@@ -1,6 +1,7 @@
 // port-lint: source models.rs
 package ai.solace.coder.protocol
 
+import ai.solace.coder.utils.Environment
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -10,13 +11,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
 import okio.Path.Companion.toPath
-import platform.posix.getenv
 import platform.posix.remove
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.uuid.Uuid
 
 class ModelsTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -232,13 +232,12 @@ class ModelsTest {
 
     private fun makeTempPath(filename: String): String {
         val tmp =
-            getenv("TMPDIR")?.toKString()
-                ?: getenv("TEMP")?.toKString()
-                ?: getenv("TMP")?.toKString()
+            Environment.get("TMPDIR")
+                ?: Environment.get("TEMP")
+                ?: Environment.get("TMP")
                 ?: "/tmp"
-        val dir = "$tmp/codex-kotlin-${Uuid.random()}"
+        val dir = "$tmp/codex-kotlin-${Random.nextInt(0, Int.MAX_VALUE)}"
         FileSystem.SYSTEM.createDirectories(dir.toPath())
         return "$dir/$filename"
     }
 }
-

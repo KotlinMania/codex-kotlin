@@ -3,6 +3,7 @@ package ai.solace.coder.core.auth
 import ai.solace.coder.core.AuthDotJson
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlin.random.Random
 import kotlin.test.*
 import platform.posix.chmod
 import platform.posix.S_IRUSR
@@ -20,7 +21,7 @@ class StorageTest {
 
     @Test
     fun testFileStorageSaveAndLoad() {
-        val tempDir = Path("/tmp/codex_test_${SystemFileSystem.hashCode()}")
+        val tempDir = Path("/tmp/codex_test_${Random.nextInt(0, Int.MAX_VALUE)}")
         SystemFileSystem.createDirectories(tempDir)
         try {
             val storage = FileAuthStorage(tempDir)
@@ -40,6 +41,7 @@ class StorageTest {
             val authFile = getAuthFile(tempDir)
             assertTrue(SystemFileSystem.exists(authFile), "Auth file should exist")
         } finally {
+            SystemFileSystem.delete(getAuthFile(tempDir), mustExist = false)
             SystemFileSystem.delete(tempDir, mustExist = false)
         }
     }
@@ -62,7 +64,7 @@ class StorageTest {
 
     @Test
     fun testAutoAuthStorageFallback() {
-        val tempDir = Path("/tmp/codex_auto_test_${SystemFileSystem.hashCode()}")
+        val tempDir = Path("/tmp/codex_auto_test_${Random.nextInt(0, Int.MAX_VALUE)}")
         SystemFileSystem.createDirectories(tempDir)
         try {
             val mockKeychain = MockKeychainStore()
@@ -89,6 +91,7 @@ class StorageTest {
             val loadedAuth = autoStorage.load().getOrNull()
             assertEquals(auth, loadedAuth)
         } finally {
+            SystemFileSystem.delete(getAuthFile(tempDir), mustExist = false)
             SystemFileSystem.delete(tempDir, mustExist = false)
         }
     }

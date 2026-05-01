@@ -3,6 +3,7 @@ package ai.solace.coder.protocol
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
@@ -50,6 +51,7 @@ data class UserMessageItem(
     val content: List<UserInput>
 ) {
     companion object {
+        @OptIn(ExperimentalUuidApi::class)
         fun new(content: List<UserInput>): UserMessageItem {
             return UserMessageItem(
                 id = Uuid.random().toString(),
@@ -97,6 +99,7 @@ data class AgentMessageItem(
     val content: List<AgentMessageContent>
 ) {
     companion object {
+        @OptIn(ExperimentalUuidApi::class)
         fun new(content: List<AgentMessageContent>): AgentMessageItem {
             return AgentMessageItem(
                 id = Uuid.random().toString(),

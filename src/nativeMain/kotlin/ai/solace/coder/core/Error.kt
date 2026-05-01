@@ -25,17 +25,6 @@ private const val CLOUDFLARE_BLOCKED_MESSAGE: String =
     "Access blocked by Cloudflare. This usually happens when connecting from a restricted region"
 
 /**
- * Result type alias in Rust (`pub type Result<T> = std::result::Result<T, CodexErr>`).
- *
- * Kotlin already has `kotlin.Result`, so we model the same shape explicitly.
- */
-sealed interface Result<out T> {
-    data class Ok<T>(val value: T) : Result<T>
-
-    data class Err(val error: CodexErr) : Result<Nothing>
-}
-
-/**
  * Reason a token refresh failed.
  */
 enum class RefreshTokenFailedReason {

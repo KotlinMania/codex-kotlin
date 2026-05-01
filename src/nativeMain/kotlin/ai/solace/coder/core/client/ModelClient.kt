@@ -15,7 +15,6 @@ import ai.solace.coder.api.common.ResponseStream as ApiResponseStream
 import ai.solace.coder.protocol.ResponseEvent
 import ai.solace.coder.api.common.createTextParamForRequest
 import ai.solace.coder.api.error.ApiError
-import ai.solace.coder.api.provider.WireApi
 import ai.solace.coder.api.telemetry.RequestTelemetry
 import ai.solace.coder.api.telemetry.SseTelemetry
 import ai.solace.coder.core.AuthManager
@@ -25,6 +24,7 @@ import ai.solace.coder.core.config.Config
 import ai.solace.coder.core.CodexErr
 import ai.solace.coder.core.model.ModelFamily
 import ai.solace.coder.core.model.ModelProviderInfo
+import ai.solace.coder.core.model.WireApi
 import ai.solace.coder.core.prompt.Prompt
 import ai.solace.coder.protocol.ConversationId
 import ai.solace.coder.protocol.ReasoningEffort
@@ -103,7 +103,6 @@ class ModelClient(
 
                 Result.success(mapResponseStream(processedStream, otelEventManager))
             }
-            else -> Result.failure(Exception("Unsupported wire API: ${provider.wireApi}"))
         }
     }
 
@@ -133,7 +132,6 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-                ?: return Result.failure(Exception("Failed to create API provider"))
             val apiAuth = authProviderFromAuth(auth, provider)
                 ?: return Result.failure(Exception("Failed to create API auth"))
 
@@ -214,7 +212,6 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-                ?: return Result.failure(Exception("Failed to create API provider"))
             val apiAuth = authProviderFromAuth(auth, provider)
                 ?: return Result.failure(Exception("Failed to create API auth"))
 
@@ -290,7 +287,6 @@ class ModelClient(
 
         val auth = authManager?.auth()
         val apiProvider = provider.toApiProvider(auth?.mode)
-            ?: return Result.failure(Exception("Failed to create API provider"))
         val apiAuth = authProviderFromAuth(auth, provider)
             ?: return Result.failure(Exception("Failed to create API auth"))
 

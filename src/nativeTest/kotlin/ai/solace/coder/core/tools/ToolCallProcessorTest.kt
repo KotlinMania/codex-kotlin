@@ -77,7 +77,7 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
             isError = true
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
+        val payload = FunctionCallOutputPayload.from(result)
         // isError=true should result in success=false
         assertEquals(false, payload.success)
     }
@@ -89,7 +89,7 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
             isError = null
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
+        val payload = FunctionCallOutputPayload.from(result)
         // isError=null (not true) should result in success=true
         assertEquals(true, payload.success)
     }
@@ -101,7 +101,7 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
             isError = false
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
+        val payload = FunctionCallOutputPayload.from(result)
         // Empty content list should still succeed
         assertEquals(true, payload.success)
         assertNull(payload.contentItems) // No images

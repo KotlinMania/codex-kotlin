@@ -218,6 +218,7 @@ data class CodexAuth internal constructor(
     private fun getCurrentTokenData(): TokenData? {
         return cachedAuthDotJson?.tokens
     }
+}
 
 /**
  * Create a dummy ChatGPT auth for testing.
@@ -937,4 +938,3 @@ class AuthManager private constructor(
 private fun getEnvironmentVariable(name: String): String? {
     return platform.posix.getenv(name)?.toKString()
 }
-

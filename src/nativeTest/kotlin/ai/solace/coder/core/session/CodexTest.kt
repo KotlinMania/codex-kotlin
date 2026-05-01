@@ -48,7 +48,7 @@ class FunctionCallOutputPayloadConversionTest {
             }
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
         // structuredContent takes precedence
         assertTrue(got.content?.contains("\"ok\":true") ?: false || got.content?.contains("\"ok\": true") ?: false)
@@ -66,7 +66,7 @@ class FunctionCallOutputPayloadConversionTest {
             structuredContent =JsonNull
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
         // When structuredContent is JsonNull, falls back to content serialization
         // Empty content list should serialize successfully
@@ -84,7 +84,7 @@ class FunctionCallOutputPayloadConversionTest {
             }
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
         // isError =true should result in success = false
         assertEquals(false, got.success)
@@ -101,7 +101,7 @@ class FunctionCallOutputPayloadConversionTest {
             // Don't pass structuredContent - let it default
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
         assertEquals(true, got.success)
         assertNotNull(got.content)
@@ -628,4 +628,3 @@ class ModelFamilyTest {
         assertEquals(false, family.supportsParallelToolCalls)
     }
 }
-
