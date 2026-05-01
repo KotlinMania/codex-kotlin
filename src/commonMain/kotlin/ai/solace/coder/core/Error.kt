@@ -255,7 +255,10 @@ sealed class SandboxErr {
  */
 sealed class CodexErr {
     /** Minimal shim mirroring Rust `CodexErr::downcastRef`. */
-    inline fun <reified T : Any> downcastRef(): T? = (this as Any) as? T
+    inline fun <reified T : Any> downcastRef(): T? {
+        val any: Any = this
+        return any as? T
+    }
 
     companion object {
         fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
@@ -268,7 +271,11 @@ sealed class CodexErr {
      */
     fun toErrorEvent(messagePrefix: String? = null): ErrorEvent {
         val errorMessage = toString()
-        val message = if (messagePrefix != null) "$messagePrefix: $errorMessage" else errorMessage
+        val message: String =
+            when (messagePrefix) {
+                null -> errorMessage
+                else -> "$messagePrefix: $errorMessage"
+            }
         return ErrorEvent(message = message, codexErrorInfo = toCodexProtocolError())
     }
 
@@ -571,4 +578,3 @@ fun getErrorMessageUi(e: CodexErr): String {
     }
     return truncateText(message, TruncationPolicy.Bytes(ERROR_MESSAGE_UI_MAX_BYTES))
 }
-

@@ -1,7 +1,5 @@
 package io.github.treesitter.ktreesitter
 
-import kotlin.jvm.JvmName
-
 /**
  * A match that corresponds to a certain pattern in the query.
  *
@@ -9,7 +7,7 @@ import kotlin.jvm.JvmName
  * @property captures The captures contained in the pattern.
  */
 class QueryMatch internal constructor(
-    @get:JvmName("getPatternIndex") val patternIndex: UInt,
+    val patternIndex: UInt,
     val captures: List<QueryCapture>
 ) {
     /** Get the nodes that are captured by the given [capture] name. */
