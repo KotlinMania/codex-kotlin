@@ -56,7 +56,6 @@ kotlin {
     linuxArm64 { treesitterBash() }
     mingwX64 { treesitterBash() }
     macosArm64 { treesitterBash() }
-    macosX64 { treesitterBash() }
 
     applyDefaultHierarchyTemplate()
 

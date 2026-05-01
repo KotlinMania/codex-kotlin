@@ -81,7 +81,6 @@ kotlin {
     linuxArm64 { treesitter() }
     mingwX64 { treesitter() }
     macosArm64 { treesitter() }
-    macosX64 { treesitter() }
 
     // Gate iOS targets behind a property/env var to keep desktop/native builds green by default.
     // Enable with: -PKTREESITTER_ENABLE_IOS=true (or env KTREESITTER_ENABLE_IOS=true)
@@ -173,7 +172,7 @@ kotlin {
 }
 
 plugins.withId("com.android.library") {
-    extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+    extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
         namespace = "io.github.treesitter.$name"
         compileSdk = (property("sdk.version.compile") as String).toInt()
         ndkVersion = property("ndk.version") as String
