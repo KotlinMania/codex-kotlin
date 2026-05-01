@@ -65,16 +65,16 @@ kotlin {
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
 
                 // TUI libraries (from Maven Central)
-                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.7")
-                implementation("io.github.kotlinmania:crossterm-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:kasuari-kotlin:0.1.1")
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.3")
+                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.8")
+                implementation("io.github.kotlinmania:crossterm-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:kasuari-kotlin:0.1.2")
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
 
                 // JWT library (from Maven Central)
-                implementation("io.github.kotlinmania:jwt-kmp:0.2.1")
+                implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
             }
         }
         
