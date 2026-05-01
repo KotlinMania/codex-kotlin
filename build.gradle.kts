@@ -35,6 +35,9 @@ kotlin {
 
     sourceSets {
         val nativeMain by getting {
+            kotlin {
+                exclude("ai/solace/coder/protocol/**")
+            }
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")

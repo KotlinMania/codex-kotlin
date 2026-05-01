@@ -51,39 +51,37 @@ data class ToolsConfig(
     val webSearchRequest: Boolean,
     val includeViewImageTool: Boolean,
     val experimentalSupportedTools: List<String>
-) {
-    companion object {
-        fun new(params: ToolsConfigParams): ToolsConfig {
-            val modelFamily = params.modelFamily
-            val features = params.features
+)
 
-            val includeApplyPatchTool = features.enabled(Feature.ApplyPatchFreeform)
-            val includeWebSearchRequest = features.enabled(Feature.WebSearchRequest)
-            val includeViewImageTool = features.enabled(Feature.ViewImageTool)
+fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
+    val modelFamily = params.modelFamily
+    val features = params.features
 
-            val shellType = if (!features.enabled(Feature.ShellTool)) {
-                ConfigShellToolType.Disabled
-            } else if (features.enabled(Feature.UnifiedExec)) {
-                ConfigShellToolType.UnifiedExec
-            } else {
-                modelFamily.shellType
-            }
+    val includeApplyPatchTool = features.enabled(Feature.ApplyPatchFreeform)
+    val includeWebSearchRequest = features.enabled(Feature.WebSearchRequest)
+    val includeViewImageTool = features.enabled(Feature.ViewImageTool)
 
-            val applyPatchToolType = when (modelFamily.applyPatchToolType) {
-                ApplyPatchToolType.Freeform -> ApplyPatchToolType.Freeform
-                ApplyPatchToolType.Function -> ApplyPatchToolType.Function
-                null -> if (includeApplyPatchTool) ApplyPatchToolType.Freeform else null
-            }
-
-            return ToolsConfig(
-                shellType = shellType,
-                applyPatchToolType = applyPatchToolType,
-                webSearchRequest = includeWebSearchRequest,
-                includeViewImageTool = includeViewImageTool,
-                experimentalSupportedTools = modelFamily.experimentalSupportedTools
-            )
-        }
+    val shellType = if (!features.enabled(Feature.ShellTool)) {
+        ConfigShellToolType.Disabled
+    } else if (features.enabled(Feature.UnifiedExec)) {
+        ConfigShellToolType.UnifiedExec
+    } else {
+        modelFamily.shellType
     }
+
+    val applyPatchToolType = when (modelFamily.applyPatchToolType) {
+        ApplyPatchToolType.Freeform -> ApplyPatchToolType.Freeform
+        ApplyPatchToolType.Function -> ApplyPatchToolType.Function
+        null -> if (includeApplyPatchTool) ApplyPatchToolType.Freeform else null
+    }
+
+    return ToolsConfig(
+        shellType = shellType,
+        applyPatchToolType = applyPatchToolType,
+        webSearchRequest = includeWebSearchRequest,
+        includeViewImageTool = includeViewImageTool,
+        experimentalSupportedTools = modelFamily.experimentalSupportedTools
+    )
 }
 
 data class ToolsConfigParams(

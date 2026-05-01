@@ -34,7 +34,7 @@ class ViewImageHandler : ToolHandler {
 
         val args =
                 try {
-                    json.decodeFromString<ViewImageArgs>(payload.arguments)
+                    VIEW_IMAGE_JSON.decodeFromString<ViewImageArgs>(payload.arguments)
                 } catch (e: Exception) {
                     return Result.failure(
                             ToolError.Codex(
@@ -69,7 +69,7 @@ class ViewImageHandler : ToolHandler {
 
         // Verify it a supported image format
         val extension = path.name.substringAfterLast('.', "").lowercase()
-        if (!SUPPORTED_EXTENSIONS.contains(extension)) {
+        if (!VIEW_IMAGE_SUPPORTED_EXTENSIONS.contains(extension)) {
             return Result.failure(
                     ToolError.Codex(CodexErr.Fatal("unsupported image format: .$extension"))
             )
@@ -82,17 +82,15 @@ class ViewImageHandler : ToolHandler {
                 )
         )
     }
-
-    companion object {
-        private val json = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-
-        private val SUPPORTED_EXTENSIONS =
-                setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif")
-    }
 }
 
 /** Arguments for the viewImage tool. */
 @Serializable private data class ViewImageArgs(val path: String)
+
+private val VIEW_IMAGE_JSON = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
+
+private val VIEW_IMAGE_SUPPORTED_EXTENSIONS =
+        setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif")
