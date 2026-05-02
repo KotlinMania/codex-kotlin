@@ -38,10 +38,17 @@ val treesitterDir = rootDir.resolve("tree-sitter")
 
 version = property("project.version") as String
 
-// Check if Android SDK is available
-val androidSdkAvailable = System.getenv("ANDROID_HOME") != null ||
-    System.getenv("ANDROID_SDK_ROOT") != null ||
-    file("local.properties").exists()
+// Android is optional for the Codex composite build. Hosted CI images often
+// expose ANDROID_HOME even when this included build is only compiling native
+// targets, so require an explicit opt-in before applying Android plugins.
+val enableAndroid: Boolean = (findProperty("KTREESITTER_ENABLE_ANDROID") as String?)?.toBoolean()
+    ?: System.getenv("KTREESITTER_ENABLE_ANDROID")?.toBoolean()
+    ?: false
+val androidSdkAvailable = enableAndroid && (
+    System.getenv("ANDROID_HOME") != null ||
+        System.getenv("ANDROID_SDK_ROOT") != null ||
+        file("local.properties").exists()
+    )
 
 plugins {
     `maven-publish`
@@ -81,6 +88,7 @@ kotlin {
     linuxArm64 { treesitter() }
     mingwX64 { treesitter() }
     macosArm64 { treesitter() }
+    macosX64 { treesitter() }
 
     // Gate iOS targets behind a property/env var to keep desktop/native builds green by default.
     // Enable with: -PKTREESITTER_ENABLE_IOS=true (or env KTREESITTER_ENABLE_IOS=true)
