@@ -1,4 +1,4 @@
-// port-lint: source client_common.rs
+// port-lint: source core/src/client_common.rs
 package io.github.solaceharmony.codex.core.prompt
 
 import io.github.solaceharmony.codex.core.model.ModelFamily

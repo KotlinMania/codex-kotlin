@@ -1,4 +1,4 @@
-// port-lint: source tui/src/terminalPalette.rs
+// port-lint: source tui/src/terminal_palette.rs
 package io.github.solaceharmony.codex.tui
 
 import ratatui.style.Color

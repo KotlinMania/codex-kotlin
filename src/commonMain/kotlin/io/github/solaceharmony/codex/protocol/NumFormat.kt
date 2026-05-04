@@ -1,4 +1,4 @@
-// port-lint: source num_format.rs
+// port-lint: source protocol/src/num_format.rs
 package io.github.solaceharmony.codex.protocol
 
 import kotlin.math.pow

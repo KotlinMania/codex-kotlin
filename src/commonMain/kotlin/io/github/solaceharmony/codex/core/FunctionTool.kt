@@ -1,4 +1,4 @@
-// port-lint: source function_tool.rs
+// port-lint: source core/src/function_tool.rs
 package io.github.solaceharmony.codex.core
 
 /**

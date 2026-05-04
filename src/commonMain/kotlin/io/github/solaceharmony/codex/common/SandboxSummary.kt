@@ -1,4 +1,4 @@
-// port-lint: source sandbox_summary.rs
+// port-lint: source utils/sandbox-summary/src/sandbox_summary.rs
 package io.github.solaceharmony.codex.common
 
 import io.github.solaceharmony.codex.protocol.SandboxPolicy

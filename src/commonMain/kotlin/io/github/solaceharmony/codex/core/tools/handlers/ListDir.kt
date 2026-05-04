@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/listDir.rs
+// port-lint: source core/src/tools/handlers/list_dir.rs
 package io.github.solaceharmony.codex.core.tools.handlers
 
 import io.github.solaceharmony.codex.core.FunctionCallError

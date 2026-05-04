@@ -1,4 +1,4 @@
-// port-lint: source tui/src/keyHint.rs
+// port-lint: source tui/src/key_hint.rs
 @file:OptIn(ExperimentalNativeApi::class)
 
 package io.github.solaceharmony.codex.tui

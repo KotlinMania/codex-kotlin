@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/applyPatch.rs
+// port-lint: source core/src/tools/handlers/apply_patch.rs
 package io.github.solaceharmony.codex.core.tools.handlers
 
 import io.github.solaceharmony.codex.core.CodexErr

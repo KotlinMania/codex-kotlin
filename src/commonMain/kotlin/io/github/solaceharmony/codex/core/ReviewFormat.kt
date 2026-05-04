@@ -1,4 +1,4 @@
-// port-lint: source core/src/reviewFormat.rs
+// port-lint: source core/src/review_format.rs
 package io.github.solaceharmony.codex.core
 
 import io.github.solaceharmony.codex.protocol.ReviewFinding

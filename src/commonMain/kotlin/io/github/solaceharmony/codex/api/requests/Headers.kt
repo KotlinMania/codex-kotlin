@@ -1,4 +1,4 @@
-// port-lint: source headers.rs
+// port-lint: source codex-api/src/requests/headers.rs
 package io.github.solaceharmony.codex.api.requests
 
 import io.ktor.client.request.*

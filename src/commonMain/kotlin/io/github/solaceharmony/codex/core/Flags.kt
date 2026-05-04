@@ -1,4 +1,4 @@
-// port-lint: source flags.rs
+// port-lint: source core/src/flags.rs
 package io.github.solaceharmony.codex.core
 
 import io.github.solaceharmony.codex.utils.Environment

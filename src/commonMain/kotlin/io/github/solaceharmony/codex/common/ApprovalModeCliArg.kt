@@ -1,4 +1,4 @@
-// port-lint: source approval_mode_cli_arg.rs
+// port-lint: source utils/cli/src/approval_mode_cli_arg.rs
 //! Standard type to import with the `--approval-mode` CLI option.
 //! Available when the `cli` feature is enabled for the crate.
 package io.github.solaceharmony.codex.common

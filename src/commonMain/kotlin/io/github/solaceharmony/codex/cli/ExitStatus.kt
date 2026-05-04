@@ -1,4 +1,4 @@
-// port-lint: source cli/src/exitStatus.rs
+// port-lint: source cli/src/exit_status.rs
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class, kotlin.experimental.ExperimentalNativeApi::class)
 
 package io.github.solaceharmony.codex.cli

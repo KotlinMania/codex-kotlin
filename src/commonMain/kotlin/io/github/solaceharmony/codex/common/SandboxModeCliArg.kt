@@ -1,4 +1,4 @@
-// port-lint: source sandbox_mode_cli_arg.rs
+// port-lint: source utils/cli/src/sandbox_mode_cli_arg.rs
 //! Standard type to import with the `--sandbox` (`-s`) CLI option.
 //!
 //! This mirrors the variants of [`SandboxPolicy`], but without any of the

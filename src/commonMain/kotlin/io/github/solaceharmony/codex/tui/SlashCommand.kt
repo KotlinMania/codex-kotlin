@@ -1,4 +1,4 @@
-// port-lint: source tui/src/slashCommand.rs
+// port-lint: source tui/src/slash_command.rs
 package io.github.solaceharmony.codex.tui
 
 /** Commands that can be invoked by starting a message with a leading slash. */

@@ -1,4 +1,4 @@
-// port-lint: source user_notification.rs
+// port-lint: source core/tests/suite/user_notification.rs
 package io.github.solaceharmony.codex.core
 
 import kotlinx.serialization.ExperimentalSerializationApi

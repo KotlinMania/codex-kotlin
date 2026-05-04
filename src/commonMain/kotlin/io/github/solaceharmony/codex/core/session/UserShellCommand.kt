@@ -1,4 +1,4 @@
-// port-lint: source core/src/userShellCommand.rs
+// port-lint: source core/src/user_shell_command.rs
 package io.github.solaceharmony.codex.core.session
 
 import io.github.solaceharmony.codex.core.ExecToolCallOutput

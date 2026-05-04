@@ -1,4 +1,4 @@
-// port-lint: source core/src/turnDiffTracker.rs
+// port-lint: source core/src/turn_diff_tracker.rs
 package io.github.solaceharmony.codex.core.session
 
 import io.github.solaceharmony.codex.protocol.FileChange

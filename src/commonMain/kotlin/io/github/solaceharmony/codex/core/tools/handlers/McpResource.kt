@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/mcpResource.rs
+// port-lint: source core/src/tools/handlers/mcp_resource.rs
 package io.github.solaceharmony.codex.core.tools.handlers
 
 import io.github.solaceharmony.codex.core.FunctionCallError

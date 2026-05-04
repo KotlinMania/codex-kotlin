@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/runtimes/applyPatch.rs
+// port-lint: source core/src/tools/runtimes/apply_patch.rs
 package io.github.solaceharmony.codex.core.tools.runtimes
 
 import io.github.solaceharmony.codex.core.Exec

@@ -1,4 +1,4 @@
-// port-lint: source exec_events.rs
+// port-lint: source exec/src/exec_events.rs
 package io.github.solaceharmony.codex.exec
 
 import io.github.solaceharmony.codex.protocol.ContentBlock

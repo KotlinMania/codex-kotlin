@@ -1,4 +1,4 @@
-// port-lint: source config_types.rs
+// port-lint: source protocol/src/config_types.rs
 package io.github.solaceharmony.codex.protocol
 
 import kotlinx.serialization.SerialName

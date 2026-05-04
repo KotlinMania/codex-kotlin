@@ -1,4 +1,4 @@
-// port-lint: source user_input.rs
+// port-lint: source protocol/src/user_input.rs
 package io.github.solaceharmony.codex.protocol
 
 import kotlinx.serialization.SerialName

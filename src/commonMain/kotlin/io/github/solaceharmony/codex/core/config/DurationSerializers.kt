@@ -1,4 +1,4 @@
-// port-lint: source codex_tool_config.rs
+// port-lint: source mcp-server/src/codex_tool_config.rs
 package io.github.solaceharmony.codex.core.config
 
 import kotlin.time.Duration

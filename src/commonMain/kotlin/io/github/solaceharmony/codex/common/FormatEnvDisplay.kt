@@ -1,4 +1,4 @@
-// port-lint: source format_env_display.rs
+// port-lint: source utils/cli/src/format_env_display.rs
 package io.github.solaceharmony.codex.common
 
 fun formatEnvDisplay(env: Map<String, String>?, envVars: List<String>): String {

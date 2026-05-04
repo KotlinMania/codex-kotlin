@@ -1,4 +1,4 @@
-// port-lint: source device_code_auth.rs
+// port-lint: source login/src/device_code_auth.rs
 package io.github.solaceharmony.codex.core.auth
 
 class Sha256MessageDigest {

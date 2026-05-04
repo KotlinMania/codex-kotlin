@@ -1,4 +1,4 @@
-// port-lint: source core/src/tools/handlers/viewImage.rs
+// port-lint: source core/src/tools/handlers/view_image.rs
 package io.github.solaceharmony.codex.core.tools.handlers
 
 import io.github.solaceharmony.codex.core.CodexErr

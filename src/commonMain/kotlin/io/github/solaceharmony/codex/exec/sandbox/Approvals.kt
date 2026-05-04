@@ -1,4 +1,4 @@
-// port-lint: source sandboxing.rs
+// port-lint: source core/src/tools/sandboxing.rs
 package io.github.solaceharmony.codex.exec.sandbox
 
 import io.github.solaceharmony.codex.protocol.ReviewDecision

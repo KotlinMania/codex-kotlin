@@ -1,4 +1,4 @@
-// port-lint: source core/src/execPolicy.rs
+// port-lint: source core/src/exec_policy.rs
 package io.github.solaceharmony.codex.core.exec_policy
 
 /*

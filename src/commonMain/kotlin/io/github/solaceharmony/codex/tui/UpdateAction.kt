@@ -1,4 +1,4 @@
-// port-lint: source tui/src/updateAction.rs
+// port-lint: source tui/src/update_action.rs
 package io.github.solaceharmony.codex.tui
 
 import io.github.solaceharmony.codex.utils.Environment
