@@ -67,6 +67,10 @@ kotlin {
 
                 // JWT library (from Maven Central)
                 implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
+
+                // JSON Schema types (Schema, SchemaObject, JsonSchema trait).
+                // Resolved via sibling includeBuild; see settings.gradle.kts.
+                implementation("io.github.kotlinmania:schemars-kotlin:0.1.0-SNAPSHOT")
             }
         }
 
