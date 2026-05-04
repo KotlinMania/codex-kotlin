@@ -1,5 +1,5 @@
-// port-lint: source core/src/unifiedExec/errors.rs
-package io.github.solaceharmony.codex.core.unified_exec
+// port-lint: source core/src/unified_exec/errors.rs
+package io.github.solaceharmony.codex.core.unifiedexec
 
 import io.github.solaceharmony.codex.core.ExecToolCallOutput
 

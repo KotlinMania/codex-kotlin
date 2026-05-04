@@ -1,6 +1,6 @@
 // port-lint: ignore
 // transliterated from upstream module root
-package io.github.solaceharmony.codex.core.unified_exec
+package io.github.solaceharmony.codex.core.unifiedexec
 
 import io.github.solaceharmony.codex.core.session.Session as CodexSession
 import io.github.solaceharmony.codex.core.session.TurnContext

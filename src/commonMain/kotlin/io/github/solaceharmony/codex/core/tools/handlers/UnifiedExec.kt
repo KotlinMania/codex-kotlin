@@ -8,10 +8,10 @@ import io.github.solaceharmony.codex.core.tools.ToolInvocation
 import io.github.solaceharmony.codex.core.tools.ToolKind
 import io.github.solaceharmony.codex.core.tools.ToolOutput
 import io.github.solaceharmony.codex.core.tools.ToolPayload
-import io.github.solaceharmony.codex.core.unified_exec.ExecCommandRequest
-import io.github.solaceharmony.codex.core.unified_exec.UnifiedExecContext
-import io.github.solaceharmony.codex.core.unified_exec.UnifiedExecSessionManager
-import io.github.solaceharmony.codex.core.unified_exec.WriteStdinRequest
+import io.github.solaceharmony.codex.core.unifiedexec.ExecCommandRequest
+import io.github.solaceharmony.codex.core.unifiedexec.UnifiedExecContext
+import io.github.solaceharmony.codex.core.unifiedexec.UnifiedExecSessionManager
+import io.github.solaceharmony.codex.core.unifiedexec.WriteStdinRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 

@@ -1,5 +1,5 @@
 // port-lint: source core/src/unifiedExec/session.rs
-package io.github.solaceharmony.codex.core.unified_exec
+package io.github.solaceharmony.codex.core.unifiedexec
 
 import io.github.solaceharmony.codex.core.ExecToolCallOutput
 import io.github.solaceharmony.codex.core.StreamOutput

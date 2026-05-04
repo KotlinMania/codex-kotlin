@@ -1,5 +1,5 @@
 // port-lint: source core/src/unifiedExec/sessionManager.rs
-package io.github.solaceharmony.codex.core.unified_exec
+package io.github.solaceharmony.codex.core.unifiedexec
 
 import io.github.solaceharmony.codex.core.context.TruncationPolicy
 import io.github.solaceharmony.codex.core.context.formattedTruncateText

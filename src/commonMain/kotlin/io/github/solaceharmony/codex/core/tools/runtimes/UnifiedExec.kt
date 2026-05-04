@@ -17,9 +17,9 @@ import io.github.solaceharmony.codex.core.tools.ToolError
 import io.github.solaceharmony.codex.core.tools.ToolRuntime
 import io.github.solaceharmony.codex.core.tools.buildCommandSpec
 import io.github.solaceharmony.codex.core.tools.withCachedApproval
-import io.github.solaceharmony.codex.core.unified_exec.UnifiedExecError
-import io.github.solaceharmony.codex.core.unified_exec.UnifiedExecSession
-import io.github.solaceharmony.codex.core.unified_exec.UnifiedExecSessionManager
+import io.github.solaceharmony.codex.core.unifiedexec.UnifiedExecError
+import io.github.solaceharmony.codex.core.unifiedexec.UnifiedExecSession
+import io.github.solaceharmony.codex.core.unifiedexec.UnifiedExecSessionManager
 import io.github.solaceharmony.codex.protocol.ReviewDecision
 
 data class UnifiedExecRequest(
