@@ -1,5 +1,5 @@
 // port-lint: source core/src/commandSafety/isSafeCommand.rs
-package io.github.solaceharmony.codex.core.command_safety
+package io.github.solaceharmony.codex.core.commandsafety
 
 import io.github.solaceharmony.codex.core.bash.parseShellLcPlainCommands
 

@@ -9,7 +9,7 @@ package io.github.solaceharmony.codex.core.exec_policy
  */
 
 import io.github.solaceharmony.codex.core.bash.parseShellLcPlainCommands
-import io.github.solaceharmony.codex.core.command_safety.requiresInitialApproval
+import io.github.solaceharmony.codex.core.commandsafety.requiresInitialApproval
 import io.github.solaceharmony.codex.core.tools.ApprovalRequirement
 import io.github.solaceharmony.codex.exec.sandbox.SandboxPermissions
 import io.github.solaceharmony.codex.execpolicy.Decision

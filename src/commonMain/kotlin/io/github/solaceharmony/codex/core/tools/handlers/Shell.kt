@@ -5,7 +5,7 @@ import io.github.solaceharmony.codex.core.Exec
 import io.github.solaceharmony.codex.core.ExecExpiration
 import io.github.solaceharmony.codex.core.ExecParams
 import io.github.solaceharmony.codex.core.FunctionCallError
-import io.github.solaceharmony.codex.core.command_safety.isKnownSafeCommand
+import io.github.solaceharmony.codex.core.commandsafety.isKnownSafeCommand
 import io.github.solaceharmony.codex.core.session.Session
 import io.github.solaceharmony.codex.core.session.TurnContext
 import io.github.solaceharmony.codex.core.tools.SharedTurnDiffTracker
