@@ -118,3 +118,4 @@ deep_report.txt
 
 # ktreesitter plugin build output
 ktreesitter-kotlin/ktreesitter-plugin/bin/
+/tmp/

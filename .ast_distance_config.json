@@ -2,11 +2,11 @@
   "type": "port",
   "name": "codex-kotlin",
   "source": {
-    "path": "codex-rs/core/src/error.rs",
+    "path": "tmp/codex/codex-rs",
     "lang": "rust"
   },
   "target": {
-    "path": "src/commonMain/kotlin/io/github/solaceharmony/codex/core/Error.kt",
+    "path": "src/commonMain/kotlin/io/github/solaceharmony/codex",
     "lang": "kotlin"
   },
   "checks": {
