@@ -6,7 +6,7 @@
     "lang": "rust"
   },
   "target": {
-    "path": "src/commonMain/kotlin/ai/solace/coder/core/Error.kt",
+    "path": "src/commonMain/kotlin/io/github/solaceharmony/codex/core/Error.kt",
     "lang": "kotlin"
   },
   "checks": {

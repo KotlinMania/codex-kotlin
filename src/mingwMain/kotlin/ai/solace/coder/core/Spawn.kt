@@ -1,4 +1,4 @@
-package ai.solace.coder.core
+package io.github.solaceharmony.codex.core
 
 /**
  * Platform-specific process handle implementation for Windows

@@ -1,13 +1,13 @@
 # codex-api Usage Examples
 
-This document shows how to use the newly ported `ai.solace.coder.api` package.
+This document shows how to use the newly ported `io.github.solaceharmony.codex.api` package.
 
 ## Basic Setup
 
 ```kotlin
-import ai.solace.coder.api.auth.AuthProvider
-import ai.solace.coder.api.provider.*
-import ai.solace.coder.api.endpoint.*
+import io.github.solaceharmony.codex.api.auth.AuthProvider
+import io.github.solaceharmony.codex.api.provider.*
+import io.github.solaceharmony.codex.api.endpoint.*
 import io.ktor.client.*
 import kotlin.time.Duration.Companion.seconds
 
@@ -44,8 +44,8 @@ val auth = MyAuthProvider("sk-...")
 ## Using ChatClient
 
 ```kotlin
-import ai.solace.coder.api.endpoint.ChatClient
-import ai.solace.coder.api.requests.ChatRequestBuilder
+import io.github.solaceharmony.codex.api.endpoint.ChatClient
+import io.github.solaceharmony.codex.api.requests.ChatRequestBuilder
 
 val chatClient = ChatClient(httpClient, provider, auth)
 
@@ -70,9 +70,9 @@ val request = ChatRequestBuilder(
 ## Using ResponsesClient
 
 ```kotlin
-import ai.solace.coder.api.endpoint.ResponsesClient
-import ai.solace.coder.api.endpoint.ResponsesOptions
-import ai.solace.coder.api.requests.ResponsesRequestBuilder
+import io.github.solaceharmony.codex.api.endpoint.ResponsesClient
+import io.github.solaceharmony.codex.api.endpoint.ResponsesOptions
+import io.github.solaceharmony.codex.api.requests.ResponsesRequestBuilder
 
 val responsesClient = ResponsesClient(httpClient, provider, auth)
 
@@ -94,7 +94,7 @@ val request = ResponsesRequestBuilder(
 ## Using Provider Utilities
 
 ```kotlin
-import ai.solace.coder.api.provider.Provider
+import io.github.solaceharmony.codex.api.provider.Provider
 
 val provider = Provider(/* ... */)
 
@@ -116,7 +116,7 @@ if (provider.isAzureResponsesEndpoint()) {
 ## Rate Limit Parsing
 
 ```kotlin
-import ai.solace.coder.api.ratelimits.parseRateLimit
+import io.github.solaceharmony.codex.api.ratelimits.parseRateLimit
 import io.ktor.client.statement.*
 
 val response: HttpResponse = /* ... */
@@ -130,7 +130,7 @@ rateLimit?.primary?.let { window ->
 ## Adding Auth Headers
 
 ```kotlin
-import ai.solace.coder.api.auth.addAuthHeaders
+import io.github.solaceharmony.codex.api.auth.addAuthHeaders
 import io.ktor.client.request.*
 
 val auth = MyAuthProvider("sk-...")
@@ -146,7 +146,7 @@ val request = HttpRequestBuilder().apply {
 ## Error Handling
 
 ```kotlin
-import ai.solace.coder.api.error.ApiError
+import io.github.solaceharmony.codex.api.error.ApiError
 
 val result = chatClient.streamRequest(request)
 
@@ -169,8 +169,8 @@ result.fold(
 ## Telemetry Integration
 
 ```kotlin
-import ai.solace.coder.api.telemetry.RequestTelemetry
-import ai.solace.coder.api.telemetry.SseTelemetry
+import io.github.solaceharmony.codex.api.telemetry.RequestTelemetry
+import io.github.solaceharmony.codex.api.telemetry.SseTelemetry
 import io.ktor.http.*
 import kotlin.time.Duration
 
@@ -199,7 +199,7 @@ val clientWithTelemetry = chatClient.withTelemetry(
 ## Building Custom Prompts
 
 ```kotlin
-import ai.solace.coder.api.common.*
+import io.github.solaceharmony.codex.api.common.*
 
 val prompt = Prompt(
     instructions = "You are a code review assistant.",

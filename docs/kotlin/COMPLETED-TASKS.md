@@ -47,7 +47,7 @@ Every verification confirmed:
 ## ✅ Compilation Verified
 
 - ✅ All 16 codex-api files compile
-- ✅ No errors in ai.solace.coder.api package
+- ✅ No errors in io.github.solaceharmony.codex.api package
 - ✅ Protocol files continue to compile
 - ✅ Only expected "never used" warnings
 
@@ -90,11 +90,11 @@ Every verification confirmed:
 ## 📁 File Inventory
 
 ### Created (20 files)
-- 16 Kotlin files in `ai.solace.coder.api/`
+- 16 Kotlin files in `io.github.solaceharmony.codex.api/`
 - 4 Markdown documentation files in `docs/`
 
 ### Modified (13 files)
-- 13 Kotlin files in `ai.solace.coder.protocol/` (port-lint headers)
+- 13 Kotlin files in `io.github.solaceharmony.codex.protocol/` (port-lint headers)
 
 ### Total Impact
 - **33 files** touched or created
