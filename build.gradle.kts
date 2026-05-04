@@ -1,11 +1,32 @@
+import com.vanniktech.maven.publish.SonatypeHost
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+
 plugins {
-    kotlin("multiplatform") version "2.3.21"
-    kotlin("plugin.serialization") version "2.3.21"
+    kotlin("multiplatform") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.20"
+    id("com.android.kotlin.multiplatform.library") version "9.2.0"
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
+
+group = "io.github.kotlinmania"
+version = "0.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
+}
+
+val androidSdkDir: String? =
+    providers.environmentVariable("ANDROID_SDK_ROOT").orNull
+        ?: providers.environmentVariable("ANDROID_HOME").orNull
+
+if (androidSdkDir != null && file(androidSdkDir).exists()) {
+    val localProperties = rootProject.file("local.properties")
+    if (!localProperties.exists()) {
+        val sdkDirPropertyValue = file(androidSdkDir).absolutePath.replace("\\", "/")
+        localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
+    }
 }
 
 kotlin {
@@ -13,25 +34,55 @@ kotlin {
 
     sourceSets.all {
         languageSettings.optIn("kotlin.time.ExperimentalTime")
+        languageSettings.optIn("kotlin.concurrent.atomics.ExperimentalAtomicApi")
     }
+
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    val xcf = XCFramework("Codex")
 
     macosArm64 {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
+        binaries.framework {
+            baseName = "Codex"
+            xcf.add(this)
         }
     }
-    macosX64 {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
+    linuxX64()
+    mingwX64()
+    iosArm64 {
+        binaries.framework {
+            baseName = "Codex"
+            xcf.add(this)
         }
+    }
+    iosSimulatorArm64 {
+        binaries.framework {
+            baseName = "Codex"
+            xcf.add(this)
+        }
+    }
+    js {
+        browser()
+        nodejs()
+    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
     }
 
-    // Define Linux target so we can confine certain dependencies/code to Linux only
-    linuxX64()
+    android {
+        namespace = "io.github.solaceharmony.codex"
+        compileSdk = 34
+        minSdk = 24
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -40,6 +91,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.8")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
 
                 // Ktor HTTP client core (engine wired in nativeMain via curl)
@@ -65,7 +117,7 @@ kotlin {
                 implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
                 implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
 
-                // JWT library (from Maven Central)
+                // JWT library (from Maven Central — sibling JWT-Kotlin)
                 implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
 
                 // JSON Schema types (Schema, SchemaObject, JsonSchema trait).
@@ -93,5 +145,45 @@ kotlin {
         }
 
         val nativeTest by getting
+    }
+
+    jvmToolchain(21)
+}
+
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    coordinates(group.toString(), "codex-kotlin", version.toString())
+
+    pom {
+        name.set("codex-kotlin")
+        description.set("Kotlin Multiplatform port of openai/codex — coding agent CLI")
+        inceptionYear.set("2026")
+        url.set("https://github.com/KotlinMania/codex-kotlin")
+
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://opensource.org/licenses/Apache-2.0")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("sydneyrenee")
+                name.set("Sydney Renee")
+                email.set("sydney@solace.ofharmony.ai")
+                url.set("https://github.com/sydneyrenee")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/KotlinMania/codex-kotlin")
+            connection.set("scm:git:git://github.com/KotlinMania/codex-kotlin.git")
+            developerConnection.set("scm:git:ssh://github.com/KotlinMania/codex-kotlin.git")
+        }
     }
 }
