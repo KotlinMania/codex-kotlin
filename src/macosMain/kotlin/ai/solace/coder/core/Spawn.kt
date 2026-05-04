@@ -1,6 +1,6 @@
-package ai.solace.coder.core
+package io.github.solaceharmony.codex.core
 
-import ai.solace.coder.exec.process.SandboxType
+import io.github.solaceharmony.codex.exec.process.SandboxType
 import kotlinx.cinterop.*
 import platform.posix.*
 import platform.Foundation.*

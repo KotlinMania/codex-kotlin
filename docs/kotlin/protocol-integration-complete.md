@@ -2,4 +2,4 @@
 
 ## What Was Accomplished
 
-Successfully wired up all protocol types from `ai.solace.coder.protocol` into the `ai.solace.coder.api` package, eliminating placeholder types and TODOs.
+Successfully wired up all protocol types from `io.github.solaceharmony.codex.protocol` into the `io.github.solaceharmony.codex.api` package, eliminating placeholder types and TODOs.

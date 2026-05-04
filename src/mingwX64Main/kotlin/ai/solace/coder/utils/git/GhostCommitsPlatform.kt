@@ -1,4 +1,4 @@
-package ai.solace.coder.utils.git
+package io.github.solaceharmony.codex.utils.git
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.refTo

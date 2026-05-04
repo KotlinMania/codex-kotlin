@@ -1,7 +1,7 @@
 ---
 language: C
 cInterop: true
-package: ai.solace.coder.exec.sandbox
+package: io.github.solaceharmony.codex.exec.sandbox
 headers:
   - sandbox.h
   - sys/types.h

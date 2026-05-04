@@ -9,7 +9,7 @@ This document provides a detailed, component-by-component analysis of the portin
 
 ## 1. Storage Module
 **Source:** `core/src/auth/storage.rs` (672 lines)
-**Target:** `ai.solace.coder.core.auth.Storage.kt`
+**Target:** `io.github.solaceharmony.codex.core.auth.Storage.kt`
 **Status:** ✅ 100% Production Code Ported
 
 ### Overview
@@ -70,7 +70,7 @@ The storage module handles the persistence of authentication credentials (`auth.
 
 ## 2. SHA-256 Module
 **Source:** `core/src/sha256.rs` / `sha2` crate
-**Target:** `ai.solace.coder.core.Sha256.kt`
+**Target:** `io.github.solaceharmony.codex.core.Sha256.kt`
 **Status:** ✅ 100% Complete
 
 ### Overview
@@ -88,7 +88,7 @@ A pure Kotlin implementation of the SHA-256 constants and hashing algorithm, rem
 
 ## 3. Model Client
 **Source:** `core/src/client.rs` (542 lines)
-**Target:** `ai.solace.coder.core.client.ModelClient.kt`
+**Target:** `io.github.solaceharmony.codex.core.client.ModelClient.kt`
 **Status:** 🟢 Complete Structure (Waiting on Dependencies)
 
 ### Overview

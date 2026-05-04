@@ -1,6 +1,6 @@
 plugins {
-    kotlin("multiplatform") version "2.3.20"
-    kotlin("plugin.serialization") version "2.3.20"
+    kotlin("multiplatform") version "2.3.21"
+    kotlin("plugin.serialization") version "2.3.21"
 }
 
 repositories {
@@ -40,44 +40,23 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-            }
-        }
-
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
-            }
-        }
-
-        val nativeMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
 
-                // Ktor HTTP client for native platforms
+                // Ktor HTTP client core (engine wired in nativeMain via curl)
                 implementation("io.ktor:ktor-client-core:3.4.3")
-                implementation("io.ktor:ktor-client-curl:3.4.3")
                 implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
                 implementation("io.ktor:ktor-client-auth:3.4.3")
-                
+
                 // File I/O
                 implementation("com.squareup.okio:okio:3.9.0")
 
                 // Character encoding support (for legacy codepage conversion)
-                // fleeksoft-io provides JDK-like IO classes for Kotlin Multiplatform
                 implementation("com.fleeksoft.io:io-core:0.0.5")
                 implementation("com.fleeksoft.charset:charset:0.0.5")
                 implementation("com.fleeksoft.charset:charset-ext:0.0.5")
 
-                // Tree-sitter parsing library bindings
-                implementation("io.github.tree-sitter:ktreesitter:0.24.1")
-                implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
-
-                // TUI libraries (from Maven Central)
+                // TUI libraries (from Maven Central) — published as KMP artifacts
                 implementation("io.github.kotlinmania:ratatui-kotlin:0.1.9")
                 implementation("io.github.kotlinmania:crossterm-kotlin:0.1.4")
                 implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.4")
@@ -90,7 +69,25 @@ kotlin {
                 implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
             }
         }
-        
+
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+            }
+        }
+
+        val nativeMain by getting {
+            dependencies {
+                // Native HTTP engine for Ktor
+                implementation("io.ktor:ktor-client-curl:3.4.3")
+
+                // Tree-sitter parsing library bindings (cinterop, native-only)
+                implementation("io.github.tree-sitter:ktreesitter:0.24.1")
+                implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
+            }
+        }
+
         val nativeTest by getting
     }
 }

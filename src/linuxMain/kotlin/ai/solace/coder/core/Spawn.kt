@@ -1,8 +1,8 @@
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 
-package ai.solace.coder.core
+package io.github.solaceharmony.codex.core
 
-import ai.solace.coder.exec.process.SandboxType
+import io.github.solaceharmony.codex.exec.process.SandboxType
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc

@@ -58,6 +58,6 @@ No import statement in `codex-kotlin` changes — the package path was always `i
 
 ## Current consumers
 
-- `ai.solace.coder.protocol.ConversationId` — `impl JsonSchema for ConversationId` returns `<String>::json_schema(gen)`.
+- `io.github.solaceharmony.codex.protocol.ConversationId` — `impl JsonSchema for ConversationId` returns `<String>::json_schema(gen)`.
 
 Add to this list as new consumers wire in.
