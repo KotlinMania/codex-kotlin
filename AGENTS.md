@@ -7,7 +7,7 @@ targets only.
 - Do not add build, CI, script, or test hooks that invoke upstream toolchains.
 - Keep Kotlin code multiplatform-pure; avoid JVM-only APIs in shared code.
 - Prefer focused target checks such as `./gradlew macosArm64Test`,
-  `./gradlew macosX64Test`, and `./gradlew linuxX64Test`.
+  `./gradlew linuxX64Test`.
 - When touching shared protocol/core code, run the relevant Kotlin target tests
   before finalizing.
 
