@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "io.github.kotlinmania"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -118,6 +118,9 @@ kotlin {
                 implementation("com.fleeksoft.charset:charset:0.0.5")
                 implementation("com.fleeksoft.charset:charset-ext:0.0.5")
 
+                // Byte buffer primitives (port of tokio-rs/bytes)
+                implementation("io.github.kotlinmania:bytes-kotlin:0.2.0")
+
                 // TUI libraries (from Maven Central) — published as KMP artifacts
                 implementation("io.github.kotlinmania:ratatui-kotlin:0.1.9")
                 implementation("io.github.kotlinmania:crossterm-kotlin:0.1.4")
@@ -132,7 +135,7 @@ kotlin {
 
                 // JSON Schema types (Schema, SchemaObject, JsonSchema trait).
                 // Resolved via sibling includeBuild; see settings.gradle.kts.
-                implementation("io.github.kotlinmania:schemars-kotlin:0.1.0-SNAPSHOT")
+                implementation("io.github.kotlinmania:schemars-kotlin:0.1.0")
             }
         }
 

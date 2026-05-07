@@ -1,6 +1,6 @@
-# Agent guide - codex-kotlin
+# Agent guide - ktreesitter-kotlin
 
-This file is the quick-reference operating contract for codex-kotlin. The longer
+This file is the quick-reference operating contract for ktreesitter-kotlin. The longer
 project story lives in `CLAUDE.md`, `README.md`, and any repo-local notes. Read
 those before editing. This guide captures the workspace-wide porting discipline
 that must not drift: Kotlin stays Kotlin, source comments stay Kotlin-facing,
@@ -8,8 +8,8 @@ and required port inventory is done with `ast_distance` when the repo ships it.
 
 ## What this repo is
 
-codex-kotlin is a Kotlin Multiplatform port of the upstream Rust crate or module
-[`codex`](./README.md). Upstream Rust is the behavioral oracle while the
+ktreesitter-kotlin is a Kotlin Multiplatform port of the upstream Rust crate or module
+[`ktreesitter`](./README.md). Upstream Rust is the behavioral oracle while the
 repo is still in parity mode. Never edit `tmp/` or any fetched upstream source
 to make the port easier.
 
