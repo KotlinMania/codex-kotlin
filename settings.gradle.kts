@@ -1,47 +1,32 @@
 pluginManagement {
     repositories {
-        google()
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
+        google()
     }
-    plugins { kotlin("multiplatform") version "2.3.21" }
 }
 
-plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0" }
-
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
-        google()
         mavenCentral()
+        google()
     }
 }
 
 rootProject.name = "codex-kotlin"
 
-fun includeSiblingPort(name: String) {
-    val sibling = file("../$name")
-    if (sibling.exists()) {
-        includeBuild(sibling) {
-            dependencySubstitution {
-                substitute(module("io.github.kotlinmania:$name")).using(project(":"))
-            }
+// schemars (JsonSchema trait + Schema types) lives in the sibling
+// schemars-kotlin repo. When that sibling checkout is present (local dev),
+// composite-build it and substitute the unpublished
+// io.github.kotlinmania:schemars-kotlin Maven coordinate. On CI runners
+// (which only check out this repo), fall through to the declared remote
+// repositories so the published Maven artifact resolves instead.
+val schemarsLocal = file("../schemars-kotlin")
+if (schemarsLocal.exists()) {
+    includeBuild(schemarsLocal) {
+        dependencySubstitution {
+            substitute(module("io.github.kotlinmania:schemars-kotlin")).using(project(":"))
         }
     }
 }
-
-listOf(
-    "base64-kotlin",
-    "bytes-kotlin",
-    "eventsource-stream-kotlin",
-    "http-kotlin",
-    "reqwest-kotlin",
-    "schemars-kotlin",
-    "serde-json-kotlin",
-    "serde-kotlin",
-    "tokio-kotlin",
-    "tokio-tungstenite-kotlin",
-    "tokio-util-kotlin",
-    "tree-sitter-bash-kotlin",
-    "tree-sitter-kotlin",
-    "url-kotlin",
-).forEach(::includeSiblingPort)

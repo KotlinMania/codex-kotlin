@@ -17,6 +17,11 @@ plugins {
 group = "io.github.kotlinmania"
 version = "0.1.0-SNAPSHOT"
 
+repositories {
+    mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
+}
+
 val androidSdkDir: String? =
     providers.environmentVariable("ANDROID_SDK_ROOT").orNull
         ?: providers.environmentVariable("ANDROID_HOME").orNull
@@ -35,7 +40,6 @@ kotlin {
     sourceSets.all {
         languageSettings.optIn("kotlin.time.ExperimentalTime")
         languageSettings.optIn("kotlin.concurrent.atomics.ExperimentalAtomicApi")
-        languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
     }
 
     compilerOptions {
@@ -100,19 +104,11 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
 
-                implementation("io.github.kotlinmania:base64-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:bytes-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:eventsource-stream-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:http-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:reqwest-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:serde-json-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:serde-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:tokio-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:tokio-tungstenite-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:tokio-util-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:tree-sitter-bash-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:tree-sitter-kotlin:0.1.0-SNAPSHOT")
-                implementation("io.github.kotlinmania:url-kotlin:0.1.0-SNAPSHOT")
+                // Ktor HTTP client core (engine wired in nativeMain via curl)
+                implementation("io.ktor:ktor-client-core:3.4.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
+                implementation("io.ktor:ktor-client-auth:3.4.3")
 
                 // File I/O
                 implementation("com.squareup.okio:okio:3.9.0")
@@ -144,6 +140,17 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+            }
+        }
+
+        val nativeMain by getting {
+            dependencies {
+                // Native HTTP engine for Ktor
+                implementation("io.ktor:ktor-client-curl:3.4.3")
+
+                // Tree-sitter parsing library bindings (cinterop, native-only)
+                implementation("io.github.tree-sitter:ktreesitter:0.24.1")
+                implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
             }
         }
 
