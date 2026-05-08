@@ -2449,9 +2449,9 @@ class ActiveTurnHolder {
     suspend fun <T> withLock(block: suspend (ActiveTurn?) -> T): T {
         return mutex.withLock {
             val result = block(turn)
-            if (result is ActiveTurn?) {
-                @Suppress("UNCHECKED_CAST")
-                turn = result as ActiveTurn?
+            when (result) {
+                null -> turn = null
+                is ActiveTurn -> turn = result
             }
             result
         }
