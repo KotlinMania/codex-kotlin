@@ -2,8 +2,8 @@
 package io.github.solaceharmony.codex.protocol
 
 import io.github.kotlinmania.schemars.Schema
-import io.github.kotlinmania.schemars.SchemaGenerator
 import io.github.kotlinmania.schemars.StringJsonSchema
+import io.github.kotlinmania.schemars.generate.SchemaGenerator
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.KSerializer
