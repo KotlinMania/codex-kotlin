@@ -39,7 +39,7 @@ class GrepFilesHandler(
         }
 
         val args = try {
-            json.decodeFromString<GrepFilesArgs>(payload.arguments)
+            Support.json.decodeFromString<GrepFilesArgs>(payload.arguments)
         } catch (e: Exception) {
             return CodexResult.failure(
                 CodexError.Fatal("failed to parse function arguments: ${e.message}")
@@ -59,7 +59,7 @@ class GrepFilesHandler(
             )
         }
 
-        val limit = minOf(args.limit, MAX_LIMIT)
+        val limit = minOf(args.limit, Support.MAX_LIMIT)
         val searchPath = invocation.turn.resolvePath(args.path)
 
         // Verify path exists
@@ -82,12 +82,10 @@ class GrepFilesHandler(
         )
     }
 
-    companion object {
-        private const val DEFAULT_LIMIT = 100
-        private const val MAX_LIMIT = 2000
-        private val COMMAND_TIMEOUT = 30.seconds
-
-        private val json = Json {
+    private object Support {
+        const val MAX_LIMIT = 2000
+        val COMMAND_TIMEOUT = 30.seconds
+        val json = Json {
             ignoreUnknownKeys = true
             isLenient = true
         }
@@ -109,7 +107,7 @@ class GrepFilesHandler(
         val params = ExecParams(
             command = command,
             cwd = cwd,
-            expiration = ExecExpiration.Timeout(COMMAND_TIMEOUT)
+            expiration = ExecExpiration.Timeout(Support.COMMAND_TIMEOUT)
         )
 
         // Grep is read-only, so use ReadOnly sandbox policy

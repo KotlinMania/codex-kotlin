@@ -46,7 +46,7 @@ class ApplyPatchHandler : ToolHandler {
                     is ToolPayload.Function -> {
                         val args =
                                 try {
-                                    json.decodeFromString<ApplyPatchArgs>(payload.arguments)
+                                    Support.json.decodeFromString<ApplyPatchArgs>(payload.arguments)
                                 } catch (e: Exception) {
                                     return Result.failure(
                                             ToolError.Codex(
@@ -73,15 +73,15 @@ class ApplyPatchHandler : ToolHandler {
         val cwd = invocation.turn.cwd
 
         return try {
-            val result = applyPatch(patchInput, cwd)
+            val result = Support.applyPatch(patchInput, cwd)
             result.map { message -> ToolOutput.Function(content = message, success = true) }
         } catch (e: Exception) {
             Result.failure(ToolError.Codex(CodexError.Fatal("apply_patch failed: ${e.message}")))
         }
     }
 
-    companion object {
-        private val json = Json {
+    private object Support {
+        val json = Json {
             ignoreUnknownKeys = true
             isLenient = true
         }
@@ -96,7 +96,7 @@ class ApplyPatchHandler : ToolHandler {
         private const val END_OF_FILE_MARKER = "*** End of File"
 
         /** Apply a patch to files in the working directory. */
-        private fun applyPatch(patchInput: String, cwd: String): Result<String> {
+        fun applyPatch(patchInput: String, cwd: String): Result<String> {
             val lines = patchInput.lines()
             val operations =
                     parsePatch(lines)

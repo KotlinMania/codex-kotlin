@@ -3489,7 +3489,7 @@ class GhostSnapshotTask(
 
                 // First, compute a snapshot report to warn about large untracked directories
                 val reportResult = gitOperations.captureGhostSnapshotReport(
-                    CreateGhostCommitOptions.new(repoPath)
+                    CreateGhostCommitOptions(repoPath)
                 )
 
                 reportResult.onSuccess { report ->
@@ -3509,7 +3509,7 @@ class GhostSnapshotTask(
                 }
 
                 // Create the ghost commit
-                val options = CreateGhostCommitOptions.new(repoPath)
+                val options = CreateGhostCommitOptions(repoPath)
                 val commitResult = gitOperations.createGhostCommit(options)
 
                 commitResult.fold(

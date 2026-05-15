@@ -184,6 +184,9 @@ kotlin {
 
     sourceSets {
         val nativeMain by getting {
+            kotlin {
+                exclude("ai/solace/coder/protocol/**")
+            }
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
@@ -201,9 +204,6 @@ kotlin {
                 implementation("com.squareup.okio:okio:3.9.0")
 
                 // Character encoding support (for legacy codepage conversion)
-                // fleeksoft-io provides JDK-like IO classes for Kotlin Multiplatform
-                implementation("com.fleeksoft.io:io-core:0.0.4")
-                implementation("com.fleeksoft.io:io:0.0.4")
                 implementation("com.fleeksoft.charset:charset:0.0.5")
                 implementation("com.fleeksoft.charset:charset-ext:0.0.5")
 

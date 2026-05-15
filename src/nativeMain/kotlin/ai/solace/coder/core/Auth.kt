@@ -217,58 +217,56 @@ data class CodexAuth internal constructor(
     private fun getCurrentTokenData(): TokenData? {
         return cachedAuthDotJson?.tokens
     }
+}
 
-    companion object {
-        /**
-         * Create a dummy ChatGPT auth for testing.
-         */
-        @OptIn(ExperimentalTime::class)
-        fun createDummyChatGptAuthForTesting(): CodexAuth {
-            val authDotJson = AuthDotJson(
-                openaiApiKey = null,
-                tokens = TokenData(
-                    idToken = IdTokenInfo(),
-                    accessToken = "Access Token",
-                    refreshToken = "test",
-                    accountId = "account_id"
-                ),
-                lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
-            )
+/**
+ * Create a dummy ChatGPT auth for testing.
+ */
+@OptIn(ExperimentalTime::class)
+fun createDummyChatGptAuthForTesting(): CodexAuth {
+    val authDotJson = AuthDotJson(
+        openaiApiKey = null,
+        tokens = TokenData(
+            idToken = IdTokenInfo(),
+            accessToken = "Access Token",
+            refreshToken = "test",
+            accountId = "account_id"
+        ),
+        lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
+    )
 
-            return CodexAuth(
-                mode = AuthMode.ChatGPT,
-                apiKey = null,
-                authDotJsonMutex = Mutex(),
-                cachedAuthDotJson = authDotJson,
-                storage = FileAuthStorage(Path("")),
-                client = HttpClient()
-            )
-        }
+    return CodexAuth(
+        mode = AuthMode.ChatGPT,
+        apiKey = null,
+        authDotJsonMutex = Mutex(),
+        cachedAuthDotJson = authDotJson,
+        storage = FileAuthStorage(Path("")),
+        client = HttpClient()
+    )
+}
 
-        /**
-         * Create an auth from an API key.
-         */
-        fun fromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth {
-            return CodexAuth(
-                mode = AuthMode.ApiKey,
-                apiKey = apiKey,
-                authDotJsonMutex = Mutex(),
-                cachedAuthDotJson = null,
-                storage = FileAuthStorage(Path("")),
-                client = client
-            )
-        }
+/**
+ * Create an auth from an API key.
+ */
+fun codexAuthFromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth {
+    return CodexAuth(
+        mode = AuthMode.ApiKey,
+        apiKey = apiKey,
+        authDotJsonMutex = Mutex(),
+        cachedAuthDotJson = null,
+        storage = FileAuthStorage(Path("")),
+        client = client
+    )
+}
 
-        /**
-         * Loads the available auth information from auth storage.
-         */
-        fun fromAuthStorage(
-            codexHome: Path,
-            authCredentialsStoreMode: AuthCredentialsStoreMode
-        ): Result<CodexAuth?> {
-            return loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
-        }
-    }
+/**
+ * Loads the available auth information from auth storage.
+ */
+fun codexAuthFromAuthStorage(
+    codexHome: Path,
+    authCredentialsStoreMode: AuthCredentialsStoreMode
+): Result<CodexAuth?> {
+    return loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
 }
 
 // ============================================================================
@@ -313,30 +311,28 @@ data class RefreshTokenFailedError(
 sealed class PlanType {
     data class Known(val plan: KnownPlan) : PlanType()
     data class Unknown(val value: String) : PlanType()
-
-    companion object {
-        fun fromString(value: String): PlanType {
-            val knownPlan = when (value.lowercase()) {
-                "free" -> KnownPlan.Free
-                "plus" -> KnownPlan.Plus
-                "pro" -> KnownPlan.Pro
-                "team" -> KnownPlan.Team
-                "business" -> KnownPlan.Business
-                "enterprise" -> KnownPlan.Enterprise
-                "edu" -> KnownPlan.Edu
-                else -> null
-            }
-            return if (knownPlan != null) {
-                Known(knownPlan)
-            } else {
-                Unknown(value)
-            }
-        }
-    }
 }
 
 enum class KnownPlan {
     Free, Plus, Pro, Team, Business, Enterprise, Edu
+}
+
+private fun planTypeFromString(value: String): PlanType {
+    val knownPlan = when (value.lowercase()) {
+        "free" -> KnownPlan.Free
+        "plus" -> KnownPlan.Plus
+        "pro" -> KnownPlan.Pro
+        "team" -> KnownPlan.Team
+        "business" -> KnownPlan.Business
+        "enterprise" -> KnownPlan.Enterprise
+        "edu" -> KnownPlan.Edu
+        else -> null
+    }
+    return if (knownPlan != null) {
+        PlanType.Known(knownPlan)
+    } else {
+        PlanType.Unknown(value)
+    }
 }
 
 /**
@@ -559,7 +555,7 @@ internal fun loadAuth(
     if (enableCodexApiKeyEnv) {
         readCodexApiKeyFromEnv()?.let { apiKey ->
             val client = HttpClient()
-            return Result.success(CodexAuth.fromApiKey(apiKey, client))
+            return Result.success(codexAuthFromApiKey(apiKey, client))
         }
     }
 
@@ -572,7 +568,7 @@ internal fun loadAuth(
 
     // Prefer API key if set in auth.json
     if (authDotJson.openaiApiKey != null) {
-        return Result.success(CodexAuth.fromApiKey(authDotJson.openaiApiKey, client))
+        return Result.success(codexAuthFromApiKey(authDotJson.openaiApiKey, client))
     }
 
     // Use ChatGPT tokens
@@ -775,7 +771,7 @@ private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
         val authMap = authClaim.asMap()
 
         val planTypeStr = authMap?.get("chatgpt_plan_type") as? String
-        val planType = planTypeStr?.let { PlanType.fromString(it) }
+        val planType = planTypeStr?.let { planTypeFromString(it) }
 
         val accountId = authMap?.get("chatgpt_account_id") as? String
 
@@ -842,6 +838,24 @@ class AuthManager private constructor(
     private val authCredentialsStoreMode: AuthCredentialsStoreMode,
     initialAuth: CodexAuth?
 ) {
+    constructor(
+        codexHome: Path,
+        enableCodexApiKeyEnv: Boolean,
+        authCredentialsStoreMode: AuthCredentialsStoreMode
+    ) : this(
+        codexHome,
+        enableCodexApiKeyEnv,
+        authCredentialsStoreMode,
+        loadAuth(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode).getOrNull()
+    )
+
+    internal constructor(auth: CodexAuth) : this(
+        codexHome = Path(""),
+        enableCodexApiKeyEnv = false,
+        authCredentialsStoreMode = AuthCredentialsStoreMode.File,
+        initialAuth = auth
+    )
+
     private val mutex = Mutex()
     private var cachedAuth: CodexAuth? = initialAuth
 
@@ -915,40 +929,6 @@ class AuthManager private constructor(
             else -> false
         }
     }
-
-    companion object {
-        /**
-         * Create a new manager loading the initial auth using the provided
-         * preferred auth method. Errors loading auth are swallowed; `auth()` will
-         * simply return `None` in that case so callers can treat it as an
-         * unauthenticated state.
-         */
-        operator fun invoke(
-            codexHome: Path,
-            enableCodexApiKeyEnv: Boolean,
-            authCredentialsStoreMode: AuthCredentialsStoreMode
-        ): AuthManager {
-            val auth = loadAuth(
-                codexHome,
-                enableCodexApiKeyEnv,
-                authCredentialsStoreMode
-            ).getOrNull()
-
-            return AuthManager(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode, auth)
-        }
-
-        /**
-         * Create an AuthManager with a specific CodexAuth, for testing only.
-         */
-        fun fromAuthForTesting(auth: CodexAuth): AuthManager {
-            return AuthManager(
-                codexHome = Path(""),
-                enableCodexApiKeyEnv = false,
-                authCredentialsStoreMode = AuthCredentialsStoreMode.File,
-                initialAuth = auth
-            )
-        }
-    }
 }
 
 // ============================================================================
@@ -974,4 +954,3 @@ data class Config(
     val forcedLoginMethod: ForcedLoginMethod?,
     val forcedChatgptWorkspaceId: String?
 )
-
