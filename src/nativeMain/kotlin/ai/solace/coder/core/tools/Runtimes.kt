@@ -3,7 +3,7 @@ package ai.solace.coder.core.tools
 
 import ai.solace.coder.core.exec.ExecExpiration
 import ai.solace.coder.exec.sandbox.CommandSpec
-import ai.solace.coder.core.tools.sandboxing.ToolError
+// ToolError is in the same package (ai.solace.coder.core.tools)
 
 // Module: runtimes
 // Concrete ToolRuntime implementations for specific tools. Each runtime stays

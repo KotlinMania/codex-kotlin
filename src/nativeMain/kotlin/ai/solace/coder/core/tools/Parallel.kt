@@ -105,7 +105,9 @@ class ToolCallRuntime(
                             val secs = started.elapsedNow().inWholeMilliseconds / 1000.0f
                             result = Result.success(abortedResponse(call, secs.coerceAtLeast(0.1f)))
                         }
-                        job.join()
+                        job.onJoin {
+                            // Job completed normally
+                        }
                     }
                 } else {
                     job.join()

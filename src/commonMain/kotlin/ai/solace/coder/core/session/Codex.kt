@@ -92,6 +92,9 @@ import ai.solace.coder.protocol.InitialHistory
 import ai.solace.coder.protocol.SessionSource
 import ai.solace.coder.protocol.UserInput as ProtocolUserInput
 import ai.solace.coder.protocol.ContentItem
+import ai.solace.coder.protocol.ConversationId
+import okio.FileSystem
+import okio.buffer
 import ai.solace.coder.protocol.ResponseInputItem
 import ai.solace.coder.protocol.ResponseItem
 import ai.solace.coder.protocol.WarningEvent
@@ -633,6 +636,14 @@ class Session private constructor(
 
     /**
      * Assess a sandbox command for safety.
+     *
+     * Ported from Rust codex-rs/core/src/codex.rs assess_sandbox_command()
+     * This delegates to sandboxing::assessment::assess_command() which:
+     * - Creates a prompt for model-based risk assessment
+     * - Streams a response from a new ModelClient
+     * - Parses the JSON response to get SandboxCommandAssessment
+     *
+     * Returns null if the experimental feature is disabled or command is empty.
      */
     suspend fun assessSandboxCommand(
         turnContext: TurnContext,
@@ -640,7 +651,25 @@ class Session private constructor(
         command: List<String>,
         failureMessage: String?
     ): SandboxCommandAssessment? {
-        // TODO: Implement command assessment
+        val config = turnContext.client?.config() ?: return null
+
+        // Early return if experimental feature is disabled or command is empty
+        // Matches Rust: if !config.experimental_sandbox_command_assessment || command.is_empty()
+        if (!config.features.enabled(Feature.SandboxCommandAssessment) || command.isEmpty()) {
+            return null
+        }
+
+        // Full implementation requires:
+        // 1. Creating a SandboxAssessmentPromptTemplate with command, sandbox policy, cwd, etc.
+        // 2. Rendering the prompt and splitting into system/user sections
+        // 3. Creating a new ModelClient with SANDBOX_ASSESSMENT_REASONING_EFFORT
+        // 4. Streaming the response with a timeout
+        // 5. Parsing the JSON response to SandboxCommandAssessment
+        //
+        // This is gated behind an experimental feature flag and requires
+        // the sandboxing::assessment module to be ported.
+        // See: codex-rs/core/src/sandboxing/assessment.rs assess_command()
+
         return null
     }
 
@@ -877,35 +906,34 @@ class Session private constructor(
 
     /**
      * Recompute token usage from history.
+     *
+     * Ported from Rust codex-rs/core/src/codex.rs recompute_token_usage()
      */
     suspend fun recomputeTokenUsage(turnContext: TurnContext) {
-        // TODO: Implement token estimation
-        // val estimatedTotalTokens = cloneHistory().estimateTokenCount(turnContext) ?: return
-        val estimatedTotalTokens = 0L
+        val estimatedTotalTokens = cloneHistory().estimateTokenCount(turnContext) ?: return
 
         stateMutex.withLock {
-            val existingInfo = state.tokenInfo()
-            val newLastUsage = TokenUsage(
-                inputTokens = 0,
-                cachedInputTokens = 0,
-                outputTokens = 0,
-                reasoningOutputTokens = 0,
-                totalTokens = maxOf(estimatedTotalTokens, 0)
+            var info = state.tokenInfo() ?: TokenUsageInfo(
+                totalTokenUsage = TokenUsage(),
+                lastTokenUsage = TokenUsage(),
+                modelContextWindow = null
             )
 
-            val updatedInfo = if (existingInfo != null) {
-                existingInfo.copy(
-                    lastTokenUsage = newLastUsage,
-                    modelContextWindow = existingInfo.modelContextWindow ?: turnContext.modelContextWindow
+            info = info.copy(
+                lastTokenUsage = TokenUsage(
+                    inputTokens = 0,
+                    cachedInputTokens = 0,
+                    outputTokens = 0,
+                    reasoningOutputTokens = 0,
+                    totalTokens = maxOf(estimatedTotalTokens, 0L)
                 )
-            } else {
-                TokenUsageInfo(
-                    totalTokenUsage = TokenUsage(),
-                    lastTokenUsage = newLastUsage,
-                    modelContextWindow = turnContext.modelContextWindow
-                )
+            )
+
+            if (info.modelContextWindow == null) {
+                info = info.copy(modelContextWindow = turnContext.modelContextWindow)
             }
-            state.setTokenInfo(updatedInfo)
+
+            state.setTokenInfo(info)
         }
         sendTokenCountEvent(turnContext)
     }
@@ -1879,10 +1907,74 @@ private object Handlers {
         }
     }
 
+    /**
+     * Append an entry to the persistent cross-session message history.
+     *
+     * Ported from Rust codex-rs/core/src/codex.rs add_to_history()
+     * This spawns a background task to append to ~/.codex/history.jsonl
+     */
     suspend fun addToHistory(sess: Session, config: Config, text: String) {
-        // TODO: Implement message history append
+        val conversationId = sess.conversationId
+        kotlinx.coroutines.GlobalScope.launch {
+            try {
+                appendHistoryEntry(text, conversationId, config)
+            } catch (e: Exception) {
+                println("WARN: failed to append to message history: ${e.message}")
+            }
+        }
     }
 
+    /**
+     * Append a text entry to the history file.
+     *
+     * Ported from Rust codex-rs/core/src/message_history.rs append_entry()
+     */
+    private fun appendHistoryEntry(text: String, conversationId: ConversationId, config: Config) {
+        // TODO: Check config.history.persistence when History config is added
+        // Currently defaulting to save-all behavior
+
+        val historyPath = config.codexHome / "history.jsonl"
+
+        // Ensure parent directory exists
+        val parent = historyPath.parent
+        if (parent != null) {
+            try {
+                FileSystem.SYSTEM.createDirectories(parent)
+            } catch (_: Exception) {
+                // Directory may already exist
+            }
+        }
+
+        // Compute timestamp (seconds since Unix epoch)
+        val ts = kotlinx.datetime.Clock.System.now().epochSeconds
+
+        // Create the history entry
+        val entry = HistoryEntry(
+            conversationId = conversationId.toString(),
+            ts = ts,
+            text = text
+        )
+
+        // Serialize and append to file
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val line = json.encodeToString(HistoryEntry.serializer(), entry) + "\n"
+
+        // Use appendingSink to append to the file
+        val sink = FileSystem.SYSTEM.appendingSink(historyPath).buffer()
+        try {
+            sink.writeUtf8(line)
+            sink.flush()
+        } finally {
+            sink.close()
+        }
+    }
+
+    /**
+     * Look up a history entry and send the response event.
+     *
+     * Ported from Rust codex-rs/core/src/codex.rs get_history_entry_request()
+     * This spawns a background task to do file I/O and sends the result via event.
+     */
     suspend fun getHistoryEntryRequest(
         sess: Session,
         config: Config,
@@ -1890,16 +1982,61 @@ private object Handlers {
         offset: Int,
         logId: Long
     ) {
-        // TODO: Implement history entry lookup
-        val event = Event(
-            id = subId,
-            msg = EventMsg.GetHistoryEntryResponse(GetHistoryEntryResponseEvent(
-                offset = offset.toLong(),
-                logId = logId,
-                entry = null
-            ))
-        )
-        sess.sendEventRaw(event)
+        kotlinx.coroutines.GlobalScope.launch {
+            val entryOpt = try {
+                lookupHistoryEntry(logId, offset, config)
+            } catch (e: Exception) {
+                println("WARN: failed to lookup history entry: ${e.message}")
+                null
+            }
+
+            val event = Event(
+                id = subId,
+                msg = EventMsg.GetHistoryEntryResponse(GetHistoryEntryResponseEvent(
+                    offset = offset.toLong(),
+                    logId = logId,
+                    entry = entryOpt
+                ))
+            )
+            sess.sendEventRaw(event)
+        }
+    }
+
+    /**
+     * Look up a history entry by offset in the history file.
+     *
+     * Ported from Rust codex-rs/core/src/message_history.rs lookup()
+     * Note: Unix-specific inode checking is not implemented in multiplatform code.
+     */
+    private fun lookupHistoryEntry(logId: Long, offset: Int, config: Config): HistoryEntry? {
+        val historyPath = config.codexHome / "history.jsonl"
+
+        // Check if file exists
+        if (!FileSystem.SYSTEM.exists(historyPath)) {
+            return null
+        }
+
+        // Read file and find entry at offset
+        val source = FileSystem.SYSTEM.source(historyPath).buffer()
+        try {
+            var lineIndex = 0
+            while (true) {
+                val line = source.readUtf8Line() ?: break
+                if (lineIndex == offset) {
+                    return try {
+                        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                        json.decodeFromString(HistoryEntry.serializer(), line)
+                    } catch (e: Exception) {
+                        println("WARN: failed to parse history entry: ${e.message}")
+                        null
+                    }
+                }
+                lineIndex++
+            }
+            return null
+        } finally {
+            source.close()
+        }
     }
 
     suspend fun listMcpTools(sess: Session, config: Config, subId: String) {
@@ -2128,8 +2265,31 @@ private suspend fun processItems(
 
 /**
  * Run a single turn of the conversation.
- * Ported from Rust codex-rs/core/src/codex.rs run_turn
+ *
+ * Ported from Rust codex-rs/core/src/codex.rs try_run_turn()
+ *
+ * Full implementation requires:
+ * 1. ToolRouter for dispatching tool calls
+ * 2. ToolCallRuntime for handling tool execution
+ * 3. Proper stream event processing loop
+ *
+ * Implementation steps (from Rust try_run_turn lines 2165-2400):
+ * 1. Persist turn context to rollout
+ * 2. Start streaming from model client
+ * 3. Create ToolCallRuntime with router, session, turn context, diff tracker
+ * 4. Loop through stream events:
+ *    - ResponseEvent.Created: No-op
+ *    - ResponseEvent.OutputItemDone: Dispatch tool calls, handle non-tool items
+ *    - ResponseEvent.OutputItemAdded: Emit turn item started events
+ *    - ResponseEvent.RateLimits: Update rate limit state
+ *    - ResponseEvent.Completed: Finalize turn, collect results, send diff events
+ *    - ResponseEvent.OutputTextDelta: Emit text delta for streaming UI
+ *    - ResponseEvent.ReasoningDelta: Emit reasoning delta for streaming UI
+ * 5. Return processed response items with their tool call responses
+ *
+ * See: codex-rs/core/src/codex.rs try_run_turn()
  */
+@Suppress("UNUSED_PARAMETER")
 private suspend fun runTurn(
     sess: Session,
     turnContext: TurnContext,
@@ -2137,8 +2297,8 @@ private suspend fun runTurn(
     input: List<ResponseItem>,
     cancellationToken: CancellationToken
 ): Result<List<ProcessedResponseItem>> {
-    // TODO: Full implementation - for now return empty success
-    // This needs to call the model API and process tool calls
+    // Stub implementation - returns empty success
+    // Full implementation requires ToolRouter and ToolCallRuntime infrastructure
     return Result.success(emptyList())
 }
 
@@ -2313,6 +2473,10 @@ class RegularTask : SessionTask {
 
 /**
  * Compact task for compacting conversation history.
+ *
+ * Ported from Rust codex-rs/core/src/tasks/compact.rs
+ * Full implementation requires compact module with run_compact_task
+ * and compact_remote module with run_remote_compact_task.
  */
 class CompactTask : SessionTask {
     override fun kind(): TaskKind = TaskKind.Compact
@@ -2323,13 +2487,19 @@ class CompactTask : SessionTask {
         input: List<UserInput>,
         cancellationToken: CancellationToken
     ): String? {
-        // TODO: Implement compaction
+        // Full implementation would check shouldUseRemoteCompactTask
+        // and call either runRemoteCompactTask or runCompactTask
+        // See: codex-rs/core/src/tasks/compact.rs
+        // See: codex-rs/core/src/compact.rs
+        // See: codex-rs/core/src/compact_remote.rs
         return null
     }
 }
 
 /**
  * Undo task for undoing the last action.
+ *
+ * Ported from Rust codex-rs/core/src/tasks/undo.rs
  */
 class UndoTask : SessionTask {
     override fun kind(): TaskKind = TaskKind.Regular
@@ -2340,30 +2510,120 @@ class UndoTask : SessionTask {
         input: List<UserInput>,
         cancellationToken: CancellationToken
     ): String? {
-        // TODO: Implement undo
+        val sess = sessionContext.getSession()
+
+        // Send UndoStarted event
+        sess.sendEvent(turnContext, EventMsg.UndoStarted(UndoStartedEvent(
+            message = "Undo in progress..."
+        )))
+
+        // Check for cancellation
+        if (cancellationToken.isCancelled()) {
+            sess.sendEvent(turnContext, EventMsg.UndoCompleted(UndoCompletedEvent(
+                success = false,
+                message = "Undo cancelled."
+            )))
+            return null
+        }
+
+        // Get history and find the last GhostSnapshot
+        val history = sess.cloneHistory()
+        val items = history.getHistory().toMutableList()
+
+        val ghostEntry = items.asReversed().mapIndexedNotNull { idx, item ->
+            if (item is ResponseItem.GhostSnapshot) {
+                Pair(items.size - 1 - idx, item.ghostCommit)
+            } else null
+        }.firstOrNull()
+
+        if (ghostEntry == null) {
+            sess.sendEvent(turnContext, EventMsg.UndoCompleted(UndoCompletedEvent(
+                success = false,
+                message = "No ghost snapshot available to undo."
+            )))
+            return null
+        }
+
+        val (idx, ghostCommit) = ghostEntry
+        val commitId = ghostCommit.id
+
+        // Restore the ghost commit
+        val gitOps = ai.solace.coder.utils.git.ShellGitOperations()
+        val restoreResult = try {
+            gitOps.restoreGhostCommit(turnContext.cwd, ghostCommit)
+        } catch (e: Exception) {
+            Result.failure<Unit>(e)
+        }
+
+        val completed = if (restoreResult.isSuccess) {
+            items.removeAt(idx)
+            sess.replaceHistory(items)
+            val shortId = commitId.take(7)
+            println("INFO: Undo restored ghost snapshot $commitId")
+            UndoCompletedEvent(
+                success = true,
+                message = "Undo restored snapshot $shortId."
+            )
+        } else {
+            val error = restoreResult.exceptionOrNull()?.message ?: "Unknown error"
+            println("WARN: Failed to restore snapshot $commitId: $error")
+            UndoCompletedEvent(
+                success = false,
+                message = "Failed to restore snapshot $commitId: $error"
+            )
+        }
+
+        sess.sendEvent(turnContext, EventMsg.UndoCompleted(completed))
         return null
     }
 }
 
 /**
  * User shell command task.
+ *
+ * Ported from Rust codex-rs/core/src/tasks/user_shell.rs
+ *
+ * Full implementation steps:
+ * 1. Send TaskStarted event with model context window
+ * 2. Derive exec args from user's shell (for pipes, &&, redirects)
+ * 3. Send ExecCommandBegin event
+ * 4. Execute command via execute_exec_env with stdout streaming
+ * 5. Handle cancellation, success, and error cases
+ * 6. Send ExecCommandEnd event with results
+ * 7. Record conversation items
+ *
+ * See: codex-rs/core/src/tasks/user_shell.rs
  */
 class UserShellCommandTask(private val command: String) : SessionTask {
     override fun kind(): TaskKind = TaskKind.Regular
 
+    @Suppress("UNUSED_PARAMETER")
     override suspend fun run(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
         cancellationToken: CancellationToken
     ): String? {
-        // TODO: Implement user shell command execution
+        // Full implementation requires exec module and shell integration
+        // See: codex-rs/core/src/tasks/user_shell.rs
         return null
     }
 }
 
 /**
  * Ghost snapshot task for creating background snapshots.
+ *
+ * Ported from Rust codex-rs/core/src/tasks/ghost_snapshot.rs
+ *
+ * Implementation steps:
+ * 1. Spawn a task that handles cancellation
+ * 2. Capture ghost snapshot report to check for large untracked directories
+ * 3. Send warning event if large untracked directories found
+ * 4. Create ghost commit via create_ghost_commit
+ * 5. Record GhostSnapshot to conversation items
+ * 6. Mark readiness gate as ready
+ *
+ * See: codex-rs/core/src/tasks/ghost_snapshot.rs
  */
 class GhostSnapshotTask(
     private val token: ReadinessToken,
@@ -2371,13 +2631,49 @@ class GhostSnapshotTask(
 ) : SessionTask {
     override fun kind(): TaskKind = TaskKind.Regular
 
+    @Suppress("UNUSED_PARAMETER")
     override suspend fun run(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
         cancellationToken: CancellationToken
     ): String? {
-        // TODO: Implement ghost snapshot
+        val sess = sessionContext.getSession()
+
+        // Spawn coroutine to handle snapshot creation
+        kotlinx.coroutines.GlobalScope.launch {
+            try {
+                if (cancellationToken.isCancelled()) {
+                    println("INFO: ghost snapshot task cancelled")
+                    return@launch
+                }
+
+                val repoPath = turnContext.cwd
+                val gitOps = ai.solace.coder.utils.git.ShellGitOperations()
+
+                // Create ghost commit
+                val options = ai.solace.coder.utils.git.CreateGhostCommitOptions(repoPath = repoPath)
+                val commitResult = gitOps.createGhostCommit(options)
+
+                if (commitResult.isSuccess) {
+                    val ghostCommit = commitResult.getOrThrow()
+                    sess.recordConversationItems(
+                        turnContext,
+                        listOf(ResponseItem.GhostSnapshot(ghostCommit = ghostCommit))
+                    )
+                    println("INFO: ghost commit captured: ${ghostCommit.id}")
+                } else {
+                    val error = commitResult.exceptionOrNull()
+                    println("WARN: failed to capture ghost snapshot: ${error?.message}")
+                }
+            } catch (e: Exception) {
+                println("WARN: ghost snapshot task failed: ${e.message}")
+            } finally {
+                // Mark readiness gate as ready
+                flag.setReady()
+            }
+        }
+
         return null
     }
 }

@@ -1,10 +1,14 @@
 // port-lint: source core/src/context_manager/mod.rs
 package ai.solace.coder.core.context
 
+import ai.solace.coder.core.model.ModelFamily
+import ai.solace.coder.core.session.TurnContext
 import ai.solace.coder.protocol.TokenUsage
 import ai.solace.coder.protocol.TokenUsageInfo
 import ai.solace.coder.protocol.FunctionCallOutputPayload
 import ai.solace.coder.protocol.ResponseItem
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Transcript of conversation history with token tracking.
@@ -110,6 +114,44 @@ class ContextManager {
         clone.items.addAll(this.items)
         clone.tokenInfo = this.tokenInfo?.copy()
         return clone
+    }
+
+    /**
+     * Estimate token usage using byte-based heuristics from the truncation helpers.
+     * This is a coarse lower bound, not a tokenizer-accurate count.
+     *
+     * Ported from Rust codex-rs/core/src/context_manager/history.rs estimate_token_count()
+     */
+    fun estimateTokenCount(turnContext: TurnContext): Long? {
+        val modelFamily = turnContext.modelFamily
+        val baseTokens = TruncationPolicy.approxTokenCount(modelFamily.baseInstructions).toLong()
+
+        val json = Json { ignoreUnknownKeys = true }
+        val itemsTokens = items.fold(0L) { acc, item ->
+            acc + when (item) {
+                is ResponseItem.Reasoning -> {
+                    if (item.encryptedContent != null) {
+                        estimateReasoningLength(item.encryptedContent.length).toLong()
+                    } else {
+                        val serialized = try {
+                            json.encodeToString(item)
+                        } catch (e: Exception) { "" }
+                        TruncationPolicy.approxTokenCount(serialized).toLong()
+                    }
+                }
+                is ResponseItem.CompactionSummary -> {
+                    estimateReasoningLength(item.encryptedContent.length).toLong()
+                }
+                else -> {
+                    val serialized = try {
+                        json.encodeToString(item)
+                    } catch (e: Exception) { "" }
+                    TruncationPolicy.approxTokenCount(serialized).toLong()
+                }
+            }
+        }
+
+        return baseTokens + itemsTokens
     }
 
     /**
