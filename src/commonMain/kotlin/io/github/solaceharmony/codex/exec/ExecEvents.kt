@@ -255,10 +255,6 @@ enum class CommandExecutionStatus {
 
     @SerialName("declined")
     DECLINED;
-
-    companion object {
-        val DEFAULT = IN_PROGRESS
-    }
 }
 
 /**
@@ -274,7 +270,7 @@ data class CommandExecutionItem(
     @SerialName("exit_code")
     val exitCode: Int? = null,
 
-    val status: CommandExecutionStatus = CommandExecutionStatus.DEFAULT
+    val status: CommandExecutionStatus = CommandExecutionStatus.IN_PROGRESS
 )
 
 /**
@@ -338,10 +334,6 @@ enum class McpToolCallStatus {
 
     @SerialName("failed")
     FAILED;
-
-    companion object {
-        val DEFAULT = IN_PROGRESS
-    }
 }
 
 /**
@@ -373,7 +365,7 @@ data class McpToolCallItem(
     val arguments: JsonElement = kotlinx.serialization.json.JsonNull,
     val result: McpToolCallItemResult? = null,
     val error: McpToolCallItemError? = null,
-    val status: McpToolCallStatus = McpToolCallStatus.DEFAULT
+    val status: McpToolCallStatus = McpToolCallStatus.IN_PROGRESS
 )
 
 /**
