@@ -12,9 +12,7 @@ Use `codex exec --full-auto` to allow file edits. Use `codex exec --sandbox dang
 
 ### Default output mode
 
-By default, Codex streams its activity to stderr and only writes the final message from the agent to stdout. This makes it easier to pipe `codex exec` into another tool without extra filtering.
-
-To write the output of `codex exec` to a file, in addition to using a shell redirect like `>`, there is also a dedicated flag to specify an output file: `-o`/`--output-last-message`.
+By default, Codex streams its activity to stderr and only writes the final message from the agent to stdout.
 
 ### JSON output mode
 
@@ -81,7 +79,7 @@ codex exec "Extract details of the project" --output-schema ~/schema.json
 {"project_name":"Codex CLI","programming_languages":["Rust","TypeScript","Shell"]}
 ```
 
-Combine `--output-schema` with `-o` to only print the final JSON output. You can also pass a file path to `-o` to save the JSON output to a file.
+Combine `--output-schema` with `--json` when you need machine-readable event output during execution.
 
 ### Git repository requirement
 

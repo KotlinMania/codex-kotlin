@@ -1,7 +1,7 @@
 # System Specification: Model Client
 
 ## Overview
-This document specifies the as-built state of the `ai.solace.coder.core.client.ModelClient.kt` component, which maps to the Rust `codex-rs/core/src/client.rs` implementation.
+This document specifies the as-built state of the `io.github.solaceharmony.codex.core.client.ModelClient.kt` component, which maps to the Rust `codex-rs/core/src/client.rs` implementation.
 
 ## Structural Implementation
 The Kotlin implementation provides 1:1 structural parity with the Rust `ModelClient`, ensuring that the core coordination of streaming turns, authentication refreshes, and telemetry hooks is preserved.

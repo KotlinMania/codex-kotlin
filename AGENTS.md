@@ -1,285 +1,368 @@
-# Rust/codex-rs
+# Agent guide - codex-kotlin
 
-In the codex-rs folder where the rust code lives:
+This file is the quick-reference operating contract for codex-kotlin. The longer
+project story lives in `CLAUDE.md`, `README.md`, and any repo-local notes. Read
+those before editing. This guide captures the workspace-wide porting discipline
+that must not drift: Kotlin stays Kotlin, source comments stay Kotlin-facing,
+and required port inventory is done with `ast_distance` when the repo ships it.
 
-- Crate names are prefixed with `codex-`. For example, the `core` folder's crate is named `codex-core`
-- When using format! and you can inline variables into {}, always do that.
-- Install any commands the repo relies on (for example `just`, `rg`, or `cargo-insta`) if they aren't already available before running instructions here.
-- Never add or modify any code related to `CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR` or `CODEX_SANDBOX_ENV_VAR`.
-  - You operate in a sandbox where `CODEX_SANDBOX_NETWORK_DISABLED=1` will be set whenever you use the `shell` tool. Any existing code that uses `CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR` was authored with this fact in mind. It is often used to early exit out of tests that the author knew you would not be able to run given your sandbox limitations.
-  - Similarly, when you spawn a process using Seatbelt (`/usr/bin/sandbox-exec`), `CODEX_SANDBOX=seatbelt` will be set on the child process. Integration tests that want to run Seatbelt themselves cannot be run under Seatbelt, so checks for `CODEX_SANDBOX=seatbelt` are also often used to early exit out of tests, as appropriate.
-- Always collapse if statements per https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
-- Always inline format! args when possible per https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
-- Use method references over closures when possible per https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure_for_method_calls
-- Do not use unsigned integer even if the number cannot be negative.
-- When writing tests, prefer comparing the equality of entire objects over fields one by one.
-- When making a change that adds or changes an API, ensure that the documentation in the `docs/` folder is up to date if applicable.
+## What this repo is
 
-Run `just fmt` (in `codex-rs` directory) automatically after making Rust code changes; do not ask for approval to run it. Before finalizing a change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Additionally, run the tests:
+codex-kotlin is a Kotlin Multiplatform port of the upstream Rust crate or module
+[`codex`](./README.md). Upstream Rust is the behavioral oracle while the
+repo is still in parity mode. Never edit `tmp/` or any fetched upstream source
+to make the port easier.
 
-1. Run the test for the specific project that was changed. For example, if changes were made in `codex-rs/tui`, run `cargo test -p codex-tui`.
-2. Once those pass, if any changes were made in common, core, or protocol, run the complete test suite with `cargo test --all-features`.
-   When running interactively, ask the user before running `just fix` to finalize. `just fmt` does not require approval. project-specific or individual tests can be run without asking the user, but do ask the user before running the complete test suite.
+No JVM-only dependencies, no `java.*` / `javax.*`, no shortcuts through
+established JVM libraries, and no replacing a Cargo dependency with an unrelated
+Kotlin library when a `*-kotlin` sibling port exists or should exist.
 
-## TUI style conventions
+## Project phase
 
-See `codex-rs/tui/styles.md`.
+Check the repo before choosing a workflow.
 
-## TUI code conventions
+- **If `tools/ast_distance/` exists:** the repo is still in parity/porting
+  mode. Drift measurement is required, not optional. Use the repo's
+  `tools/ast_distance` binary/script to identify missing files, missing
+  functions, provenance/header drift, and cheat-detection failures before
+  choosing work and again at file or phase boundaries. Do not chase similarity
+  scores in the middle of translating a half-read file, and never Rustify
+  Kotlin to appease the tool.
+- **If `tools/ast_distance/` does not exist:** the repo has matured past the
+  structural-port phase and is optimizing for idiomatic Kotlin. Work like a
+  Kotlin maintainer: preserve behavior and public API intent, improve Kotlin
+  shape when appropriate, and use the repo's tests/docs as the gate. Do not
+  reintroduce Rust-shaped code or comments.
 
-- Use concise styling helpers from ratatui’s Stylize trait.
-  - Basic spans: use "text".into()
-  - Styled spans: use "text".red(), "text".green(), "text".magenta(), "text".dim(), etc.
-  - Prefer these over constructing styles with `Span::styled` and `Style` directly.
-  - Example: patch summary file lines
-    - Desired: vec!["  └ ".into(), "M".red(), " ".dim(), "tui/src/app.rs".dim()]
+## Required workflow in parity mode
 
-### TUI Styling (ratatui)
+1. Read `CLAUDE.md`, `README.md`, this file, and any repo-local status files.
+2. Confirm the upstream Rust source is present under the `tmp/` path named by
+   `CLAUDE.md` or `.ast_distance_config.json`. Fetch it using the repo's helper
+   if needed. Never edit it.
+3. If `tools/ast_distance/` exists, run the repo's `ast_distance --deep`
+   workflow before picking work. Use it as the required inventory for unported
+   files/functions and provenance drift.
+4. Pick bottom-up work: dependencies before consumers, leaves before roots.
+5. Read the whole upstream `.rs` file before typing. If the file is too large,
+   split the turn into "read" and "write"; never start from a half-read file.
+6. Keep the mapping one Rust file -> one Kotlin file unless the upstream file is
+   pure `mod.rs` re-export glue covered by the `mod.rs` rules below.
+7. Translate top-to-bottom in upstream order. Preserve declaration order.
+8. Translate comments and docs as content. See "Source comments and KDoc."
+9. Leave hard files visible; do not fill holes with stubs.
+10. After a file lands, run the relevant compile/test gate and, when available,
+    `ast_distance` again.
 
-- Prefer Stylize helpers: use "text".dim(), .bold(), .cyan(), .italic(), .underlined() instead of manual Style where possible.
-- Prefer simple conversions: use "text".into() for spans and vec![…].into() for lines; when inference is ambiguous (e.g., Paragraph::new/Cell::from), use Line::from(spans) or Span::from(text).
-- Computed styles: if the Style is computed at runtime, using `Span::styled` is OK (`Span::from(text).set_style(style)` is also acceptable).
-- Avoid hardcoded white: do not use `.white()`; prefer the default foreground (no color).
-- Chaining: combine helpers by chaining for readability (e.g., url.cyan().underlined()).
-- Single items: prefer "text".into(); use Line::from(text) or Span::from(text) only when the target type isn’t obvious from context, or when using .into() would require extra type annotations.
-- Building lines: use vec![…].into() to construct a Line when the target type is obvious and no extra type annotations are needed; otherwise use Line::from(vec![…]).
-- Avoid churn: don’t refactor between equivalent forms (Span::styled ↔ set_style, Line::from ↔ .into()) without a clear readability or functional gain; follow file‑local conventions and do not introduce type annotations solely to satisfy .into().
-- Compactness: prefer the form that stays on one line after rustfmt; if only one of Line::from(vec![…]) or vec![…].into() avoids wrapping, choose that. If both wrap, pick the one with fewer wrapped lines.
+## Required workflow in mature Kotlin mode
 
-### Text wrapping
+1. Read the repo-local docs and tests first.
+2. Make idiomatic Kotlin changes that preserve behavior and public API intent.
+3. Remove stale Rust-shaped scaffolding when it is no longer part of the repo's
+   Kotlin design.
+4. Keep comments Kotlin-facing. Historical Rust notes belong in docs, not source
+   comments, unless the repo explicitly keeps a provenance ledger.
+5. Run the repo's normal Gradle/test gates.
 
-- Always use textwrap::wrap to wrap plain strings.
-- If you have a ratatui Line and you want to wrap it, use the helpers in tui/src/wrapping.rs, e.g. word_wrap_lines / word_wrap_line.
-- If you need to indent wrapped lines, use the initial_indent / subsequent_indent options from RtOptions if you can, rather than writing custom logic.
-- If you have a list of lines and you need to prefix them all with some prefix (optionally different on the first vs subsequent lines), use the `prefix_lines` helper from line_utils.
+## Source comments and KDoc
 
-## Tests
+Comments are content. They are part of the port, not decoration.
 
-### Snapshot tests
+- Preserve upstream module docs, KDoc-equivalent sections, inline notes, safety
+  notes, panic/error docs, and upstream TODO/FIXME items by translating them.
+- **No Rust in comments:** KDoc and `//` comments must describe the Kotlin API
+  in Kotlin terms. Translate Rust syntax inside comments to Kotlin equivalents:
+  `Vec<T>` -> `List<T>`, `Option<&str>` -> `String?`, `Self::foo()` -> `foo()`,
+  `snake_case` function names -> `lowerCamelCase`, Rust lifetimes disappear,
+  `cfg(test)` / `#[derive(...)]` become prose when relevant.
+- **Do not Rustify Kotlin:** this is a translation direction, not a renaming
+  scheme. Never rename Kotlin files, packages, functions, locals, parameters,
+  or identifiers to `snake_case` to match upstream. Kotlin source stays Kotlin.
+- **No porting narratives in source:** do not add comments explaining Kotlin
+  workarounds, "Rust vs Kotlin" rationale, ast_distance strategy, or translation
+  decisions. Put those in `CLAUDE.md`, `NEXT_ACTIONS.md`, commit messages, or
+  review notes.
+- Source comments should be upstream comments translated into Kotlin-facing API
+  names/signatures, plus required provenance/license headers and required
+  migration ledgers such as the `mod.rs` ledger below.
+- If `ast_distance` zeros a file because Rust syntax leaked into Kotlin source
+  code or comments, treat that as a literal instruction to make the Kotlin
+  source Kotlin-native.
 
-This repo uses snapshot tests (via `insta`), especially in `codex-rs/tui`, to validate rendered output. When UI or text output changes intentionally, update the snapshots as follows:
+## Provenance headers
 
-- Run tests to generate any updated snapshots:
-  - `cargo test -p codex-tui`
-- Check what’s pending:
-  - `cargo insta pending-snapshots -p codex-tui`
-- Review changes by reading the generated `*.snap.new` files directly in the repo, or preview a specific file:
-  - `cargo insta show -p codex-tui path/to/file.snap.new`
-- Only if you intend to accept all new snapshots in this crate, run:
-  - `cargo insta accept -p codex-tui`
+In parity mode, every Kotlin file translated from a Rust source file starts with
+the repo's `port-lint` source header before the package line:
 
-If you don’t have the tool:
-
-- `cargo install cargo-insta`
-
-### Test assertions
-
-- Tests should use pretty_assertions::assert_eq for clearer diffs. Import this at the top of the test module if it isn't already.
-
-### Integration tests (core)
-
-- Prefer the utilities in `core_test_support::responses` when writing end-to-end Codex tests.
-
-- All `mount_sse*` helpers return a `ResponseMock`; hold onto it so you can assert against outbound `/responses` POST bodies.
-- Use `ResponseMock::single_request()` when a test should only issue one POST, or `ResponseMock::requests()` to inspect every captured `ResponsesRequest`.
-- `ResponsesRequest` exposes helpers (`body_json`, `input`, `function_call_output`, `custom_tool_call_output`, `call_output`, `header`, `path`, `query_param`) so assertions can target structured payloads instead of manual JSON digging.
-- Build SSE payloads with the provided `ev_*` constructors and the `sse(...)`.
-- Prefer `wait_for_event` over `wait_for_event_with_timeout`.
-- Prefer `mount_sse_once` over `mount_sse_once_match` or `mount_sse_sequence`
-
-- Typical pattern:
-
-  ```rust
-  let mock = responses::mount_sse_once(&server, responses::sse(vec![
-      responses::ev_response_created("resp-1"),
-      responses::ev_function_call(call_id, "shell", &serde_json::to_string(&args)?),
-      responses::ev_completed("resp-1"),
-  ])).await;
-
-  codex.submit(Op::UserTurn { ... }).await?;
-
-  // Assert request body if needed.
-  let request = mock.single_request();
-  // assert using request.function_call_output(call_id) or request.json_body() or other helpers.
-  ```
-
-## Kotlin Porting Guidelines
-
-### Semantic Parity (The "Dishonest Code" Rule)
-- **Rule:** Port the *intent* and *behavior* of the code, not just the syntax.
-- **Context:** Rust's `Display` trait often implies specific formatting contracts (e.g., ANSI codes, truncation, padding) that are critical for user experience.
-- **Warning:** Do **not** oversimplify `impl Display` to a simple `toString()` that returns a constant or a raw value if the original code performed formatting.
-    - *Bad Example:* Replacing a `Display` impl that handles ANSI reset codes with `fun toString() = "RESET"`.
-    - *Good Example:* `TruncationPolicy.kt` faithfully reproducing the `formattedTruncateText` logic to preserve output structure.
-- **Action:** When porting `Display` or `Debug`, check if the Rust code does more than just return a field. If so, the Kotlin `toString()` (or a helper method) must replicate that logic.
-
-### Research First
-- **Rule:** Do not guess at the behavior of Rust functions or traits.
-- **Action:** Use the browser to look up the official Rust documentation (e.g., `std::process::ChildStdin`, `core::fmt::Formatter`) if you are not 100% sure of the semantics.
-- **Context:** Rust's type system and traits often carry subtle behaviors (buffering, blocking, formatting state) that are not obvious from the function signature alone.
-- **Example:** `core::fmt::Formatter` manages padding, alignment, and flags. A simple string concatenation in Kotlin is often an insufficient port if the original Rust code used these features.
-
----
-
-## AST Distance Tool
-
-A vendored cross-language AST comparison tool for analyzing port progress and identifying priority files.
-
-### Location
-```
-tools/ast_distance/
-├── CMakeLists.txt
-├── README.md
-├── include/
-│   ├── ast_parser.hpp      # Tree-sitter parsing for Rust/Kotlin/C++
-│   ├── codebase.hpp        # Directory scanning, dependency graphs, matching
-│   ├── imports.hpp         # Import/include extraction, package detection
-│   ├── node_types.hpp      # Normalized AST node type mappings
-│   ├── similarity.hpp      # Cosine similarity, combined scoring
-│   └── tree.hpp            # Tree data structure
-└── src/
-    ├── main.cpp            # CLI entry point
-    ├── ast_parser.cpp
-    ├── ast_normalizer.cpp
-    └── similarity.cpp
+```kotlin
+// port-lint: source <path-relative-to-upstream-root>
+package <repo package>
 ```
 
-### Build
+Use the path convention from `CLAUDE.md` or `.ast_distance_config.json`. Do not
+invent absolute upstream paths. If a repo requires an attribution line after the
+`port-lint` header, preserve it exactly.
+
+For files with no single Rust counterpart, use `// port-lint: ignore` only when
+repo docs allow it, and add the shortest possible upstream-derived or ledger
+note. Do not use ignored files as a place for translation rationale.
+
+## Naming
+
+The translation direction is always Rust -> Kotlin.
+
+| Thing | Kotlin form |
+|---|---|
+| Files and types | `PascalCase` |
+| Functions, properties, parameters, locals | `lowerCamelCase` |
+| Interfaces | `PascalCase`, no `I` prefix |
+| `const val`, enum entries, true constants | `SCREAMING_SNAKE_CASE` allowed |
+| Type parameters | `T`, `K`, `V`, or meaningful `PascalCase` when clearer |
+| Packages | lowercase, no underscores, no camelCase |
+
+Examples:
+
+| Rust source | Kotlin port |
+|---|---|
+| `fn first_key_value` | `fun firstKeyValue` |
+| `let len_underflow` | `val lenUnderflow` |
+| `const FOO_BAR: usize = 5` | `const val FOO_BAR: Int = 5` |
+| `src/foo_bar.rs` | `FooBar.kt` |
+
+## Rust -> Kotlin mapping defaults
+
+Repo-local rules in `CLAUDE.md` may narrow these, but do not invent new shapes
+without documenting the rule in project docs.
+
+| Rust | Kotlin |
+|---|---|
+| `Option<T>` | `T?` |
+| `Result<T, E>` | `Result<T>` when `E` is not modeled; sealed result or exception when error data/behavior matters |
+| `Vec<T>` | `MutableList<T>` / `List<T>` |
+| `HashMap<K, V>` | `MutableMap<K, V>` / `Map<K, V>` |
+| `HashSet<T>` | `MutableSet<T>` / `Set<T>` |
+| `BTreeMap<K, V>` | `BTreeMap`/sorted map from `btree-kotlin`; do not use JVM-only `TreeMap` in common code |
+| `&T`, `&mut T` | regular Kotlin reference; mutate through the owning object |
+| `*const T`, `*mut T`, `NonNull<T>` | regular Kotlin reference unless native interop is explicitly required |
+| `Box<T>` | bare `T` |
+| `Rc<T>`, `Arc<T>` | bare `T` reference unless shared concurrency semantics must be modeled |
+| `Cell<T>`, `RefCell<T>` | `var`; use multiplatform atomics only for real shared mutation |
+| `PhantomData<T>` | drop field; encode variance with `in` / `out` when needed |
+| `MaybeUninit<T>` | nullable slot/array plus local invariant, or a typed initialization helper |
+| `ManuallyDrop<T>` | omit unless drop side effects are observable |
+| `mem::replace`, `take_mut` | read old value, compute new value, assign back; return side result explicitly |
+| `ptr::read`, `ptr::write` | direct field/slot access |
+| `ptr::drop_in_place` | omit unless observable drop behavior is being modeled |
+| `mem::transmute` | verified cast or explicit conversion; no shim that hides the invariant |
+| `dyn Trait` | interface reference |
+| trait | `interface` |
+| trait default method with `where` | extension function carrying its own bound |
+| class/impl generic bound such as `K: Ord` | `Comparable` bound or `Comparator<in K>` field/dispatch helper |
+| struct with fields | `data class` when value semantics fit; otherwise `class` |
+| enum with payload variants | `sealed class` / `sealed interface` |
+| `pub fn foo()` | `fun foo()`; public is default |
+| `pub(crate)` / `pub(super)` | `internal` |
+| private `fn foo()` | `private fun foo()` |
+| `let` / `let mut` | `val` / `var` |
+| `match` | `when` |
+| `if let Some(v) = x` | nullable handling such as `x?.let { v -> ... }` |
+| `?` operator | explicit early return, `Result` transform, or throw according to the mapped error shape |
+| `unsafe { ... }` | regular Kotlin code; keep only upstream comments translated to Kotlin-facing terms |
+| `proc-macro` derive | explicit Kotlin codegen/runtime API; never silently elide behavior |
+| `pub type X = Y` | `typealias X = Y` only when upstream really defines a type alias and it is not a re-export bridge |
+| `impl Iterator for X` | class implementing `Iterator<T>` or `MutableIterator<T>` as appropriate |
+
+## Required `mod.rs` / re-export workflow
+
+Pure upstream `mod.rs` re-export glue must not become a Kotlin central-alias API.
+This rule is required.
+
+When an upstream Rust `mod.rs` only re-exports something that actually lives
+elsewhere, such as `pub use <crate-path>::<Name>;`, often under a different
+name:
+
+1. Identify the original symbol's fully qualified upstream path and the exported
+   name.
+2. Search dependent Kotlin callers across the kotlinmania monorepo. A caller is
+   a Kotlin file in another `*-kotlin` repo with a `tmp/` source tree and a
+   Cargo.toml depending on this crate's Rust counterpart. Search for direct
+   imports, wildcard imports plus body usage, and fully qualified references.
+3. Rewrite callers to reference the original/defining Kotlin symbol directly.
+   If the call site must keep the old spelling, use Kotlin import aliasing:
+   `import <defining.package.Symbol> as <Name>`.
+4. Never bridge a pure re-export with a Kotlin `typealias` at a root or
+   re-export package.
+5. Keep `Mod.kt` or the equivalent package file as a tracking ledger when the
+   upstream file carries module docs or re-export history. It should contain the
+   translated upstream module-level comments and literal quoted `pub use` lines,
+   for example `// pub use crate::lib::result::Result;`.
+6. Each time a caller is migrated off the re-export, append that caller's
+   absolute path under a `// Callers migrated:` ledger. Append; do not delete
+   migration history.
+7. Once all callers are migrated, remove any temporary bridge alias. The ledger
+   file remains as the record of the migration.
+
+If a `mod.rs` contains real implementation rather than pure re-export glue,
+translate the implementation into the appropriate Kotlin file/package shape
+named by repo docs.
+
+## Trait defaults with `where` clauses
+
+Rust traits often put stricter bounds on a default method than on the trait:
+
+```rust
+pub trait RangeBounds<T> {
+    fn start_bound(&self) -> Bound<&T>;
+    fn end_bound(&self) -> Bound<&T>;
+
+    fn is_empty(&self) -> bool
+    where
+        T: PartialOrd,
+    { /* default body */ }
+}
+```
+
+Do not tighten the whole Kotlin interface to `T : Comparable<T>`. Do not make
+the method abstract just to satisfy Kotlin. Do not use runtime comparable casts
+that turn Rust compile-time bounds into Kotlin runtime crashes.
+
+Translate the default to an extension function whose own type parameter carries
+the bound:
+
+```kotlin
+interface RangeBounds<T> {
+    fun startBound(): Bound<T>
+    fun endBound(): Bound<T>
+}
+
+fun <T : Comparable<T>> RangeBounds<T>.isEmpty(): Boolean {
+    // translated default body
+}
+```
+
+Concrete implementations that specialize the default provide a same-named
+member function without `override`; Kotlin member resolution mirrors Rust's
+per-impl specialization of a default method.
+
+When both comparator-aware and natural-order paths are needed, put the heavy
+logic in an unbounded overload that takes a comparator explicitly, then add a
+bounded one-line natural-order overload:
+
+```kotlin
+internal fun <K, Q> search(key: Q, compare: (K, Q) -> Int): Hit {
+    // heavy lifting
+}
+
+internal fun <K, Q : Comparable<Q>> search(key: Q): Hit where K : Comparable<Q> =
+    search(key) { stored, query -> stored.compareTo(query) }
+```
+
+## Other recurring porting patterns
+
+- `Ordering::{Less, Equal, Greater}` maps to Kotlin comparator `Int` convention:
+  negative, zero, positive. Do not introduce an `Ordering` enum unless repo docs
+  require it.
+- Rust `Iterator::next() -> Option<T>` maps to Kotlin `hasNext()` plus `next()`.
+  Cache the next value once; do not advance twice.
+- `ExactSizeIterator` has no Kotlin equivalent. Pass the known size explicitly
+  when an algorithm needs it.
+- `FusedIterator` is implicit: after `hasNext()` becomes false, keep it false.
+- Rust `Peekable<I>` maps to a small private one-element lookahead adapter.
+- Sum enums used only to tag iterator side/source can map to nullable slots plus
+  an explicit discriminator enum; the discriminator is the source of truth.
+- Same-name Rust impl methods that differ only by typestate marker often erase
+  to the same Kotlin/JVM signature. Use typed routers and distinct Kotlin names
+  for erased collisions; do not use `@JvmName`, JVM imports, unchecked casts, or
+  fake typealiases to force the Rust layout.
+- Most Rust `Drop` impls disappear under Kotlin GC. If upstream tests observe
+  drop/clone side effects, model them deterministically with narrow internal
+  hooks and prove the behavior with ported tests. Do not rely on GC timing.
+- Rust iterator `Clone` often has no Kotlin equivalent. Omit cloneability unless
+  behavior requires it; represent `Debug` as `toString()` when useful.
+- Rust trait specialization (`default fn`) has no direct Kotlin equivalent.
+  Prefer explicit dispatch helpers or documented runtime type checks at the
+  narrow call site.
+- Compile-time-incomplete files are acceptable only in early parity phases when
+  they contain no fake stubs and the missing dependencies are tracked. Missing
+  symbols are better than placeholder classes that conflict with the real port.
+
+## Dependencies
+
+Approved common dependencies, when the repo already uses or needs them:
+
+- `kotlinx-coroutines-core`
+- `kotlinx-serialization-core`
+- `kotlinx-serialization-json`
+- `kotlinx-collections-immutable`
+- `kotlinx-datetime`
+- `kotlinx-io`
+- `com.ionspin.kotlin:bignum` only when numeric behavior requires it
+- `io.github.kotlinmania:*-kotlin` sibling ports for Rust transitive deps
+
+Add a dependency only when stdlib plus approved siblings cannot reproduce the
+behavior, and only after confirming it publishes artifacts for every target this
+repo ships. If the Rust crate has no KMP equivalent, port that crate instead of
+leaving a TODO or using a JVM-only shortcut.
+
+## Forbidden
+
+- Rust syntax leaking into Kotlin code or comments.
+- Rustifying Kotlin names, files, packages, or API shape to improve similarity.
+- `@Suppress(...)` unless a repo-local doc already records a narrow, reviewed
+  invariant that Kotlin cannot encode. New suppressions require discussion.
+- `TODO()`, `error("not implemented")`, empty shells, fake implementations, or
+  placeholder bodies.
+- Re-export `typealias` bridges for upstream `mod.rs` glue.
+- `import kotlin.jvm.*`, `java.*`, or `javax.*` from shared/common source.
+- JVM-only annotations such as `@JvmName`, `@JvmStatic`, `@JvmField`, or
+  `@JvmOverloads` in common code.
+- Repo-wide source rewrites with global `sed`/`perl`/`find -exec`. Source edits
+  are task-scoped and reviewed.
+- Bulk-editing source comments. Comment changes are intentional translation
+  work and must be reviewed as such.
+- Subagent-driven `.kt` edits. Translation happens in the main loop so mistakes
+  are visible immediately.
+
+## Tests and gates
+
+Use the repo's documented Gradle tasks. Common gates include:
+
 ```bash
-cd tools/ast_distance
-mkdir -p build && cd build
-cmake .. && make -j8
+./gradlew test
+./gradlew macosArm64Test
+./gradlew linuxX64Test
+./gradlew jsNodeTest
+./gradlew wasmJsNodeTest
 ```
 
-### Commands
-
-**Analyze this project (Rust → Kotlin):**
-```bash
-./ast_distance --deep ../../../codex-rs rust ../../../src kotlin
-```
-
-**Check what's missing:**
-```bash
-./ast_distance --missing <src_dir> <src_lang> <tgt_dir> <tgt_lang>
-```
-
-**Scan a codebase (dependency graph):**
-```bash
-./ast_distance --deps <directory> <rust|kotlin|cpp>
-```
-
-**Compare two files directly:**
-```bash
-./ast_distance file1.rs file2.kt
-```
-
-**Dump AST structure:**
-```bash
-./ast_distance --dump <file> <rust|kotlin|cpp>
-```
-
-### Output Interpretation
-
-The `--deep` command outputs:
-- **Matched files** with similarity scores (0.0–1.0)
-- **Priority score** = dependents × (1 - similarity) — high priority = many dependents + low similarity
-- **Incomplete ports** (similarity < 60%)
-- **Missing files** not yet ported
-
-Similarity thresholds:
-- `> 0.85` — Excellent port, likely complete
-- `0.60–0.85` — Good port, may need refinement
-- `0.40–0.60` — Partial port, significant gaps
-- `< 0.40` — Stub or very different implementation
-
-### Extending the Tool
-
-**Add a new language:**
-1. Add tree-sitter grammar to `CMakeLists.txt` (FetchContent)
-2. Add `extern "C" { const TSLanguage* tree_sitter_<lang>(); }` to `ast_parser.hpp` and `imports.hpp`
-3. Add `<LANG>` to `enum class Language` in `ast_parser.hpp`
-4. Add `<lang>_node_to_type()` mapping in `node_types.hpp`
-5. Add import/package extraction in `imports.hpp`
-6. Update file extension checks in `codebase.hpp`
-
-**Improve matching:**
-- Edit `name_match_score()` in `codebase.hpp` for better fuzzy matching
-- Edit `PackageDecl::similarity_to()` in `imports.hpp` for package-aware matching
-
-### Using for Porting Decisions
-
-Run periodically to track progress:
-```bash
-# Save baseline
-./ast_distance --deep ... > baseline.txt
-
-# After porting work
-./ast_distance --deep ... > current.txt
-diff baseline.txt current.txt
-```
-
-Focus porting effort on files with:
-1. High dependent count (core infrastructure)
-2. Low similarity score (incomplete)
-3. Listed in "Top priority to complete" output
-
----
-
-## Swarm Task Management
-
-The AST distance tool includes a task assignment system for coordinating multiple agents porting files in parallel.
-
-### Initialize Tasks
-
-Generate a task file from missing/incomplete ports:
-```bash
-./ast_distance --init-tasks <src_dir> <src_lang> <tgt_dir> <tgt_lang> <task_file> [agents_md_path]
-```
-
-Example:
-```bash
-./ast_distance --init-tasks ../../../codex-rs rust ../../../src kotlin tasks.json ../../../AGENTS.md
-```
-
-### View Task Status
+In parity repos with `tools/ast_distance/`, also run the repo's deep scan, for
+example:
 
 ```bash
-./ast_distance --tasks tasks.json
+./tools/ast_distance/ast_distance --deep <upstream-root> rust <kotlin-source-root> kotlin
 ```
 
-### Assign a Task (for Swarm Agents)
+The exact paths come from `.ast_distance_config.json`, `CLAUDE.md`, or existing
+repo scripts. Use this scan as a progress dashboard for missing files/functions,
+header drift, and cheat detection. A file is not done merely because a
+similarity score looks good; it is done when the behavior is ported and the
+relevant tests pass.
 
-Each agent requests the next highest-priority unassigned task:
-```bash
-./ast_distance --assign tasks.json agent-001
-```
+Port tests too. Rust `#[test]` becomes Kotlin `@Test`. Test utilities needed by
+ported upstream tests belong in `src/commonTest`, not `commonMain`, unless the
+upstream behavior is truly public runtime behavior.
 
-This command:
-- Assigns the highest-priority pending task (by dependent count)
-- Prevents duplicate assignments (one task per agent)
-- Outputs complete porting instructions including AGENTS.md guidelines
-- Updates the task file with assignment timestamp
+## Scope and commits
 
-### Complete a Task
+- More than about five source files in one change is usually too much; stop and
+  ask unless the user explicitly requested a mechanical sweep.
+- Commit at file or coherent phase boundaries.
+- Commit messages are clear and human: no AI branding, no "Generated with"
+  footers, no robot attribution, no `Co-Authored-By` lines unless the human asks.
 
-After successfully porting a file:
-```bash
-./ast_distance --complete tasks.json core.error
-```
+## When unsure
 
-### Release a Task
-
-If an agent cannot complete a task, release it back to pending:
-```bash
-./ast_distance --release tasks.json core.error
-```
-
-### Task Workflow for Swarm Agents
-
-1. **Get assignment**: `ast_distance --assign tasks.json <agent-id>`
-2. **Read source file** at the path shown
-3. **Create target file** with port-lint header
-4. **Transliterate** following the guidelines above
-5. **Verify**: `ast_distance <source.rs> rust <target.kt> kotlin` (aim for >= 0.85 similarity)
-6. **Complete**: `ast_distance --complete tasks.json <source_qualified>`
-7. **Repeat** from step 1
+Read upstream again. Read the repo-local `CLAUDE.md` again. If a construct is
+not covered here, add the rule to project docs with the translation you chose.
+The goal is not to make Kotlin look like Rust; the goal is to preserve behavior
+while moving steadily toward Kotlin that Kotlin developers can maintain.

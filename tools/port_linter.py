@@ -40,7 +40,7 @@ from enum import Enum, auto
 # Example:
 #   // port-lint: source core/src/codex.rs
 #   // port-lint: ignore-duplicate - This is a variant type
-#   package ai.solace.coder.core.session
+#   package io.github.solaceharmony.codex.core.session
 #   ...
 #   class Codex(...)
 

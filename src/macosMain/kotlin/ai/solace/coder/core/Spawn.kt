@@ -1,5 +1,6 @@
-package ai.solace.coder.core
+package io.github.solaceharmony.codex.core
 
+import io.github.solaceharmony.codex.exec.process.SandboxType
 import kotlinx.cinterop.*
 import platform.posix.*
 import platform.Foundation.*
@@ -150,4 +151,12 @@ actual fun platformGetMacosDirParams(): List<Pair<String, String>> {
         "HOME" to (getenv("HOME")?.toKString() ?: "/Users/unknown"),
         "DARWIN_USER_CACHE_DIR" to (getenv("DARWIN_USER_CACHE_DIR")?.toKString() ?: "/tmp")
     )
+}
+
+/**
+ * Set file permissions to 0600 (owner read/write only).
+ */
+@OptIn(ExperimentalForeignApi::class)
+actual fun platformSetOwnerReadWritePermissions(path: String): Int {
+    return chmod(path, (S_IRUSR or S_IWUSR).convert())
 }

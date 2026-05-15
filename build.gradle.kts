@@ -1,160 +1,37 @@
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.ClasspathNormalizer
+import org.gradle.api.tasks.testing.AbstractTestTask
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootEnvSpec
+
 plugins {
-    kotlin("multiplatform") version "2.3.20"
-    kotlin("plugin.serialization") version "2.3.20"
+    kotlin("multiplatform") version "2.3.21"
+    kotlin("plugin.serialization") version "2.3.21"
+    id("com.android.kotlin.multiplatform.library") version "9.2.1"
+    id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
-// =============================================================================
-// AST Distance Tool Build Tasks
-// =============================================================================
+group = "io.github.kotlinmania"
+version = "0.1.0"
 
-val astDistanceDir = project.file("tools/ast_distance")
-val astDistanceBuildDir = astDistanceDir.resolve("build")
-val astDistanceBinary = astDistanceBuildDir.resolve("ast_distance")
-val astDistanceOutput = project.file("tools/ast_distance")
+val androidSdkDir: String? =
+    providers.environmentVariable("ANDROID_SDK_ROOT").orNull
+        ?: providers.environmentVariable("ANDROID_HOME").orNull
 
-tasks.register<Exec>("configureAstTool") {
-    description = "Configure AST distance tool with CMake"
-    group = "build"
-
-    workingDir = astDistanceBuildDir
-    commandLine("cmake", "..")
-
-    doFirst {
-        astDistanceBuildDir.mkdirs()
+if (androidSdkDir != null && file(androidSdkDir).exists()) {
+    val localProperties = rootProject.file("local.properties")
+    if (!localProperties.exists()) {
+        val sdkDirPropertyValue = file(androidSdkDir).absolutePath.replace("\\", "/")
+        localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
     }
-
-    onlyIf { !astDistanceBuildDir.resolve("Makefile").exists() }
-}
-
-tasks.register<Exec>("buildAstTool") {
-    description = "Build AST distance tool"
-    group = "build"
-
-    dependsOn("configureAstTool")
-    workingDir = astDistanceBuildDir
-    commandLine("cmake", "--build", ".", "-j8")
-
-    doLast {
-        // Copy binary to tools folder for easy access
-        if (astDistanceBinary.exists()) {
-            astDistanceBinary.copyTo(astDistanceOutput.resolve("ast_distance"), overwrite = true)
-            println("AST distance tool built: ${astDistanceOutput.resolve("ast_distance")}")
-        }
-    }
-}
-
-// =============================================================================
-// Lint Tasks
-// =============================================================================
-
-val kotlinSrcDir = project.file("src/nativeMain/kotlin")
-
-tasks.register<Exec>("portLint") {
-    description = "Run port-lint checks on Kotlin codebase"
-    group = "verification"
-
-    dependsOn("buildAstTool")
-    workingDir = astDistanceBuildDir
-
-    commandLine(
-        "./ast_distance", "--lint",
-        kotlinSrcDir.absolutePath
-    )
-
-    isIgnoreExitValue = true
-
-    doLast {
-        println("\nPort lint completed. See above for any issues.")
-    }
-}
-
-tasks.register<Exec>("portTodos") {
-    description = "Scan for TODOs in ported Kotlin code"
-    group = "verification"
-
-    dependsOn("buildAstTool")
-    workingDir = astDistanceBuildDir
-
-    commandLine(
-        "./ast_distance", "--todos",
-        kotlinSrcDir.absolutePath
-    )
-
-    isIgnoreExitValue = true
-}
-
-tasks.register<Exec>("portStats") {
-    description = "Show porting statistics"
-    group = "verification"
-
-    dependsOn("buildAstTool")
-    workingDir = astDistanceBuildDir
-
-    commandLine(
-        "./ast_distance", "--stats",
-        kotlinSrcDir.absolutePath
-    )
-
-    isIgnoreExitValue = true
-}
-
-tasks.register<Exec>("portDeep") {
-    description = "Run deep porting analysis (Rust -> Kotlin)"
-    group = "verification"
-
-    dependsOn("buildAstTool")
-    workingDir = astDistanceBuildDir
-
-    val codexRs = project.file("codex-rs")
-
-    commandLine(
-        "./ast_distance", "--deep",
-        codexRs.absolutePath, "rust",
-        kotlinSrcDir.absolutePath, "kotlin"
-    )
-
-    isIgnoreExitValue = true
-}
-
-tasks.register<Exec>("portMissing") {
-    description = "Show files missing from Kotlin port"
-    group = "verification"
-
-    dependsOn("buildAstTool")
-    workingDir = astDistanceBuildDir
-
-    val codexRs = project.file("codex-rs")
-
-    commandLine(
-        "./ast_distance", "--missing",
-        codexRs.absolutePath, "rust",
-        kotlinSrcDir.absolutePath, "kotlin"
-    )
-
-    isIgnoreExitValue = true
-}
-
-tasks.register("lint") {
-    description = "Run all lint checks (Kotlin compilation + port lints)"
-    group = "verification"
-
-    dependsOn("compileKotlinMacosArm64", "portLint")
-
-    doLast {
-        println("\n=== All lint checks completed ===")
-    }
-}
-
-tasks.register("portAnalysis") {
-    description = "Run full porting analysis (stats, TODOs, lint, deep analysis)"
-    group = "verification"
-
-    dependsOn("portStats", "portTodos", "portLint", "portDeep")
-}
-
-repositories {
-    mavenCentral()
-    maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
 }
 
 kotlin {
@@ -162,67 +39,349 @@ kotlin {
 
     sourceSets.all {
         languageSettings.optIn("kotlin.time.ExperimentalTime")
+        languageSettings.optIn("kotlin.concurrent.atomics.ExperimentalAtomicApi")
     }
+
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    val xcf = XCFramework("Codex")
 
     macosArm64 {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
-        }
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
     }
-    macosX64 {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
-        }
+    iosArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    iosSimulatorArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    iosX64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
     }
 
-    // Define Linux target so we can confine certain dependencies/code to Linux only
+    tvosArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    tvosSimulatorArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+
+    watchosArm32 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    watchosArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    watchosDeviceArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+    watchosSimulatorArm64 {
+        binaries.framework { baseName = "Codex"; xcf.add(this) }
+    }
+
     linuxX64()
+    linuxArm64()
+    mingwX64()
+
+    androidNativeArm32()
+    androidNativeArm64()
+    androidNativeX86()
+    androidNativeX64()
+
+    js {
+        browser()
+        nodejs()
+    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
+    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmWasi {
+        nodejs()
+    }
+
+    swiftExport {
+        moduleName = "Codex"
+        flattenPackage = "io.github.solaceharmony.codex"
+    }
+
+    android {
+        namespace = "io.github.solaceharmony.codex"
+        compileSdk = 34
+        minSdk = 24
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }
+    }
 
     sourceSets {
-        val nativeMain by getting {
+        val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.5.4")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.6.0")
 
-                // Ktor HTTP client for native platforms
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-client-curl:2.3.7")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
-                implementation("io.ktor:ktor-client-auth:2.3.7")
-                
+                // Ktor HTTP client core
+                implementation("io.ktor:ktor-client-core:3.4.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
+                implementation("io.ktor:ktor-client-auth:3.4.3")
+
                 // File I/O
-                implementation("com.squareup.okio:okio:3.9.0")
+                implementation("com.squareup.okio:okio:3.9.1")
 
-                // Character encoding support (for legacy codepage conversion)
-                // fleeksoft-io provides JDK-like IO classes for Kotlin Multiplatform
-                implementation("com.fleeksoft.io:io-core:0.0.4")
-                implementation("com.fleeksoft.io:io:0.0.4")
-                implementation("com.fleeksoft.charset:charset:0.0.5")
-                implementation("com.fleeksoft.charset:charset-ext:0.0.5")
+                // Byte buffer primitives
+                implementation("io.github.kotlinmania:bytes-kotlin:0.2.0")
 
-                // TUI libraries (from Maven Central)
-                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.3")
-                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.7")
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.3")
+                // TUI libraries
+                implementation("io.github.kotlinmania:ratatui-kotlin:0.1.9")
+                implementation("io.github.kotlinmania:crossterm-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:anstyle-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:kasuari-kotlin:0.1.2")
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
 
-                // JWT library (from Maven Central)
-                implementation("io.github.kotlinmania:jwt-kotlin:0.1.0")
+                // JWT library
+                implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
+
+                // JSON Schema types
+                implementation("io.github.kotlinmania:schemars-kotlin:0.1.0")
             }
         }
-        
-        val nativeTest by getting {
+
+        val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+            }
+        }
+
+        val nativeMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-curl:3.4.3")
+                implementation("io.github.tree-sitter:ktreesitter:0.24.1")
+                implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
             }
         }
     }
+    jvmToolchain(21)
+}
+
+tasks.withType<AbstractTestTask>().configureEach {
+    testLogging {
+        events(
+            TestLogEvent.STARTED,
+            TestLogEvent.PASSED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.FAILED,
+            TestLogEvent.STANDARD_OUT,
+            TestLogEvent.STANDARD_ERROR,
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
+        showStandardStreams = true
+    }
+}
+
+rootProject.extensions.configure<NodeJsEnvSpec>("kotlinNodeJsSpec") {
+    version.set("24.15.0")
+}
+
+rootProject.extensions.configure<WasmNodeJsEnvSpec>("kotlinWasmNodeJsSpec") {
+    version.set("24.15.0")
+}
+
+rootProject.extensions.configure<YarnRootEnvSpec>("kotlinYarnSpec") {
+    version.set("1.22.22")
+}
+
+rootProject.extensions.configure<WasmYarnRootEnvSpec>("kotlinWasmYarnSpec") {
+    version.set("1.22.22")
+}
+
+rootProject.extensions.configure<YarnRootExtension>("kotlinYarn") {
+    resolution("diff", "8.0.3")
+    resolution("**/diff", "8.0.3")
+    resolution("serialize-javascript", "7.0.5")
+    resolution("**/serialize-javascript", "7.0.5")
+    resolution("webpack", "5.106.2")
+    resolution("**/webpack", "5.106.2")
+    resolution("follow-redirects", "1.16.0")
+    resolution("**/follow-redirects", "1.16.0")
+    resolution("lodash", "4.18.1")
+    resolution("**/lodash", "4.18.1")
+    resolution("ajv", "8.20.0")
+    resolution("**/ajv", "8.20.0")
+    resolution("brace-expansion", "5.0.5")
+    resolution("**/brace-expansion", "5.0.5")
+    resolution("flatted", "3.4.2")
+    resolution("**/flatted", "3.4.2")
+    resolution("minimatch", "10.2.5")
+    resolution("**/minimate", "10.2.5")
+    resolution("picomatch", "4.0.4")
+    resolution("**/picomatch", "4.0.4")
+    resolution("qs", "6.15.1")
+    resolution("**/qs", "6.15.1")
+    resolution("socket.io-parser", "4.2.6")
+    resolution("**/socket.io-parser", "4.2.6")
+}
+
+
+val patchedKarmaWebpackPackage = rootProject.layout.projectDirectory.dir("gradle/npm/karma-webpack").asFile.absolutePath.replace("\\", "/")
+
+rootProject.extensions.configure<NodeJsRootExtension>("kotlinNodeJs") {
+    versions.webpack.version = "5.106.2"
+    versions.webpackCli.version = "7.0.2"
+    versions.karma.version = "npm:karma-maintained@6.4.7"
+    versions.karmaWebpack.version = "file:$patchedKarmaWebpackPackage"
+    versions.mocha.version = "12.0.0-beta-10"
+    versions.kotlinWebHelpers.version = "3.1.0"
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+
+    coordinates(group.toString(), "codex-kotlin", version.toString())
+
+    pom {
+        name.set("codex-kotlin")
+        description.set("Kotlin Multiplatform port of openai/codex — coding agent CLI")
+        inceptionYear.set("2026")
+        url.set("https://github.com/KotlinMania/codex-kotlin")
+
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://opensource.org/licenses/Apache-2.0")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("sydneyrenee")
+                name.set("Sydney Renee")
+                email.set("sydney@solace.ofharmony.ai")
+                url.set("https://github.com/sydneyrenee")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/KotlinMania/codex-kotlin")
+            connection.set("scm:git:git://github.com/KotlinMania/codex-kotlin.git")
+            developerConnection.set("scm:git:ssh://github.com/KotlinMania/codex-kotlin.git")
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CodeQL Java/Kotlin extraction task
+//
+// .github/workflows/codeql.yml invokes `./gradlew codeqlCompileJvm` to feed
+// kotlinc-compiled commonMain through the CodeQL Java agent.
+val codeqlKotlinc: Configuration by configurations.creating {
+    description = "Kotlin compiler (CodeQL extraction target only — not published)"
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
+val codeqlSourceClasspath: Configuration by configurations.creating {
+    description = "Runtime classpath for CodeQL extraction of commonMain sources"
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
+dependencies {
+    codeqlKotlinc("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.21")
+    codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
+    codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0")
+    codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.11.0")
+    codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0")
+    codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0")
+    codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.4.0")
+}
+
+val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
+    description =
+        "Compile commonMain Kotlin sources with kotlinc 2.3.21 for CodeQL Java/Kotlin extraction."
+    group = "verification"
+
+    classpath(codeqlKotlinc)
+    mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
+
+    val outDir = layout.buildDirectory.dir("classes/kotlin/codeql-jvm")
+    val sources = fileTree("src/commonMain/kotlin") { include("**/*.kt") }
+    val sentinelDir = layout.buildDirectory.dir("generated/codeql-empty-source")
+    inputs.files(sources).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(codeqlSourceClasspath).withNormalizer(ClasspathNormalizer::class.java)
+    outputs.dir(outDir)
+    outputs.dir(sentinelDir)
+
+    doFirst {
+        outDir.get().asFile.mkdirs()
+        val sourceFiles = sources.files.toMutableList()
+        if (sourceFiles.isEmpty()) {
+            val sentinelFile = sentinelDir.get().asFile.resolve("io/github/kotlinmania/codeql/_CodeqlEmptySource.kt")
+            sentinelFile.parentFile.mkdirs()
+            sentinelFile.writeText(
+                """
+                // Auto-generated. Present so codeqlCompileJvm has at least
+                // one Kotlin source to feed kotlinc; replaced by real
+                // commonMain content once porting begins.
+                package io.github.kotlinmania.codeql
+
+                private object _CodeqlEmptySource
+                """.trimIndent(),
+            )
+            sourceFiles += sentinelFile
+        }
+        args = listOf(
+            "-d", outDir.get().asFile.absolutePath,
+            "-classpath", codeqlSourceClasspath.asPath,
+            "-jvm-target", "21",
+            "-no-stdlib",
+            "-no-reflect",
+            "-language-version", "2.3",
+            "-api-version", "2.3",
+            "-Xexpect-actual-classes",
+            "-opt-in", "kotlin.time.ExperimentalTime",
+            "-opt-in", "kotlin.concurrent.atomics.ExperimentalAtomicApi",
+        ) + sourceFiles.map { it.absolutePath }
+    }
+}
+
+tasks.register<Exec>("setupAndroidSdk") {
+    group = "setup"
+    description = "Downloads and configures the project-local Android SDK."
+    commandLine("./setup-android-sdk.sh")
+}
+
+tasks.register("test") {
+    group = "verification"
+    description =
+        "Runs the host-portable test suite (macOS + JS + WasmJS + Android unit). " +
+        "Non-host native targets (mingwX64, linuxX64) only run on their own host."
+
+    val defaultTestTasks = listOf(
+        "macosArm64Test",
+        "jsNodeTest",
+        "wasmJsNodeTest",
+        "compileAndroidMain",
+        "assembleUnitTest",
+    )
+
+    dependsOn(defaultTestTasks.mapNotNull { taskName -> tasks.findByName(taskName) })
 }

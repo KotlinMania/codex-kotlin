@@ -1,4 +1,4 @@
-package ai.solace.coder.core
+package io.github.solaceharmony.codex.core
 
 /**
  * Platform-specific process handle implementation for Windows
@@ -51,4 +51,11 @@ actual fun platformGetSandbox(): SandboxType? {
 
 actual fun platformGetMacosDirParams(): List<Pair<String, String>> {
     return emptyList()
+}
+
+/**
+ * Windows does not have Unix file permissions. Return 0 (success no-op).
+ */
+actual fun platformSetOwnerReadWritePermissions(path: String): Int {
+    return 0
 }

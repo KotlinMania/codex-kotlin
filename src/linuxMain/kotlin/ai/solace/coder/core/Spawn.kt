@@ -1,6 +1,10 @@
-package ai.solace.coder.core
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 
+package io.github.solaceharmony.codex.core
+
+import io.github.solaceharmony.codex.exec.process.SandboxType
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
@@ -9,12 +13,18 @@ import kotlinx.cinterop.value
 import platform.posix.FILE
 import platform.posix.SIGKILL
 import platform.posix.access
+import platform.posix.chmod
 import platform.posix.kill
 import platform.posix.waitpid
-import platform.posix.WEXITSTATUS
-import platform.posix.WIFEXITED
 import platform.posix.F_OK
 import platform.posix.X_OK
+import platform.posix.S_IRUSR
+import platform.posix.S_IWUSR
+import kotlinx.cinterop.convert
+
+private fun wifexited(status: Int): Boolean = (status and 0x7f) == 0
+
+private fun wexitstatus(status: Int): Int = (status shr 8) and 0xff
 
 /**
  * Platform-specific process handle implementation for Linux
@@ -31,8 +41,8 @@ actual class ProcessHandle(
         return memScoped {
             val status = alloc<kotlinx.cinterop.IntVar>()
             waitpid(pid, status.ptr, 0)
-            if (WIFEXITED(status.value) != 0) {
-                WEXITSTATUS(status.value)
+            if (wifexited(status.value)) {
+                wexitstatus(status.value)
             } else {
                 -1
             }
@@ -88,4 +98,11 @@ actual fun platformGetSandbox(): SandboxType? {
 
 actual fun platformGetMacosDirParams(): List<Pair<String, String>> {
     return emptyList()
+}
+
+/**
+ * Set file permissions to 0600 (owner read/write only).
+ */
+actual fun platformSetOwnerReadWritePermissions(path: String): Int {
+    return chmod(path, (S_IRUSR or S_IWUSR).convert())
 }
