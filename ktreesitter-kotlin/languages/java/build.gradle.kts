@@ -1,12 +1,21 @@
 import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+import javax.inject.Inject
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
+
+// Gradle 9.x interface for injecting ExecOperations
+interface ExecInjected {
+    @get:Inject val execOps: ExecOperations
+}
+
+val execService = objects.newInstance<ExecInjected>()
 
 fun KotlinNativeTarget.treesitterJava() {
     compilations.configureEach {
@@ -26,12 +35,20 @@ val grammarDir = projectDir.resolve("tree-sitter-java")
 version = grammarDir.resolve("Makefile").readLines()
     .first { it.startsWith("VERSION := ") }.removePrefix("VERSION := ")
 
+val androidSdkAvailable = System.getenv("ANDROID_HOME") != null ||
+    System.getenv("ANDROID_SDK_ROOT") != null ||
+    rootProject.file("local.properties").exists()
+
 plugins {
     `maven-publish`
     signing
     alias(libs.plugins.kotlin.mpp)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.library) apply false
     id("io.github.tree-sitter.ktreesitter-plugin")
+}
+
+if (androidSdkAvailable) {
+    apply(plugin = "com.android.library")
 }
 
 grammar {
@@ -46,9 +63,11 @@ val generateTask = tasks.generateGrammarFiles.get()
 kotlin {
     jvm {}
 
-    androidTarget {
-        withSourcesJar(true)
-        publishLibraryVariants("release")
+    if (androidSdkAvailable) {
+        androidTarget {
+            withSourcesJar(true)
+            publishLibraryVariants("release")
+        }
     }
 
     linuxX64 { treesitterJava() }
@@ -88,28 +107,30 @@ kotlin {
     }
 }
 
-android {
-    namespace = "io.github.treesitter.ktreesitter.${grammar.grammarName.get()}"
-    compileSdk = (property("sdk.version.compile") as String).toInt()
-    ndkVersion = property("ndk.version") as String
-    defaultConfig {
-        minSdk = (property("sdk.version.min") as String).toInt()
-        ndk {
-            //noinspection ChromeOsAbiSupport
-            abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
+plugins.withId("com.android.library") {
+    extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+        namespace = "io.github.treesitter.ktreesitter.${grammar.grammarName.get()}"
+        compileSdk = (property("sdk.version.compile") as String).toInt()
+        ndkVersion = property("ndk.version") as String
+        defaultConfig {
+            minSdk = (property("sdk.version.min") as String).toInt()
+            ndk {
+                //noinspection ChromeOsAbiSupport
+                abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
+            }
+            resValue("string", "version", version as String)
         }
-        resValue("string", "version", version as String)
-    }
-    externalNativeBuild {
-        cmake {
-            path = generateTask.cmakeListsFile.get().asFile
-            buildStagingDirectory = file(".cmake")
-            version = property("cmake.version") as String
+        externalNativeBuild {
+            cmake {
+                path = generateTask.cmakeListsFile.get().asFile
+                buildStagingDirectory = file(".cmake")
+                version = property("cmake.version") as String
+            }
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
     }
 }
 
@@ -126,32 +147,40 @@ tasks.withType<CInteropProcess>().configureEach {
     val runKonan = File(konanHome.get()).resolve("bin")
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
+    // Object files are placed in grammarDir (working directory)
     val objectFiles = grammarFiles.map {
-        srcDir.resolve(it.nameWithoutExtension + ".o").path
+        grammarDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
 
     doFirst {
-        val argsFile = File.createTempFile("args", null)
-        argsFile.deleteOnExit()
-        argsFile.writer().useToRun {
-            write("-I" + srcDir.unixPath + "\n")
-            write("-DTREE_SITTER_HIDE_SYMBOLS\n")
-            write("-fvisibility=hidden\n")
-            write("-std=c11\n")
-            write("-O2\n")
-            write("-g\n")
-            write("-c\n")
-            grammarFiles.forEach { write(it.unixPath + "\n") }
+        libFile.parentFile.mkdirs()
+
+        grammarFiles.forEach { sourceFile ->
+            val objectFile = grammarDir.resolve(sourceFile.nameWithoutExtension + ".o")
+            val argsFile = File.createTempFile("args", null)
+            argsFile.deleteOnExit()
+            argsFile.writer().useToRun {
+                write("-I" + srcDir.unixPath + "\n")
+                write("-DTREE_SITTER_HIDE_SYMBOLS\n")
+                write("-fvisibility=hidden\n")
+                write("-std=c11\n")
+                write("-O2\n")
+                write("-g\n")
+                write("-c\n")
+                write("-o\n")
+                write(objectFile.unixPath + "\n")
+                write(sourceFile.unixPath + "\n")
+            }
+
+            execService.execOps.exec {
+                executable = runKonan
+                workingDir = grammarDir
+                standardOutput = nullOutputStream()
+                args("clang", "clang", konanTarget.name, "@" + argsFile.path)
+            }
         }
 
-        exec {
-            executable = runKonan
-            workingDir = grammarDir
-            standardOutput = nullOutputStream()
-            args("clang", "clang", konanTarget.name, "@" + argsFile.path)
-        }
-
-        exec {
+        execService.execOps.exec {
             executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()

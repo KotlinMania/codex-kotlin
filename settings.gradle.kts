@@ -4,8 +4,10 @@ pluginManagement {
         mavenCentral()
         google()
     }
-    // Include ktreesitter's custom Gradle plugin
-    includeBuild("ktreesitter-kotlin/ktreesitter-plugin")
+    val ktreesitterPluginLocal = file("ktreesitter-kotlin/ktreesitter-plugin")
+    if (ktreesitterPluginLocal.exists()) {
+        includeBuild(ktreesitterPluginLocal)
+    }
 }
 
 dependencyResolutionManagement {
@@ -18,26 +20,27 @@ dependencyResolutionManagement {
 
 rootProject.name = "codex-kotlin"
 
-// Tree-sitter Kotlin bindings (vendored from wip/k2 branch)
-includeBuild("ktreesitter-kotlin") {
-    dependencySubstitution {
-        substitute(module("io.github.tree-sitter:ktreesitter")).using(project(":ktreesitter"))
-        substitute(module("io.github.tree-sitter:ktreesitter-bash")).using(project(":languages:bash"))
+val ktreesitterLocal = file("ktreesitter-kotlin")
+if (ktreesitterLocal.exists()) {
+    includeBuild(ktreesitterLocal) {
+        dependencySubstitution {
+            substitute(module("io.github.tree-sitter:ktreesitter")).using(project(":ktreesitter"))
+            substitute(module("io.github.tree-sitter:ktreesitter-bash")).using(project(":languages:bash"))
+        }
     }
 }
 
-// Use the local ratatui-kotlin checkout so we have the full API surface needed for strict
-// transliteration (e.g., Paragraph/Wrap/WidgetRef/Terminal backend types).
-includeBuild("/Volumes/stuff/Projects/kotlinmania/ratatui-kotlin") {
-    dependencySubstitution {
-        substitute(module("io.github.kotlinmania:ratatui-kotlin")).using(project(":"))
-    }
-}
-
-// Use the local kasuari-kotlin checkout (constraint solver for TUI layouts).
-// Needed because the Maven Central version (0.1.0) doesn't support all KMP targets.
-includeBuild("/Volumes/stuff/Projects/kotlinmania/kasuari-kotlin") {
-    dependencySubstitution {
-        substitute(module("io.github.kotlinmania:kasuari-kotlin")).using(project(":"))
+// schemars (JsonSchema trait + Schema types) lives in the sibling
+// schemars-kotlin repo. When that sibling checkout is present (local dev),
+// composite-build it and substitute the unpublished
+// io.github.kotlinmania:schemars-kotlin Maven coordinate. On CI runners
+// (which only check out this repo), fall through to the declared remote
+// repositories so the published Maven artifact resolves instead.
+val schemarsLocal = file("../schemars-kotlin")
+if (schemarsLocal.exists()) {
+    includeBuild(schemarsLocal) {
+        dependencySubstitution {
+            substitute(module("io.github.kotlinmania:schemars-kotlin")).using(project(":"))
+        }
     }
 }

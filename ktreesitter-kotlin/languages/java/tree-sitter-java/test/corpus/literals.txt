@@ -172,10 +172,10 @@ text block
 """
 Closing token
 at the same line""";
-"""   
+"""
 Spaces after
 opening token""";
-"""   
+"""
 Closing token
 at new line
 """;

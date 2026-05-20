@@ -11,7 +11,7 @@ module.exports = grammar({
 
   rules: {
     expression: $ => repeat($.list),
-    
+
     list: $ => seq($._start_list, repeat1($.list_item), $._end_list)
   }
 })

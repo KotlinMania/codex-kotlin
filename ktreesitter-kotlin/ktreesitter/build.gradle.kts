@@ -1,7 +1,7 @@
 import java.io.OutputStream.nullOutputStream
-import org.gradle.api.file.Directory
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
+import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.process.ExecOperations
 import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -34,18 +34,28 @@ fun KotlinNativeTarget.treesitter() {
 }
 
 val os: OperatingSystem = OperatingSystem.current()
-val libsDir: Directory = layout.buildDirectory.get().dir("libs")
+val libsDir = layout.buildDirectory.get().dir("libs")
 val treesitterDir = rootDir.resolve("tree-sitter")
 
 version = property("project.version") as String
+
+// Check if Android SDK is available
+val androidSdkAvailable = System.getenv("ANDROID_HOME") != null ||
+    System.getenv("ANDROID_SDK_ROOT") != null ||
+    file("local.properties").exists()
 
 plugins {
     `maven-publish`
     signing
     alias(libs.plugins.kotlin.mpp)
+    alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotest)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dokka)
+}
+
+if (androidSdkAvailable) {
+    apply(plugin = "com.android.library")
 }
 
 buildscript {
@@ -61,35 +71,26 @@ dependencyLocking {
 kotlin {
     jvm {}
 
+    if (androidSdkAvailable) {
+        androidTarget {
+            withSourcesJar(true)
+            publishLibraryVariants("release")
+        }
+    }
 
     linuxX64 { treesitter() }
     linuxArm64 { treesitter() }
     mingwX64 { treesitter() }
     macosArm64 { treesitter() }
     macosX64 { treesitter() }
-
-    // Gate iOS targets behind a property/env var to keep desktop/native builds green by default.
-    // Enable with: -PKTREESITTER_ENABLE_IOS=true (or env KTREESITTER_ENABLE_IOS=true)
-    val enableIos: Boolean = (findProperty("KTREESITTER_ENABLE_IOS") as String?)?.toBoolean()
-        ?: System.getenv("KTREESITTER_ENABLE_IOS")?.toBoolean()
-        ?: false
-    if (enableIos) {
-        iosArm64 { treesitter() }
-        iosSimulatorArm64 { treesitter() }
-    }
+    iosArm64 { treesitter() }
+    iosSimulatorArm64 { treesitter() }
 
     applyDefaultHierarchyTemplate()
 
     jvmToolchain(17)
 
     sourceSets {
-        // Toggle to enable tests in the included build. By default, disable tests to
-        // keep desktop/native composite builds green when optional language modules
-        // (e.g., java) are not included. Enable with -PKTREESITTER_ENABLE_TESTS=true
-        // or env KTREESITTER_ENABLE_TESTS=true
-        val enableTests: Boolean = (findProperty("KTREESITTER_ENABLE_TESTS") as String?)?.toBoolean()
-            ?: System.getenv("KTREESITTER_ENABLE_TESTS")?.toBoolean()
-            ?: false
         commonMain {
             languageSettings {
                 @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -104,45 +105,72 @@ kotlin {
         }
 
         commonTest {
-            if (!enableTests) {
-                kotlin.setSrcDirs(emptyList<File>())
-            }
             dependencies {
-                if (enableTests) {
-                    implementation(libs.bundles.kotest.core)
+                implementation(libs.bundles.kotest.core)
+                // Language subprojects are optional - only include in tests if present
+                rootProject.subprojects.find { it.name == "languages" }?.subprojects?.forEach {
+                    implementation(project(":languages:${it.name}"))
                 }
             }
         }
 
         jvmTest {
-            if (!enableTests) {
-                kotlin.setSrcDirs(emptyList<File>())
-            }
             dependencies {
-                if (enableTests) {
-                    implementation(libs.bundles.kotest.junit)
-                    implementation(libs.kotest.symbolprocessor)
-                }
+                implementation(libs.bundles.kotest.junit)
+                implementation(libs.kotest.symbolprocessor)
             }
         }
 
-        // Only native tests should depend on native-only language bindings
-        val languagesProject = rootProject.subprojects.find { it.name == "languages" }
-        if (languagesProject != null && enableTests) {
-            getByName("nativeTest") {
+        if (androidSdkAvailable) {
+            getByName("androidInstrumentedTest") {
                 dependencies {
-                    languagesProject.subprojects.forEach {
+                    implementation(libs.bundles.kotest.core)
+                    implementation(libs.bundles.kotest.android)
+                    rootProject.project("languages").subprojects.forEach {
                         implementation(project(":languages:${it.name}"))
                     }
                 }
             }
-        } else {
-            // Ensure native test source set is empty when tests are disabled
-            getByName("nativeTest") {
-                if (!enableTests) kotlin.setSrcDirs(emptyList<File>())
+        }
+    }
+}
+
+plugins.withId("com.android.library") {
+    extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+        namespace = "io.github.treesitter.$name"
+        compileSdk = (property("sdk.version.compile") as String).toInt()
+        ndkVersion = property("ndk.version") as String
+        defaultConfig {
+            minSdk = (property("sdk.version.min") as String).toInt()
+            ndk {
+                //noinspection ChromeOsAbiSupport
+                abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
+            }
+            testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
+        externalNativeBuild {
+            cmake {
+                path = file("CMakeLists.txt")
+                buildStagingDirectory = file(".cmake")
+                version = property("cmake.version") as String
             }
         }
-
+        compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
+        testOptions.unitTests.all {
+            it.useJUnitPlatform()
+        }
+        packaging.resources {
+            excludes += setOf(
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1",
+                "META-INF/licenses/ASM",
+                "win32-x86-64/attach_hotspot_windows.dll",
+                "win32-x86/attach_hotspot_windows.dll"
+            )
+        }
     }
 }
 
@@ -246,7 +274,7 @@ tasks.withType<DokkaGeneratePublicationTask> {
             into(tmpDir)
             filter { file ->
                 file.replaceFirst("# KTreeSitter", "# Module KTreeSitter")
-                    .replaceFirst($$"$ktreesitterVersion", "\"$version\"")
+                    .replaceFirst("\$ktreesitterVersion", "\"$version\"")
                     .replace("[x]", "&#x2611;").replace("[ ]", "&#x2610;")
             }
         }
@@ -262,6 +290,10 @@ tasks.withType<KotlinJvmCompile>().configureEach {
         jvmTarget.set(JvmTarget.JVM_17)
         freeCompilerArgs.add("-Xlambdas=indy")
     }
+}
+
+tasks.withType<AbstractTestTask>().configureEach {
+    failOnNoDiscoveredTests.set(false)
 }
 
 // TODO: replace with cmake

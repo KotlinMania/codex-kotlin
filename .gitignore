@@ -90,6 +90,7 @@ CHANGELOG.ignore.md
 **/.gradle/
 **/.kotlin/
 **/build/
+.android-sdk/
 
 # Build logs
 build_log*.txt
@@ -98,6 +99,7 @@ build_log*.txt
 # ast_distance build artifacts
 tools/ast_distance/build/
 tools/ast_distance/ast_distance
+tools/ast_distance/ast_distance.real
 
 # ast_distance temporary output files
 *.scan_output.txt
@@ -105,7 +107,16 @@ tools/ast_distance/ast_distance
 all_matched.txt
 files_with_headers.txt
 tasks.json
-tasks.json.lock
+tools/ast_distance/deep_*.txt
+tools/ast_distance/deep_current.txt
+tools/ast_distance/missing_current.txt
 
-# Vendored dependencies
-tmp/
+# Generated port reports
+port_status_report.md
+high_priority_ports.md
+NEXT_ACTIONS.md
+deep_report.txt
+
+# ktreesitter plugin build output
+ktreesitter-kotlin/ktreesitter-plugin/bin/
+/tmp/

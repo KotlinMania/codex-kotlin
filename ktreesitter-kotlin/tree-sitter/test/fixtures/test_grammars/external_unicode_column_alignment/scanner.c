@@ -57,7 +57,7 @@ bool tree_sitter_external_unicode_column_alignment_external_scanner_scan(
   // U+25A1 is unicode codepoint □
   while (iswspace(lexer->lookahead) || 0x25A1 == lexer->lookahead) {
     lexer->advance(lexer, true);
-  } 
+  }
   if ('-' == lexer->lookahead) {
     const int32_t column = lexer->get_column(lexer);
     if (-1 == scanner->column) {
@@ -76,12 +76,12 @@ bool tree_sitter_external_unicode_column_alignment_external_scanner_scan(
       }
     }
   }
-  
+
   if (lexer->eof(lexer) && -1 != scanner->column) {
     lexer->result_symbol = LIST_END;
     scanner->column = -1;
     return true;
   }
-  
+
   return false;
 }
