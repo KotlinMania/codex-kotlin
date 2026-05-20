@@ -1,15 +1,21 @@
-// port-lint: ignore
-// transliterated from upstream module root
+// port-lint: source tui/src/render/mod.rs
 package io.github.solaceharmony.codex.tui.render
 
 import ratatui.layout.Rect
 
 data class Insets(
-    val left: Int,
-    val top: Int,
-    val right: Int,
-    val bottom: Int,
+    val left: Int = 0,
+    val top: Int = 0,
+    val right: Int = 0,
+    val bottom: Int = 0,
 ) {
+    init {
+        require(left >= 0) { "left inset must be non-negative" }
+        require(top >= 0) { "top inset must be non-negative" }
+        require(right >= 0) { "right inset must be non-negative" }
+        require(bottom >= 0) { "bottom inset must be non-negative" }
+    }
+
     companion object {
         fun tlbr(top: Int, left: Int, bottom: Int, right: Int): Insets {
             return Insets(top = top, left = left, bottom = bottom, right = right)
@@ -22,12 +28,20 @@ data class Insets(
 }
 
 fun Rect.inset(insets: Insets): Rect {
-    val horizontal = insets.left + insets.right
-    val vertical = insets.top + insets.bottom
+    val horizontal = saturatingAdd(insets.left, insets.right)
+    val vertical = saturatingAdd(insets.top, insets.bottom)
     return Rect(
-        x = x + insets.left,
-        y = y + insets.top,
-        width = (width - horizontal).coerceAtLeast(0),
-        height = (height - vertical).coerceAtLeast(0),
+        x = saturatingAdd(x, insets.left),
+        y = saturatingAdd(y, insets.top),
+        width = saturatingSubtract(width, horizontal),
+        height = saturatingSubtract(height, vertical),
     )
+}
+
+private fun saturatingAdd(left: Int, right: Int): Int {
+    return (left.toLong() + right.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+}
+
+private fun saturatingSubtract(left: Int, right: Int): Int {
+    return (left.toLong() - right.toLong()).coerceAtLeast(0L).toInt()
 }
