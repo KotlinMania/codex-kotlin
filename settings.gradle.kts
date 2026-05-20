@@ -4,6 +4,10 @@ pluginManagement {
         mavenCentral()
         google()
     }
+    val ktreesitterPluginLocal = file("ktreesitter-kotlin/ktreesitter-plugin")
+    if (ktreesitterPluginLocal.exists()) {
+        includeBuild(ktreesitterPluginLocal)
+    }
 }
 
 dependencyResolutionManagement {
@@ -15,6 +19,16 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "codex-kotlin"
+
+val ktreesitterLocal = file("ktreesitter-kotlin")
+if (ktreesitterLocal.exists()) {
+    includeBuild(ktreesitterLocal) {
+        dependencySubstitution {
+            substitute(module("io.github.tree-sitter:ktreesitter")).using(project(":ktreesitter"))
+            substitute(module("io.github.tree-sitter:ktreesitter-bash")).using(project(":languages:bash"))
+        }
+    }
+}
 
 // schemars (JsonSchema trait + Schema types) lives in the sibling
 // schemars-kotlin repo. When that sibling checkout is present (local dev),
