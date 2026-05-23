@@ -9,7 +9,6 @@ import io.github.solaceharmony.codex.core.UnexpectedResponseError
 import io.github.solaceharmony.codex.protocol.ResponseEvent
 import io.github.solaceharmony.codex.protocol.ResponseItem
 import io.ktor.client.*
-import io.ktor.client.engine.curl.*
 import io.ktor.client.plugins.contentnegotiation.*
 
 import io.ktor.client.request.*
@@ -44,7 +43,11 @@ class CodexHttpClient(
     private val authManager: AuthManager,
     private val maxRetries: Int = 3
 ) {
-    private val httpClient = HttpClient(Curl) {
+    // Engine-less constructor: each target source set provides its own
+    // platform engine (Darwin on Apple, OkHttp on JVM/Android, CIO on
+    // Linux/mingw, etc.). Dropping the Curl engine unblocks the iOS /
+    // androidNative variants that the Curl artifact never published.
+    private val httpClient = HttpClient {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

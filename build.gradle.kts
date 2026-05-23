@@ -130,7 +130,18 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.6.0")
 
-                // Ktor HTTP client core
+                // HTTP types from the workspace sibling port of the
+                // hyperium/http crate. We use http-kotlin for the
+                // request/response/method/status types instead of pulling
+                // in a Ktor client engine; the upstream codex-rs HTTP
+                // surface models the same Request/Response shape and the
+                // sibling already publishes for every target we configure.
+                implementation("io.github.kotlinmania:http-kotlin:0.1.0")
+
+                // Ktor HTTP client core (engine-less; per-target engines
+                // wired below). The Curl engine has been dropped because
+                // it does not publish for the iOS / tvOS / watchOS /
+                // androidNative targets we ship.
                 implementation("io.ktor:ktor-client-core:3.4.3")
                 implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
@@ -172,9 +183,15 @@ kotlin {
             }
         }
 
-        val nativeMain by getting {
+        // io.github.tree-sitter:ktreesitter and ktreesitter-bash only
+        // publish for (linuxArm64, linuxX64) — they ship `libtree-sitter`
+        // C interop bindings that have no iOS / macOS / mingw / watchOS /
+        // tvOS / androidNative variants. Scope the dependency (and the
+        // ktreesitter-backed [BashParser]) to `linuxMain`, where the
+        // applyDefaultHierarchyTemplate intermediate set already groups
+        // linuxX64 + linuxArm64.
+        val linuxMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-curl:3.4.3")
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
             }
