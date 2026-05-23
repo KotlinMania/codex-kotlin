@@ -156,6 +156,12 @@ kotlin {
 
                 // JSON Schema types
                 implementation("io.github.kotlinmania:schemars-kotlin:0.1.0")
+
+                // Upstream codex-rs/state/src/runtime.rs uses `log::LevelFilter`,
+                // codex-rs/state/src/model/mod.rs re-exports `log::{LogEntry, LogQuery,
+                // LogRow}`, and codex-rs/execpolicy-legacy/src/policy_parser.rs uses
+                // `log::info`.
+                implementation("io.github.kotlinmania:log-kotlin:0.1.1")
             }
         }
 
