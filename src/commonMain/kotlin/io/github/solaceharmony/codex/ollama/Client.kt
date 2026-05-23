@@ -9,7 +9,6 @@ import io.github.solaceharmony.codex.core.model.builtInModelProviders
 import io.github.solaceharmony.codex.core.model.createOssProviderWithBaseUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.curl.Curl
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -56,14 +55,14 @@ class OllamaClient private constructor(
                 isOpenaiCompatibleBaseUrl(baseUrl) ||
                     (provider.wireApi == WireApi.Chat && isOpenaiCompatibleBaseUrl(baseUrl))
             val hostRoot = baseUrlToHostRoot(baseUrl)
-            val client = HttpClient(Curl)
+            val client = HttpClient()
             val ollamaClient = OllamaClient(client = client, hostRoot = hostRoot, usesOpenaiCompat = usesOpenaiCompat)
             ollamaClient.probeServer()
             return ollamaClient
         }
 
         fun fromHostRoot(hostRoot: String): OllamaClient {
-            val client = HttpClient(Curl)
+            val client = HttpClient()
             return OllamaClient(client = client, hostRoot = hostRoot, usesOpenaiCompat = false)
         }
     }
