@@ -1,6 +1,5 @@
 {
   "type": "port",
-  "parity_mode": false,
   "name": "codex-kotlin",
   "source": {
     "path": "tmp/codex/codex-rs",
