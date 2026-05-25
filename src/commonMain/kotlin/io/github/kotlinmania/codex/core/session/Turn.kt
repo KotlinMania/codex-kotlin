@@ -1,6 +1,7 @@
 // port-lint: source core/src/state/turn.rs
 package io.github.kotlinmania.codex.core.session
 
+import io.github.kotlinmania.indexmap.IndexMap
 import io.github.kotlinmania.codex.client.auth.AuthManager
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
@@ -29,12 +30,12 @@ enum class TaskKind {
  * Metadata about the currently running turn.
  */
 class ActiveTurn {
-    private val tasks = linkedMapOf<String, RunningTask>()
+    private val tasks = IndexMap.new<String, RunningTask>()
     val turnState = TurnState()
 
     fun addTask(task: RunningTask) {
         val subId = task.turnContext.subId
-        tasks[subId] = task
+        tasks.insert(subId, task)
     }
 
     /**
@@ -46,12 +47,12 @@ class ActiveTurn {
     }
 
     fun drainTasks(): List<RunningTask> {
-        val result = tasks.values.toList()
+        val result = tasks.values()
         tasks.clear()
         return result
     }
 
-    fun getTasks(): Map<String, RunningTask> = tasks.toMap()
+    fun getTasks(): Map<String, RunningTask> = tasks.asEntries().toMap()
 
     /**
      * Clear any pending approvals and input buffered for the current turn.
@@ -79,7 +80,7 @@ data class RunningTask(
  */
 class TurnState {
     private val mutex = Mutex()
-    private val pendingApprovals = mutableMapOf<String, CompletableDeferred<ReviewDecision>>()
+    private val pendingApprovals = IndexMap.new<String, CompletableDeferred<ReviewDecision>>()
     private val pendingInput = mutableListOf<ResponseInputItem>()
 
     /**
@@ -91,7 +92,7 @@ class TurnState {
         deferred: CompletableDeferred<ReviewDecision>
     ): CompletableDeferred<ReviewDecision>? {
         return mutex.withLock {
-            pendingApprovals.put(key, deferred)
+            pendingApprovals.insert(key, deferred)
         }
     }
 
@@ -149,7 +150,7 @@ class TurnState {
      */
     suspend fun hasPendingApprovals(): Boolean {
         return mutex.withLock {
-            pendingApprovals.isNotEmpty()
+            !pendingApprovals.isEmpty()
         }
     }
 }
