@@ -143,7 +143,6 @@ println(hash.toHexString())
 
 ```bash
 # Clone the repository
-git clone https://github.com/KotlinMania/codex-kotlin.git
 cd codex-kotlin
 
 # Build the Native executable (release mode)
