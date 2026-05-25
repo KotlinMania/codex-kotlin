@@ -258,11 +258,11 @@ kotlin {
 
     swiftExport {
         moduleName = "Codex"
-        flattenPackage = "io.github.solaceharmony.codex"
+        flattenPackage = "io.github.kotlinmania.codex"
     }
 
     android {
-        namespace = "io.github.solaceharmony.codex"
+        namespace = "io.github.kotlinmania.codex"
         compileSdk = 34
         minSdk = 24
         withHostTestBuilder {}.configure {}
@@ -347,6 +347,7 @@ kotlin {
             dependencies {
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
+                implementation("io.github.kotlinmania:landlock-kotlin:0.1.1")
             }
         }
     }
