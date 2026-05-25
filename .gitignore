@@ -91,6 +91,7 @@ CHANGELOG.ignore.md
 **/.kotlin/
 **/build/
 .android-sdk/
+local.properties
 
 # Build logs
 build_log*.txt
