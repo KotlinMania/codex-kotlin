@@ -1,27 +1,61 @@
 // port-lint: source protocol/src/num_format.rs
 package io.github.kotlinmania.codex.protocol
 
+import io.github.kotlinmania.icudecimal.DecimalFormatter
+import io.github.kotlinmania.icudecimal.input.Decimal
+import io.github.kotlinmania.icudecimal.options.DecimalFormatterOptions
 import kotlin.math.pow
 import kotlin.math.round
+
+private val FORMATTER: DecimalFormatter by lazy { makeEnUsFormatter() }
+
+private fun makeEnUsFormatter(): DecimalFormatter =
+    DecimalFormatter.tryNew("en-US", DecimalFormatterOptions())
+
+private fun formatter(): DecimalFormatter = FORMATTER
 
 /**
  * Format an i64 with locale-aware digit separators (e.g. "12345" -> "12,345"
  * for en-US).
  */
-fun formatWithSeparators(n: Long): String {
-    val str = n.toString()
-    val result = StringBuilder()
-    var count = 0
+fun formatWithSeparators(n: Long): String =
+    formatWithSeparatorsWithFormatter(n, formatter())
 
-    for (i in str.length - 1 downTo 0) {
-        if (count > 0 && count % 3 == 0 && str[i] != '-') {
-            result.insert(0, ',')
-        }
-        result.insert(0, str[i])
-        if (str[i] != '-') count++
+private fun formatWithSeparatorsWithFormatter(n: Long, formatter: DecimalFormatter): String =
+    formatter.format(Decimal.from(n)).toString()
+
+private fun formatSiSuffixWithFormatter(n: Long, formatter: DecimalFormatter): String {
+    val value = n.coerceAtLeast(0)
+    if (value < 1000) {
+        return formatter.format(Decimal.from(value)).toString()
     }
 
-    return result.toString()
+    fun formatScaled(value: Long, scale: Long, fractionDigits: Int): String {
+        val scaled = round((value.toDouble() / scale.toDouble()) * 10.0.pow(fractionDigits))
+            .toLong()
+        val decimal = Decimal.from(scaled)
+        decimal.multiplyPow10(-fractionDigits)
+        return formatter.format(decimal).toString()
+    }
+
+    val units = listOf(
+        1_000L to "K",
+        1_000_000L to "M",
+        1_000_000_000L to "G",
+    )
+    val floating = value.toDouble()
+    for ((scale, suffix) in units) {
+        if (round(100.0 * floating / scale.toDouble()) < 1000.0) {
+            return formatScaled(value, scale, 2) + suffix
+        } else if (round(10.0 * floating / scale.toDouble()) < 1000.0) {
+            return formatScaled(value, scale, 1) + suffix
+        } else if (round(floating / scale.toDouble()) < 1000.0) {
+            return formatScaled(value, scale, 0) + suffix
+        }
+    }
+
+    // Above 1000G, keep whole-G precision.
+    return formatWithSeparatorsWithFormatter(round(floating / 1e9).toLong(), formatter) + "G"
 }
 
 /**
@@ -33,61 +67,5 @@ fun formatWithSeparators(n: Long): String {
  *   - 123456789 -> "123M"
  */
 fun formatSiSuffix(n: Long): String {
-    val value = n.coerceAtLeast(0)
-
-    if (value < 1000) {
-        return value.toString()
-    }
-
-    data class Unit(val scale: Long, val suffix: String)
-    val units = listOf(
-        Unit(1_000L, "K"),
-        Unit(1_000_000L, "M"),
-        Unit(1_000_000_000L, "G")
-    )
-
-    val f = value.toDouble()
-
-    for ((scale, suffix) in units) {
-        val scaled = f / scale
-
-        if ((100.0 * scaled).toLong() < 1000) {
-            return formatDouble(scaled, 2) + suffix
-        } else if ((10.0 * scaled).toLong() < 1000) {
-            return formatDouble(scaled, 1) + suffix
-        } else if (scaled.toLong() < 1000) {
-            return formatDouble(scaled, 0) + suffix
-        }
-    }
-
-    // Above 1000G, keep whole-G precision
-    return "${formatWithSeparators((f / 1e9).toLong())}G"
-}
-
-/**
- * Format a double with a specific number of decimal places.
- * Kotlin/Native compatible replacement for String.format().
- */
-private fun formatDouble(value: Double, decimals: Int): String {
-    if (decimals == 0) {
-        return value.toLong().toString()
-    }
-    val multiplier = when (decimals) {
-        1 -> 10.0
-        2 -> 100.0
-        else -> 10.0.pow(decimals.toDouble())
-    }
-    val rounded = round(value * multiplier) / multiplier
-    val str = rounded.toString()
-    val dotIndex = str.indexOf('.')
-    return if (dotIndex < 0) {
-        str + "." + "0".repeat(decimals)
-    } else {
-        val decimalPart = str.substring(dotIndex + 1)
-        if (decimalPart.length >= decimals) {
-            str.substring(0, dotIndex + 1 + decimals)
-        } else {
-            str + "0".repeat(decimals - decimalPart.length)
-        }
-    }
+    return formatSiSuffixWithFormatter(n, formatter())
 }

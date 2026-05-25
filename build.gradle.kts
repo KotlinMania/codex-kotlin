@@ -283,6 +283,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.6.0")
                 implementation("io.github.kotlinmania:indexmap-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:icu-decimal-kotlin:0.1.2")
 
                 // HTTP types from the workspace sibling port of the
                 // hyperium/http crate. We use http-kotlin for the

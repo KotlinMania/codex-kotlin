@@ -28,6 +28,7 @@ jobs:
       - name: Build and test Android targets
         run: >
           ./gradlew
+          --no-daemon
           setupAndroidSdk
           compileAndroidMain
           assembleUnitTest
