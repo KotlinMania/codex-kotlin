@@ -258,11 +258,11 @@ kotlin {
 
     swiftExport {
         moduleName = "Codex"
-        flattenPackage = "io.github.solaceharmony.codex"
+        flattenPackage = "io.github.kotlinmania.codex"
     }
 
     android {
-        namespace = "io.github.solaceharmony.codex"
+        namespace = "io.github.kotlinmania.codex"
         compileSdk = 34
         minSdk = 24
         withHostTestBuilder {}.configure {}
@@ -283,6 +283,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.6.0")
                 implementation("io.github.kotlinmania:indexmap-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:icu-decimal-kotlin:0.1.2")
 
                 // HTTP types from the workspace sibling port of the
                 // hyperium/http crate. We use http-kotlin for the
@@ -348,6 +349,7 @@ kotlin {
             dependencies {
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
+                implementation("io.github.kotlinmania:landlock-kotlin:0.1.1")
             }
         }
     }
