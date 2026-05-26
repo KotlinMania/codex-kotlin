@@ -1,0 +1,159 @@
+// port-lint: source core/src/tools/context.rs
+package io.github.kotlinmania.codex.core.tools
+
+import io.github.kotlinmania.codex.core.session.Session
+import io.github.kotlinmania.codex.core.session.TurnContext
+import io.github.kotlinmania.codex.protocol.CallToolResult
+import io.github.kotlinmania.codex.protocol.FunctionCallOutputContentItem
+import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
+import io.github.kotlinmania.codex.protocol.McpResult
+import io.github.kotlinmania.codex.protocol.ResponseInputItem
+import io.github.kotlinmania.codex.protocol.ShellToolCallParams
+import io.github.kotlinmania.codex.core.session.SharedTurnDiffTracker
+import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
+
+data class ToolInvocation(
+        val session: Session,
+        val turn: TurnContext,
+        val tracker: SharedTurnDiffTracker,
+        val callId: String,
+        val toolName: String,
+        val payload: ToolPayload
+)
+
+sealed class ToolPayload {
+    data class Function(val arguments: String) : ToolPayload()
+    data class Custom(val input: String) : ToolPayload()
+    data class LocalShell(val params: ShellToolCallParams) : ToolPayload()
+    data class UnifiedExec(val arguments: String) : ToolPayload()
+    data class Mcp(val server: String, val tool: String, val rawArguments: String) : ToolPayload()
+
+    fun logPayload(): String {
+        return when (this) {
+            is Function -> arguments
+            is Custom -> input
+            is LocalShell -> params.command.joinToString(" ")
+            is UnifiedExec -> arguments
+            is Mcp -> rawArguments
+        }
+    }
+}
+
+sealed class ToolOutput {
+    data class Function(
+            val content: String,
+            val contentItems: List<FunctionCallOutputContentItem>? = null,
+            val success: Boolean? = null
+    ) : ToolOutput()
+
+    data class Mcp(val result: Result<CallToolResult>) : ToolOutput()
+
+    data class Exec(val output: ExecToolCallOutput) : ToolOutput()
+
+    data class ImageAttachment(val path: String, val message: String) : ToolOutput()
+
+    fun logPreview(): String {
+        return when (this) {
+            is Function -> telemetryPreview(content)
+            is Mcp -> result.toString()
+            is Exec -> output.toString()
+            is ImageAttachment -> message
+        }
+    }
+
+    fun successForLogging(): Boolean {
+        return when (this) {
+            is Function -> success ?: true
+            is Mcp -> result.isSuccess
+            is Exec -> output.exitCode == 0
+            is ImageAttachment -> true
+        }
+    }
+
+    fun intoResponse(callId: String, payload: ToolPayload): ResponseInputItem {
+        return when (this) {
+            is Function -> {
+                if (payload is ToolPayload.Custom) {
+                    ResponseInputItem.CustomToolCallOutput(callId = callId, output = content)
+                } else {
+                    ResponseInputItem.FunctionCallOutput(
+                            callId = callId,
+                            output =
+                                    FunctionCallOutputPayload(
+                                            content = content,
+                                            contentItems = contentItems,
+                                            success = success
+                                    )
+                    )
+                }
+            }
+            is Mcp -> {
+                val protoResult: McpResult<CallToolResult, String> =
+                        result.fold(
+                                onSuccess = { McpResult(value = it, error = null) },
+                                onFailure = { err ->
+                                    McpResult(value = null, error = err.message ?: "Unknown error")
+                                }
+                        )
+                ResponseInputItem.McpToolCallOutput(callId = callId, result = protoResult)
+            }
+            is Exec -> {
+                // Exec outputs are typically handled via events, but if converted to response:
+                ResponseInputItem.FunctionCallOutput(
+                        callId = callId,
+                        output =
+                                FunctionCallOutputPayload(
+                                        content = output.aggregatedOutput.text
+                                                        ?: output.stdout.text ?: "",
+                                        success = output.exitCode == 0
+                                )
+                )
+            }
+            is ImageAttachment ->
+                    ResponseInputItem.FunctionCallOutput(
+                            callId = callId,
+                            output = FunctionCallOutputPayload(content = message, success = true)
+                    )
+        }
+    }
+}
+
+fun telemetryPreview(content: String): String {
+    // Kotlin implementation of take_bytes_at_char_boundary logic
+    // For simplicity, we'll just take characters for now, but ideally should respect byte limit
+    // TELEMETRY_PREVIEW_MAX_BYTES is defined in Tools.kt (mod.rs)
+
+    val truncatedSlice =
+            if (content.length > TELEMETRY_PREVIEW_MAX_BYTES) {
+                content.substring(0, TELEMETRY_PREVIEW_MAX_BYTES) // Approximation
+            } else {
+                content
+            }
+
+    val truncatedByBytes = truncatedSlice.length < content.length
+
+    val lines = truncatedSlice.lines()
+    val previewLines = lines.take(TELEMETRY_PREVIEW_MAX_LINES)
+    val truncatedByLines = lines.size > TELEMETRY_PREVIEW_MAX_LINES
+
+    if (!truncatedByBytes && !truncatedByLines) {
+        return content
+    }
+
+    val preview = StringBuilder()
+    previewLines.forEachIndexed { index, line ->
+        if (index > 0) preview.append("\n")
+        preview.append(line)
+    }
+
+    if (preview.length < truncatedSlice.length && truncatedSlice[preview.length] == '\n') {
+        preview.append("\n")
+    }
+
+    if (preview.isNotEmpty() && !preview.endsWith("\n")) {
+        preview.append("\n")
+    }
+    preview.append(TELEMETRY_PREVIEW_TRUNCATION_NOTICE)
+
+    return preview.toString()
+}

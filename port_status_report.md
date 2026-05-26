@@ -38,7 +38,7 @@ These files are well-ported and likely complete:
 - `client.ModelClient` (0.93, 4 deps)
 - `protocol.Protocol` (0.88, 2 deps)
 - `session.TurnContextTest` (0.90, 1 deps)
-- `linuxX64Main.kotlin.ai.solace.coder.utils.git.GhostCommitsPlatform` (0.90, 1 deps)
+- `linuxX64Main.kotlin.io.github.kotlinmania.codex.utils.git.GhostCommitsPlatform` (0.90, 1 deps)
 - `readiness.ReadinessFlagTest` (0.89, 0 deps)
 - `protocol.NumFormat` (0.89, 0 deps)
 

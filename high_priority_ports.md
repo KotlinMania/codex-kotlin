@@ -22,7 +22,7 @@
 | 16 | `core.mcp_connection_manager` | `connection.McpConnectionManager` | 0.61 | 2 | 0.8 |
 | 17 | `tui.chatwidget` | `sse.Chat` | 0.64 | 2 | 0.7 |
 | 18 | `core.model_family` | `model.ModelFamily` | 0.88 | 5 | 0.6 |
-| 19 | `windows-sandbox-rs.token` | `nativeMain.kotlin.ai.solace.coder.core.auth.IdTokenParser` | 0.69 | 2 | 0.6 |
+| 19 | `windows-sandbox-rs.token` | `nativeMain.kotlin.io.github.kotlinmania.codex.core.auth.IdTokenParser` | 0.69 | 2 | 0.6 |
 | 20 | `core.shell` | `shell.ShellDetector` | 0.85 | 4 | 0.6 |
 
 ## Critical Issues (Similarity < 0.60 with Dependencies)

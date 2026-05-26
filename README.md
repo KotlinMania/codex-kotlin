@@ -56,9 +56,9 @@ The `ModelClient` is the versatile core of the library, handling connection reus
 
 ```kotlin
 // Import the core definitions
-import ai.solace.coder.core.client.ModelClient
-import ai.solace.coder.core.config.Config
-import ai.solace.coder.core.auth.AuthManager
+import io.github.kotlinmania.codex.core.client.ModelClient
+import io.github.kotlinmania.codex.core.config.Config
+import io.github.kotlinmania.codex.core.auth.AuthManager
 
 // 1. Setup Configuration & Auth
 val config = Config.fromEnv() // Loads from ~/.codex/config.toml or ENV
@@ -79,7 +79,7 @@ val client = ModelClient(
 Interact with models using Kotlin Flows for real-time response processing.
 
 ```kotlin
-import ai.solace.coder.api.common.Prompt
+import io.github.kotlinmania.codex.api.common.Prompt
 
 // Define your prompt
 val prompt = Prompt(
@@ -103,8 +103,8 @@ client.stream(prompt).collect { event ->
 Directly access the storage layer to manage credentials securely across different platforms.
 
 ```kotlin
-import ai.solace.coder.core.auth.createAuthStorage
-import ai.solace.coder.core.auth.AuthCredentialsStoreMode
+import io.github.kotlinmania.codex.core.auth.createAuthStorage
+import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
 
 // Create storage (Auto prefers Keychain, falls back to File)
 val storage = createAuthStorage(
@@ -125,7 +125,7 @@ val loadedAuth = storage.load().getOrNull()
 Use the high-performance, zero-dependency SHA-256 implementation (no Java stdlib needed).
 
 ```kotlin
-import ai.solace.coder.core.Sha256
+import io.github.kotlinmania.codex.core.Sha256
 
 val data = "Hello Codex".encodeToByteArray()
 val hash = Sha256.digest(data)

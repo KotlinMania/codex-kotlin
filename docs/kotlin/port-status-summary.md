@@ -5,7 +5,7 @@
 ### 1. codex-api Port (NEW)
 **Status**: ✅ Initial scaffolding complete with Ktor integration
 
-Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
+Created 16 new Kotlin files under `src/nativeMain/kotlin/io/github/kotlinmania/codex/api/`:
 - **auth/** - AuthProvider interface and addAuthHeaders with Ktor HttpRequestBuilder
 - **error/** - ApiError sealed class (all error types)
 - **provider/** - Provider, WireApi, RetryConfig with Ktor integration
@@ -24,7 +24,7 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 
 **Next Steps**:
 - Implement SSE stream parsing
-- Wire up protocol types from ai.solace.coder.protocol
+- Wire up protocol types from io.github.kotlinmania.codex.protocol
 - Add retry policy with exponential backoff
 - Complete request builders with full message transformation
 
@@ -79,8 +79,8 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 - Method signatures preserved (camelCase naming convention applied)
 
 ### ✅ Preserved API Boundaries
-- codex-api → ai.solace.coder.api (clean separation)
-- codex-protocol → ai.solace.coder.protocol (already existed, now verified)
+- codex-api → io.github.kotlinmania.codex.api (clean separation)
+- codex-protocol → io.github.kotlinmania.codex.protocol (already existed, now verified)
 - No unauthorized consolidation across crate boundaries
 - AuthManager kept in client.auth (from codex-core) as intended
 
@@ -99,7 +99,7 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 ## Compilation Status
 
 ✅ **All new codex-api files compile without errors**
-✅ **No errors in ai.solace.coder.api package**
+✅ **No errors in io.github.kotlinmania.codex.api package**
 ✅ **Protocol files already compiled** (pre-existing work)
 
 Only "never used" warnings present (expected for API types before consumers are wired).
