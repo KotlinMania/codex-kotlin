@@ -1,8 +1,16 @@
+import java.io.ByteArrayInputStream
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.zip.ZipInputStream
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.ClasspathNormalizer
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
@@ -22,17 +30,160 @@ plugins {
 group = "io.github.kotlinmania"
 version = "0.1.0"
 
-val androidSdkDir: String? =
-    providers.environmentVariable("ANDROID_SDK_ROOT").orNull
-        ?: providers.environmentVariable("ANDROID_HOME").orNull
+val androidCommandLineToolsRevision = "14742923"
+val projectCompileSdk = "34"
+val projectAndroidBuildTools = "36.0.0"
+val isWindowsHost = System.getProperty("os.name").lowercase().contains("windows")
+val androidSdkOsName =
+    when {
+        isWindowsHost -> "win"
+        System.getProperty("os.name").lowercase().contains("mac") -> "mac"
+        System.getProperty("os.name").lowercase().contains("linux") -> "linux"
+        else -> throw GradleException("Unsupported Android SDK setup OS: ${System.getProperty("os.name")}")
+    }
+val projectAndroidSdkDir = layout.projectDirectory.dir(".android-sdk").asFile
+val androidSdkManager = projectAndroidSdkDir.resolve(
+    if (isWindowsHost) {
+        "cmdline-tools/latest/bin/sdkmanager.bat"
+    } else {
+        "cmdline-tools/latest/bin/sdkmanager"
+    },
+)
+val androidSdkInstallMarker = projectAndroidSdkDir.resolve(".install-complete")
+val requiredAndroidSdkPackageDirs = listOf(
+    projectAndroidSdkDir.resolve("platform-tools"),
+    projectAndroidSdkDir.resolve("platforms/android-$projectCompileSdk"),
+    projectAndroidSdkDir.resolve("build-tools/$projectAndroidBuildTools"),
+)
 
-if (androidSdkDir != null && file(androidSdkDir).exists()) {
-    val localProperties = rootProject.file("local.properties")
-    if (!localProperties.exists()) {
-        val sdkDirPropertyValue = file(androidSdkDir).absolutePath.replace("\\", "/")
-        localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
+fun isProjectAndroidSdkInstalled(): Boolean =
+    androidSdkInstallMarker.exists() &&
+        androidSdkManager.exists() &&
+        requiredAndroidSdkPackageDirs.all { it.exists() }
+
+fun writeAndroidLocalProperties() {
+    val sdkDirPropertyValue = projectAndroidSdkDir.absolutePath.replace("\\", "/")
+    layout.projectDirectory.file("local.properties").asFile.writeText("sdk.dir=$sdkDirPropertyValue\n")
+}
+
+fun sdkManagerCommand(vararg args: String): List<String> =
+    if (isWindowsHost) {
+        listOf("cmd", "/c", androidSdkManager.absolutePath) + args
+    } else {
+        listOf(androidSdkManager.absolutePath) + args
+    }
+
+fun downloadAndroidCommandLineTools() {
+    val zipName = "commandlinetools-$androidSdkOsName-${androidCommandLineToolsRevision}_latest.zip"
+    val url = "https://dl.google.com/android/repository/$zipName"
+    val tmpDir = projectAndroidSdkDir.resolve(".tmp/commandline-tools")
+    val zipFile = tmpDir.resolve(zipName)
+    val latestDir = projectAndroidSdkDir.resolve("cmdline-tools/latest")
+
+    println("setup-android-sdk: downloading $url")
+    tmpDir.deleteRecursively()
+    tmpDir.mkdirs()
+
+    try {
+        URI(url).toURL().openStream().use { input ->
+            Files.copy(input, zipFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+
+        latestDir.deleteRecursively()
+        latestDir.mkdirs()
+        val canonicalLatestDir = latestDir.canonicalFile.toPath()
+
+        ZipInputStream(zipFile.inputStream().buffered()).use { zipInput ->
+            generateSequence { zipInput.nextEntry }.forEach { entry ->
+                val relativeName = entry.name.removePrefix("cmdline-tools/").trimStart('/')
+                if (relativeName.isNotEmpty()) {
+                    val target = latestDir.resolve(relativeName).canonicalFile
+                    if (!target.toPath().startsWith(canonicalLatestDir)) {
+                        throw GradleException("Refusing to extract Android SDK entry outside $latestDir: ${entry.name}")
+                    }
+                    if (entry.isDirectory) {
+                        target.mkdirs()
+                    } else {
+                        target.parentFile.mkdirs()
+                        Files.copy(zipInput, target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                        if (!isWindowsHost && relativeName.startsWith("bin/")) {
+                            target.setExecutable(true)
+                        }
+                    }
+                }
+                zipInput.closeEntry()
+            }
+        }
+
+        if (!isWindowsHost) {
+            androidSdkManager.setExecutable(true)
+        }
+    } finally {
+        tmpDir.deleteRecursively()
     }
 }
+
+fun installProjectAndroidSdk(execOperations: ExecOperations) {
+    if (isProjectAndroidSdkInstalled()) {
+        writeAndroidLocalProperties()
+        println("setup-android-sdk: SDK already installed at $projectAndroidSdkDir")
+        return
+    }
+
+    if (!androidSdkManager.exists()) {
+        downloadAndroidCommandLineTools()
+    }
+
+    println("setup-android-sdk: accepting licenses")
+    val licenseAnswers = "y\n".repeat(200).toByteArray(Charsets.UTF_8)
+    val licenseResult = execOperations.exec {
+        commandLine(sdkManagerCommand("--sdk_root=${projectAndroidSdkDir.absolutePath}", "--licenses"))
+        standardInput = ByteArrayInputStream(licenseAnswers)
+        isIgnoreExitValue = true
+    }
+    if (licenseResult.exitValue != 0) {
+        throw GradleException("Android SDK license acceptance failed with exit code ${licenseResult.exitValue}")
+    }
+
+    println("setup-android-sdk: installing platform-tools, android-$projectCompileSdk, build-tools;$projectAndroidBuildTools")
+    val installLog = projectAndroidSdkDir.resolve("sdkmanager-install.log")
+    installLog.parentFile.mkdirs()
+    installLog.outputStream().use { output ->
+        val installResult = execOperations.exec {
+            commandLine(
+                sdkManagerCommand(
+                    "--sdk_root=${projectAndroidSdkDir.absolutePath}",
+                    "platform-tools",
+                    "platforms;android-$projectCompileSdk",
+                    "build-tools;$projectAndroidBuildTools",
+                ),
+            )
+            standardOutput = output
+            errorOutput = output
+            isIgnoreExitValue = true
+        }
+        if (installResult.exitValue != 0) {
+            throw GradleException(
+                "Android SDK package install failed with exit code ${installResult.exitValue}. " +
+                    "Install log:\n${installLog.readText()}",
+            )
+        }
+    }
+    println("setup-android-sdk: install log at $installLog")
+
+    writeAndroidLocalProperties()
+    androidSdkInstallMarker.writeText("")
+    println("setup-android-sdk: done")
+    println("  SDK at:     $projectAndroidSdkDir")
+    println("  configured: local.properties -> $projectAndroidSdkDir")
+}
+
+// The Android Gradle plugin resolves the SDK location while Gradle builds the
+// task graph, before any task executes, so this project-local SDK installer is
+// intentionally called during configuration. The installer is idempotent and
+// always rewrites local.properties to this repo's .android-sdk path.
+val androidSdkExecOperations = serviceOf<ExecOperations>()
+installProjectAndroidSdk(androidSdkExecOperations)
 
 kotlin {
     applyDefaultHierarchyTemplate()
@@ -107,11 +258,11 @@ kotlin {
 
     swiftExport {
         moduleName = "Codex"
-        flattenPackage = "io.github.solaceharmony.codex"
+        flattenPackage = "io.github.kotlinmania.codex"
     }
 
     android {
-        namespace = "io.github.solaceharmony.codex"
+        namespace = "io.github.kotlinmania.codex"
         compileSdk = 34
         minSdk = 24
         withHostTestBuilder {}.configure {}
@@ -119,6 +270,8 @@ kotlin {
             sourceSetTreeName = "test"
         }
     }
+
+    jvm()
 
     sourceSets {
         val commonMain by getting {
@@ -129,8 +282,21 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.6.0")
+                implementation("io.github.kotlinmania:indexmap-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:icu-decimal-kotlin:0.1.2")
 
-                // Ktor HTTP client core
+                // HTTP types from the workspace sibling port of the
+                // hyperium/http crate. We use http-kotlin for the
+                // request/response/method/status types instead of pulling
+                // in a Ktor client engine; the upstream codex-rs HTTP
+                // surface models the same Request/Response shape and the
+                // sibling already publishes for every target we configure.
+                implementation("io.github.kotlinmania:http-kotlin:0.1.0")
+
+                // Ktor HTTP client core (engine-less; per-target engines
+                // wired below). The Curl engine has been dropped because
+                // it does not publish for the iOS / tvOS / watchOS /
+                // androidNative targets we ship.
                 implementation("io.ktor:ktor-client-core:3.4.3")
                 implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
@@ -156,6 +322,12 @@ kotlin {
 
                 // JSON Schema types
                 implementation("io.github.kotlinmania:schemars-kotlin:0.1.0")
+
+                // Upstream codex-rs/state/src/runtime.rs uses `log::LevelFilter`,
+                // codex-rs/state/src/model/mod.rs re-exports `log::{LogEntry, LogQuery,
+                // LogRow}`, and codex-rs/execpolicy-legacy/src/policy_parser.rs uses
+                // `log::info`.
+                implementation("io.github.kotlinmania:log-kotlin:0.1.1")
             }
         }
 
@@ -166,11 +338,18 @@ kotlin {
             }
         }
 
-        val nativeMain by getting {
+        // io.github.tree-sitter:ktreesitter and ktreesitter-bash only
+        // publish for (linuxArm64, linuxX64) — they ship `libtree-sitter`
+        // C interop bindings that have no iOS / macOS / mingw / watchOS /
+        // tvOS / androidNative variants. Scope the dependency (and the
+        // ktreesitter-backed [BashParser]) to `linuxMain`, where the
+        // applyDefaultHierarchyTemplate intermediate set already groups
+        // linuxX64 + linuxArm64.
+        val linuxMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-curl:3.4.3")
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
                 implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
+                implementation("io.github.kotlinmania:landlock-kotlin:0.1.1")
             }
         }
     }
@@ -214,6 +393,8 @@ rootProject.extensions.configure<WasmYarnRootEnvSpec>("kotlinWasmYarnSpec") {
 rootProject.extensions.configure<YarnRootExtension>("kotlinYarn") {
     resolution("diff", "8.0.3")
     resolution("**/diff", "8.0.3")
+    resolution("fast-uri", "3.1.2")
+    resolution("**/fast-uri", "3.1.2")
     resolution("serialize-javascript", "7.0.5")
     resolution("**/serialize-javascript", "7.0.5")
     resolution("webpack", "5.106.2")
@@ -236,6 +417,8 @@ rootProject.extensions.configure<YarnRootExtension>("kotlinYarn") {
     resolution("**/qs", "6.15.1")
     resolution("socket.io-parser", "4.2.6")
     resolution("**/socket.io-parser", "4.2.6")
+    resolution("ws", "8.20.1")
+    resolution("**/ws", "8.20.1")
 }
 
 
@@ -363,10 +546,12 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
     }
 }
 
-tasks.register<Exec>("setupAndroidSdk") {
+tasks.register("setupAndroidSdk") {
     group = "setup"
     description = "Downloads and configures the project-local Android SDK."
-    commandLine("./setup-android-sdk.sh")
+    doLast {
+        installProjectAndroidSdk(androidSdkExecOperations)
+    }
 }
 
 tasks.register("test") {
