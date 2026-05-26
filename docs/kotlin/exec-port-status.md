@@ -6,7 +6,7 @@ The exec package was partially ported by another AI with significant gaps. Creat
 
 ## Files Created
 
-### 1. src/nativeMain/kotlin/ai/solace/coder/exec/process/SandboxType.kt
+### 1. src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/process/SandboxType.kt
 **Source**: codex-rs/core/src/exec/mod.rs
 
 Enum for platform-specific sandbox types:
@@ -15,7 +15,7 @@ Enum for platform-specific sandbox types:
 - `LinuxSeccomp` - Linux seccomp sandbox via codex-linux-sandbox
 - `WindowsRestrictedToken` - Windows restricted token sandbox
 
-### 2. src/nativeMain/kotlin/ai/solace/coder/exec/sandbox/SandboxManager.kt
+### 2. src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/SandboxManager.kt
 **Source**: codex-rs/core/src/sandboxing/mod.rs
 
 Main sandbox orchestration class:
@@ -27,7 +27,7 @@ Mirrors Rust's SandboxManager which handles:
 - Command transformation to wrap with sandbox executables
 - Permission checks and enforcement
 
-### 3. src/nativeMain/kotlin/ai/solace/coder/exec/sandbox/Approvals.kt
+### 3. src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/Approvals.kt
 **Source**: codex-rs/core/src/tools/sandboxing.rs
 
 Approval and tool execution types:
@@ -39,7 +39,7 @@ Approval and tool execution types:
 
 ## Existing Files
 
-### src/nativeMain/kotlin/ai/solace/coder/exec/shell/
+### src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/shell/
 - `ShellDetector.kt` - Shell detection logic (has unresolved platform function references)
 - `CommandParser.kt` - Command parsing utilities
 

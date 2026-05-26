@@ -157,7 +157,7 @@ return task?.isRunning() ?: false
 
 **Action:**
 ```bash
-rm /Volumes/emberstuff/Projects/codex-kotlin/src/macosMain/kotlin/ai/solace/coder/utils/git/GhostCommits.macos.kt
+rm /Volumes/emberstuff/Projects/codex-kotlin/src/macosMain/kotlin/io/github/kotlinmania/codex/utils/git/GhostCommits.macos.kt
 ```
 
 **Reason**: macosArm64Main is more specific and should take precedence for ARM64 architecture

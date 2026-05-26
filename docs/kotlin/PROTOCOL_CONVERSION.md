@@ -1,7 +1,7 @@
 # Protocol Conversion Summary
 
 ## Overview
-This document summarizes the conversion of core protocol types from `codex-rs/protocol/src/protocol.rs` (1820 lines of Rust) to Kotlin Native in `ai.solace.coder.protocol`.
+This document summarizes the conversion of core protocol types from `codex-rs/protocol/src/protocol.rs` (1820 lines of Rust) to Kotlin Native in `io.github.solaceharmony.codex.protocol`.
 
 ## Files Created
 

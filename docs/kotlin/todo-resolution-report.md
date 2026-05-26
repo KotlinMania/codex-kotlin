@@ -16,7 +16,7 @@ data class Transport(val message: String) : ApiError() // TODO: replace with Tra
 ```
 
 **Resolution:**
-- Created `/src/nativeMain/kotlin/ai/solace/coder/client/error/TransportError.kt`
+- Created `/src/nativeMain/kotlin/io/github/kotlinmania/codex/client/error/TransportError.kt`
 - Ported complete `TransportError` enum from `codex-rs/codex-client/src/error.rs`
 - Ported `StreamError` enum as well
 - Updated `ApiError.Transport` to use proper `TransportError` type
@@ -187,8 +187,8 @@ fun handleTransportError(transportError: TransportError): ApiError {
 
 ## Files Modified
 
-1. ✅ Created: `src/nativeMain/kotlin/ai/solace/coder/client/error/TransportError.kt` (67 lines)
-2. ✅ Updated: `src/nativeMain/kotlin/ai/solace/coder/api/error/ApiError.kt` (72 lines)
+1. ✅ Created: `src/nativeMain/kotlin/io/github/kotlinmania/codex/client/error/TransportError.kt` (67 lines)
+2. ✅ Updated: `src/nativeMain/kotlin/io/github/kotlinmania/codex/api/error/ApiError.kt` (72 lines)
 
 ## Testing Recommendations
 
