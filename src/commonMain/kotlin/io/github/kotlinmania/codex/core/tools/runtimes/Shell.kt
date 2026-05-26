@@ -2,10 +2,17 @@
 package io.github.kotlinmania.codex.core.tools.runtimes
 
 import io.github.kotlinmania.codex.core.Exec
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/Shell.kt
+import io.github.kotlinmania.codex.core.StdoutStream
+import io.github.kotlinmania.codex.core.exec.ExecExpiration
+import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
+import io.github.kotlinmania.codex.core.error.CodexError
+========
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StdoutStream
 import io.github.kotlinmania.codex.core.CodexErr
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/Shell.kt
 import io.github.kotlinmania.codex.core.tools.Approvable
 import io.github.kotlinmania.codex.core.tools.ApprovalCtx
 import io.github.kotlinmania.codex.core.tools.ApprovalRequirement
@@ -155,8 +162,13 @@ class ShellRuntime(private val processExecutor: Exec) :
     ): Result<ExecToolCallOutput> {
         val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
         return when (result) {
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/Shell.kt
+            is io.github.kotlinmania.codex.core.error.CodexResult.Success -> Result.success(result.value)
+            is io.github.kotlinmania.codex.core.error.CodexResult.Failure ->
+========
             is io.github.kotlinmania.codex.core.CodexResult.Success -> Result.success(result.value)
             is io.github.kotlinmania.codex.core.CodexResult.Failure ->
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/Shell.kt
                     Result.failure(result.error.toException())
         }
     }

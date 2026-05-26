@@ -3,12 +3,19 @@ package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.FunctionCallError
 import io.github.kotlinmania.codex.core.session.Session
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Router.kt
+import io.github.kotlinmania.codex.core.session.TurnContext
+import io.github.kotlinmania.codex.core.session.SharedTurnDiffTracker
+import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
+import io.github.kotlinmania.codex.protocol.LocalShellAction
+========
 import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.ToolSpec
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.LocalShellAction
 import io.github.kotlinmania.codex.protocol.McpTool
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Router.kt
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.ShellToolCallParams

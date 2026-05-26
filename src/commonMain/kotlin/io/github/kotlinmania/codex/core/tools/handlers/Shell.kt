@@ -2,10 +2,18 @@
 package io.github.kotlinmania.codex.core.tools.handlers
 
 import io.github.kotlinmania.codex.core.Exec
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/Shell.kt
+import io.github.kotlinmania.codex.core.exec.ExecExpiration
+import io.github.kotlinmania.codex.core.exec.ExecParams
+import io.github.kotlinmania.codex.core.exec.execExpirationFromTimeoutMs
+import io.github.kotlinmania.codex.core.command_safety.isKnownSafeCommand
+import io.github.kotlinmania.codex.core.error.CodexError
+========
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.ExecParams
 import io.github.kotlinmania.codex.core.FunctionCallError
 import io.github.kotlinmania.codex.core.commandsafety.isKnownSafeCommand
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/Shell.kt
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker

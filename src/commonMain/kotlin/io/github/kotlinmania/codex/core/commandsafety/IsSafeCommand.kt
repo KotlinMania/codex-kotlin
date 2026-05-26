@@ -1,5 +1,10 @@
+<<<<<<<< HEAD:src/commonMain/kotlin/io/github/kotlinmania/codex/core/command_safety/IsSafeCommand.kt
+// port-lint: source core/src/command_safety/is_safe_command.rs
+package io.github.kotlinmania.codex.core.command_safety
+========
 // port-lint: source core/src/commandSafety/isSafeCommand.rs
 package io.github.kotlinmania.codex.core.commandsafety
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/commandsafety/IsSafeCommand.kt
 
 import io.github.kotlinmania.codex.core.bash.parseShellLcPlainCommands
 

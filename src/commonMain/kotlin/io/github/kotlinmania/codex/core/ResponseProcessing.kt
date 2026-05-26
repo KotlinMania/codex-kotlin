@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/ResponseProcessing.kt
+// port-lint: source core/src/response_processing.rs
+========
 // port-lint: source core/src/responseProcessing.rs
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/ResponseProcessing.kt
 package io.github.kotlinmania.codex.core
 
 import io.github.kotlinmania.codex.core.session.Session

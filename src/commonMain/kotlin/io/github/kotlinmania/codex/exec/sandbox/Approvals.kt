@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/Approvals.kt
+// port-lint: source codex-rs/core/src/tools/sandboxing.rs
+========
 // port-lint: source core/src/tools/sandboxing.rs
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/Approvals.kt
 package io.github.kotlinmania.codex.exec.sandbox
 
 import io.github.kotlinmania.codex.protocol.ReviewDecision

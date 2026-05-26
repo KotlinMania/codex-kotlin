@@ -1,6 +1,11 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/unified_exec/UnifiedExec.kt
+// port-lint: source core/src/unified_exec/mod.rs
+package io.github.kotlinmania.codex.core.unified_exec
+========
 // port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.unifiedexec
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/unifiedexec/UnifiedExec.kt
 
 import io.github.kotlinmania.codex.core.session.Session as CodexSession
 import io.github.kotlinmania.codex.core.session.TurnContext

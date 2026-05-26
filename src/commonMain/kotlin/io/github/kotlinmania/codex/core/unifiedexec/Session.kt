@@ -1,8 +1,16 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/unified_exec/Session.kt
+// port-lint: source core/src/unified_exec/session.rs
+package io.github.kotlinmania.codex.core.unified_exec
+
+import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
+import io.github.kotlinmania.codex.core.exec.StreamOutput
+========
 // port-lint: source core/src/unifiedExec/session.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StreamOutput
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/unifiedexec/Session.kt
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied

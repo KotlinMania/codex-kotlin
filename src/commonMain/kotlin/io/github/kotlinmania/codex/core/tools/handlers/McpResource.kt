@@ -18,11 +18,19 @@ import io.github.kotlinmania.codex.protocol.McpInvocation
 import io.github.kotlinmania.codex.protocol.McpResult
 import io.github.kotlinmania.codex.protocol.McpToolCallBeginEvent
 import io.github.kotlinmania.codex.protocol.McpToolCallEndEvent
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/McpResource.kt
+import io.github.kotlinmania.codex.protocol.ReadResourceRequestParams
+import io.github.kotlinmania.codex.protocol.ReadResourceResult
+import io.github.kotlinmania.codex.protocol.Resource
+import io.github.kotlinmania.codex.protocol.ResourceContent
+import io.github.kotlinmania.codex.protocol.ResourceTemplate
+========
 import io.github.kotlinmania.codex.protocol.McpResource
 import io.github.kotlinmania.codex.protocol.McpResourceTemplate
 import io.github.kotlinmania.codex.protocol.ReadResourceRequestParams
 import io.github.kotlinmania.codex.protocol.ReadResourceResult
 import io.github.kotlinmania.codex.protocol.ResourceContent
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/McpResource.kt
 import kotlin.time.TimeSource
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString

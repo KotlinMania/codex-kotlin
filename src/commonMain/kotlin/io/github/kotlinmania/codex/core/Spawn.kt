@@ -1,3 +1,9 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/Spawn.kt
+// port-lint: source codex-rs/core/src/spawn.rs
+package io.github.kotlinmania.codex.core
+
+import io.github.kotlinmania.codex.exec.process.SandboxType
+========
 // port-lint: source spawn.rs
 package io.github.kotlinmania.codex.core
 
@@ -22,6 +28,7 @@ enum class StdioPolicy {
     RedirectForShellTool,
     Inherit,
 }
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/Spawn.kt
 
 /** Platform-specific process handle */
 expect class ProcessHandle {

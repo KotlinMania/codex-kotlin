@@ -9,7 +9,7 @@
 
 ### 1. File Created
 - **Hashing.kt** - Pure Kotlin Multiplatform SHA-256 implementation
-- Location: `src/nativeMain/kotlin/ai/solace/coder/core/auth/Hashing.kt`
+- Location: `src/nativeMain/kotlin/io/github/kotlinmania/codex/core/auth/Hashing.kt`
 - Class: `Sha256MessageDigest`
 
 ### 2. All JVM Dependencies Removed

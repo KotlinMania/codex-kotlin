@@ -1,7 +1,14 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+// port-lint: source core/src/tools/handlers/read_file.rs
+package io.github.kotlinmania.codex.core.tools.handlers
+
+import io.github.kotlinmania.codex.core.error.CodexError
+========
 // port-lint: source core/src/tools/handlers/readFile.rs
 package io.github.kotlinmania.codex.core.tools.handlers
 
 import io.github.kotlinmania.codex.core.CodexErr
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
 import io.github.kotlinmania.codex.core.tools.ToolHandler
 import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
@@ -31,7 +38,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (payload !is ToolPayload.Function) {
             return Result.failure(
                     io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                            CodexError.Fatal("read_file handler received unsupported payload")
+========
                             CodexErr.Fatal("read_file handler received unsupported payload")
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                     )
             )
         }
@@ -42,7 +53,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
                 } catch (e: Exception) {
                     return Result.failure(
                             io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                                    CodexError.Fatal(
+========
                                     CodexErr.Fatal(
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                                             "failed to parse function arguments: ${e.message}"
                                     )
                             )
@@ -53,7 +68,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (args.offset == 0) {
             return Result.failure(
                     io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                            CodexError.Fatal("offset must be a 1-indexed line number")
+========
                             CodexErr.Fatal("offset must be a 1-indexed line number")
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                     )
             )
         }
@@ -61,7 +80,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (args.limit == 0) {
             return Result.failure(
                     io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                            CodexError.Fatal("limit must be greater than zero")
+========
                             CodexErr.Fatal("limit must be greater than zero")
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                     )
             )
         }
@@ -70,7 +93,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         if (!filePath.startsWith("/") && !filePath.matches(Regex("^[A-Za-z]:.*"))) {
             return Result.failure(
                     io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                            CodexError.Fatal("file_path must be an absolute path")
+========
                             CodexErr.Fatal("file_path must be an absolute path")
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                     )
             )
         }
@@ -90,7 +117,11 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         } catch (e: Exception) {
             Result.failure(
                     io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
+                            CodexError.Fatal("failed to read file: ${e.message}")
+========
                             CodexErr.Fatal("failed to read file: ${e.message}")
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ReadFile.kt
                     )
             )
         }

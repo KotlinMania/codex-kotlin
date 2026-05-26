@@ -1,6 +1,13 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/unified_exec/SessionManager.kt
+// port-lint: source core/src/unified_exec/session_manager.rs
+package io.github.kotlinmania.codex.core.unified_exec
+
+// import io.github.kotlinmania.codex.core.tools.createApprovalRequirementForCommand // TODO: Implement this
+========
 // port-lint: source core/src/unifiedExec/sessionManager.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/unifiedexec/SessionManager.kt
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.session.Session as CodexSession
@@ -200,7 +207,11 @@ class UnifiedExecSessionManager {
                         cwd = cwd,
                         env = emptyMap(), // TODO: Inherit or config
                         expiration =
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/unified_exec/SessionManager.kt
+                                io.github.kotlinmania.codex.core.exec.ExecExpiration
+========
                                 io.github.kotlinmania.codex.core.ExecExpiration
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/unifiedexec/SessionManager.kt
                                         .DefaultTimeout, // Unified execs are usually
                         // interactive/long-running?
                         withEscalatedPermissions = withEscalatedPermissions,

@@ -1,5 +1,10 @@
+<<<<<<<< HEAD:src/commonMain/kotlin/io/github/kotlinmania/codex/core/command_safety/WindowsDangerousCommands.kt
+// port-lint: source core/src/command_safety/windows_dangerous_commands.rs
+package io.github.kotlinmania.codex.core.command_safety
+========
 // port-lint: source core/src/commandSafety/windowsDangerousCommands.rs
 package io.github.kotlinmania.codex.core.commandsafety
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/commandsafety/WindowsDangerousCommands.kt
 
 import io.github.kotlinmania.codex.exec.shell.CommandParser
 

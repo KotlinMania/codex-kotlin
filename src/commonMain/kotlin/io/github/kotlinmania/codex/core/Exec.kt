@@ -1,15 +1,28 @@
 // port-lint: source core/src/exec.rs
 package io.github.kotlinmania.codex.core
 
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
+import io.github.kotlinmania.codex.core.error.CodexError
+import io.github.kotlinmania.codex.core.error.CodexResult
+import io.github.kotlinmania.codex.core.exec.ExecExpiration
+import io.github.kotlinmania.codex.core.exec.ExecParams
+import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
+import io.github.kotlinmania.codex.core.exec.SimpleProcessResult
+import io.github.kotlinmania.codex.core.exec.StreamOutput
+========
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
 import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
 import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
 import io.github.kotlinmania.codex.exec.shell.ShellDetector
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
+========
 import kotlin.time.Duration.Companion.milliseconds
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
 import kotlin.time.measureTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -346,9 +359,15 @@ class Exec {
 
         // Check for sandbox denial
         if (isLikelySandboxDenied(sandboxType, execOutput)) {
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
+            // Convert to exception so caller's try/catch will turn it into a failure CodexResult
+            throw io.github.kotlinmania.codex.core.error.CodexException(
+                    CodexError.SandboxError.ApplicationFailed("Sandbox denied execution")
+========
             // Convert to exception so caller try/catch will turn it into a failure CodexResult
             throw io.github.kotlinmania.codex.core.CodexException(
                     CodexErr.Sandbox(io.github.kotlinmania.codex.core.SandboxErr.Denied(execOutput))
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/Exec.kt
             )
         }
 

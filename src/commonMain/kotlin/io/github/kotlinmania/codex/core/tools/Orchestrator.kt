@@ -1,15 +1,39 @@
 // port-lint: source core/src/tools/orchestrator.rs
 package io.github.kotlinmania.codex.core.tools
 
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Orchestrator.kt
+import io.github.kotlinmania.codex.core.error.CodexError
+import io.github.kotlinmania.codex.core.error.CodexError.SandboxError
+import io.github.kotlinmania.codex.core.error.getErrorMessageUi
+import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
+import io.github.kotlinmania.codex.exec.process.SandboxType
+import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
+import io.github.kotlinmania.codex.exec.sandbox.SandboxPreference
+========
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.getErrorMessageUi
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Orchestrator.kt
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.core.session.TurnContext
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Orchestrator.kt
+
+/**
+ * Convert SandboxablePreference to SandboxPreference.
+ */
+private fun SandboxablePreference.toSandboxPreference(): SandboxPreference {
+    return when (this) {
+        SandboxablePreference.Auto -> SandboxPreference.Auto
+        SandboxablePreference.Require -> SandboxPreference.Require
+        SandboxablePreference.Forbid -> SandboxPreference.Forbid
+    }
+}
+========
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Orchestrator.kt
 
 class ToolOrchestrator {
     private val sandbox = SandboxManager()

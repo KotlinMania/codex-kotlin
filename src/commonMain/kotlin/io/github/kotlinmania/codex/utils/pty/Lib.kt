@@ -1,8 +1,15 @@
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/utils/pty/Lib.kt
+// port-lint: source utils/pty/src/lib.rs
+package io.github.kotlinmania.codex.utils.pty
+
+import io.github.kotlinmania.codex.core.error.CodexResult
+========
 // port-lint: ignore
 // transliterated from upstream module root (utils/pty crate)
 package io.github.kotlinmania.codex.utils.pty
 
 import io.github.kotlinmania.codex.core.CodexResult
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/utils/pty/Lib.kt
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel

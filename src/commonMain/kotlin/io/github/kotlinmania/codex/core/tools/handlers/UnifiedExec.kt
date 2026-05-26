@@ -1,17 +1,28 @@
 // port-lint: source core/src/tools/handlers/unified_exec.rs
 package io.github.kotlinmania.codex.core.tools.handlers
 
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
+import io.github.kotlinmania.codex.core.error.CodexError
+========
 import io.github.kotlinmania.codex.core.CodexErr
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
 import io.github.kotlinmania.codex.core.tools.ToolError
 import io.github.kotlinmania.codex.core.tools.ToolHandler
 import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
+import io.github.kotlinmania.codex.core.unified_exec.ExecCommandRequest
+import io.github.kotlinmania.codex.core.unified_exec.UnifiedExecContext
+import io.github.kotlinmania.codex.core.unified_exec.UnifiedExecSessionManager
+import io.github.kotlinmania.codex.core.unified_exec.WriteStdinRequest
+========
 import io.github.kotlinmania.codex.core.unifiedexec.ExecCommandRequest
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecContext
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSessionManager
 import io.github.kotlinmania.codex.core.unifiedexec.WriteStdinRequest
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -108,9 +119,31 @@ class UnifiedExecHandler : ToolHandler {
                                         val response = sessionManager.execCommand(request, context)
 
                                         Result.success(
+<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
+                                                ToolOutput.Exec(
+                                                        io.github.kotlinmania.codex.core.exec.ExecToolCallOutput(
+                                                                exitCode = response.exitCode ?: -1,
+                                                                stdout =
+                                                                        io.github.kotlinmania.codex.core.exec
+                                                                                .StreamOutput(
+                                                                                        response.output
+                                                                                ),
+                                                                stderr =
+                                                                        io.github.kotlinmania.codex.core.exec
+                                                                                .StreamOutput(""),
+                                                                aggregatedOutput =
+                                                                        io.github.kotlinmania.codex.core.exec
+                                                                                .StreamOutput(
+                                                                                        response.output
+                                                                                ),
+                                                                duration = response.wallTime,
+                                                                timedOut = false
+                                                        )
+========
                                                 ToolOutput.Function(
                                                         content = response.output,
                                                         success = response.exitCode == 0
+>>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/UnifiedExec.kt
                                                 )
                                         )
                                 }
