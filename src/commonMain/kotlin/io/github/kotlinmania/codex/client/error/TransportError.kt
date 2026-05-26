@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-client/src/error.rs
+// port-lint: source error.rs
 package io.github.kotlinmania.codex.client.error
 
 import io.ktor.http.*
@@ -6,7 +6,7 @@ import io.ktor.http.*
 /**
  * Transport-level errors that can occur during HTTP communication.
  *
- * Mirrors Rust's TransportError from codex-client/src/error.rs
+ * Mirrors the upstream TransportError from codex-client/src/error.rs
  */
 sealed class TransportError : Exception() {
     /**
@@ -49,7 +49,7 @@ sealed class TransportError : Exception() {
 /**
  * Streaming-specific errors.
  *
- * Mirrors Rust's StreamError from codex-client/src/error.rs
+ * Mirrors the upstream StreamError from codex-client/src/error.rs
  */
 sealed class StreamError : Exception() {
     /**

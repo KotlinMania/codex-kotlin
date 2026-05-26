@@ -4,6 +4,9 @@ import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import io.github.kotlinmania.codex.core.context.ContextManager
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.features.Features
+import io.github.kotlinmania.codex.core.model.ModelFamily
+import io.github.kotlinmania.codex.core.model.ModelProviderInfo
+import io.github.kotlinmania.codex.core.model.deriveDefaultModelFamily
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.CompactedItem
 import io.github.kotlinmania.codex.protocol.RolloutItem
@@ -13,6 +16,7 @@ import io.github.kotlinmania.codex.protocol.InitialHistory
 import io.github.kotlinmania.codex.protocol.ResumedHistory
 import io.github.kotlinmania.codex.protocol.TurnAbortReason
 import io.github.kotlinmania.codex.protocol.CallToolResult
+import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ContentBlock
 import io.github.kotlinmania.codex.protocol.ContentItem
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
@@ -35,18 +39,18 @@ class FunctionCallOutputPayloadConversionTest {
     @Test
     fun testPrefersStructuredContentWhenPresent() {
         val ctr = CallToolResult(
-            // Content present but should be ignored because structured_content is set.
+            // Content present but should be ignored because structuredContent is set.
             content = listOf(ContentBlock.TextContent(text = "ignored")),
-            is_error = null,
-            structured_content = buildJsonObject {
+            isError =null,
+            structuredContent =buildJsonObject {
                 put("ok", true)
                 put("value", 42)
             }
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
-        // structured_content takes precedence
+        // structuredContent takes precedence
         assertTrue(got.content?.contains("\"ok\":true") ?: false || got.content?.contains("\"ok\": true") ?: false)
         assertTrue(got.content?.contains("\"value\":42") ?: false || got.content?.contains("\"value\": 42") ?: false)
         assertEquals(true, got.success)
@@ -54,17 +58,17 @@ class FunctionCallOutputPayloadConversionTest {
 
     @Test
     fun testFallsBackToContentWhenStructuredIsJsonNull() {
-        // When structured_content is JsonNull, it should fall back to content.
+        // When structuredContent is JsonNull, it should fall back to content.
         // Use empty content list to avoid serialization complexity
         val ctr = CallToolResult(
             content = emptyList(),
-            is_error = null,
-            structured_content = JsonNull
+            isError =null,
+            structuredContent =JsonNull
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
-        // When structured_content is JsonNull, falls back to content serialization
+        // When structuredContent is JsonNull, falls back to content serialization
         // Empty content list should serialize successfully
         assertNotNull(got.content)
         assertEquals(true, got.success)
@@ -74,15 +78,15 @@ class FunctionCallOutputPayloadConversionTest {
     fun testSuccessFlagReflectsIsErrorTrue() {
         val ctr = CallToolResult(
             content = listOf(ContentBlock.TextContent(text = "unused")),
-            is_error = true,
-            structured_content = buildJsonObject {
+            isError =true,
+            structuredContent =buildJsonObject {
                 put("message", "bad")
             }
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
-        // is_error = true should result in success = false
+        // isError =true should result in success = false
         assertEquals(false, got.success)
         assertTrue(got.content?.contains("\"message\":\"bad\"") ?: false || got.content?.contains("\"message\": \"bad\"") ?: false)
     }
@@ -93,11 +97,11 @@ class FunctionCallOutputPayloadConversionTest {
         // Use empty content list which serializes reliably
         val ctr = CallToolResult(
             content = emptyList(),
-            is_error = false
-            // Don't pass structured_content - let it default
+            isError =false
+            // Don't pass structuredContent - let it default
         )
 
-        val got = FunctionCallOutputPayload.fromCallToolResult(ctr)
+        val got = FunctionCallOutputPayload.from(ctr)
 
         assertEquals(true, got.success)
         assertNotNull(got.content)
@@ -186,31 +190,32 @@ class InitialHistoryTest {
     @Test
     fun testResumedHistory() {
         val rolloutItems = listOf(
-            RolloutItem.ResponseItem(
+            RolloutItem.ResponseItemHolder(
                 ResponseItem.Message(
                     role = "user",
                     content = listOf(ContentItem.InputText(text = "hello"))
                 )
             )
         )
+        val conversationId = ConversationId.fromString("00000000-0000-0000-0000-000000000123").getOrThrow()
         val history = InitialHistory.Resumed(
             payload = ResumedHistory(
-                conversation_id = "conv-123",
+                conversationId = conversationId,
                 history = rolloutItems,
-                rollout_path = "/tmp/rollout.jsonl"
+                rolloutPath = "/tmp/rollout.jsonl"
             )
         )
 
         assertTrue(history is InitialHistory.Resumed)
-        assertEquals("conv-123", history.payload.conversation_id)
+        assertEquals(conversationId, history.payload.conversationId)
         assertEquals(1, history.payload.history.size)
-        assertEquals("/tmp/rollout.jsonl", history.payload.rollout_path)
+        assertEquals("/tmp/rollout.jsonl", history.payload.rolloutPath)
     }
 
     @Test
     fun testForkedHistory() {
         val rolloutItems = listOf(
-            RolloutItem.ResponseItem(
+            RolloutItem.ResponseItemHolder(
                 ResponseItem.Message(
                     role = "assistant",
                     content = listOf(ContentItem.OutputText(text = "Hi there!"))
@@ -254,7 +259,7 @@ class CompactedItemTest {
         )
 
         assertEquals("Summary of conversation so far", item.message)
-        assertNull(item.replacement_history)
+        assertNull(item.replacementHistory)
     }
 
     @Test
@@ -267,12 +272,12 @@ class CompactedItemTest {
         )
         val item = CompactedItem(
             message = "Summary",
-            replacement_history = replacementHistory
+            replacementHistory = replacementHistory
         )
 
         assertEquals("Summary", item.message)
-        assertNotNull(item.replacement_history)
-        assertEquals(1, item.replacement_history!!.size)
+        assertNotNull(item.replacementHistory)
+        assertEquals(1, item.replacementHistory!!.size)
     }
 }
 
@@ -284,9 +289,9 @@ class RolloutItemTest {
             role = "user",
             content = listOf(ContentItem.InputText(text = "test message"))
         )
-        val rolloutItem = RolloutItem.ResponseItem(responseItem)
+        val rolloutItem = RolloutItem.ResponseItemHolder(responseItem)
 
-        assertTrue(rolloutItem is RolloutItem.ResponseItem)
+        assertTrue(rolloutItem is RolloutItem.ResponseItemHolder)
     }
 
     @Test
@@ -372,7 +377,7 @@ class CancellationTokenTest {
 
     @Test
     fun testChildOfCloneBehavior() {
-        // child_of_clone test from loom
+        // childOfClone test from loom
         val token = CancellationToken()
         val clone = token.clone()
         val child = clone.child()
@@ -450,11 +455,11 @@ class ContentBlockTest {
     fun testImageContentBlock() {
         val block = ContentBlock.ImageContent(
             data = "base64encodeddata",
-            mime_type = "image/png"
+            mimeType = "image/png"
         )
         assertTrue(block is ContentBlock.ImageContent)
         assertEquals("base64encodeddata", block.data)
-        assertEquals("image/png", block.mime_type)
+        assertEquals("image/png", block.mimeType)
     }
 }
 
@@ -477,12 +482,12 @@ class ResponseItemTest {
         val item = ResponseItem.FunctionCall(
             name = "shell",
             arguments = "{\"command\": \"ls\"}",
-            call_id = "call-123"
+            callId = "call-123"
         )
 
         assertTrue(item is ResponseItem.FunctionCall)
         assertEquals("shell", item.name)
-        assertEquals("call-123", item.call_id)
+        assertEquals("call-123", item.callId)
     }
 
     @Test
@@ -492,12 +497,12 @@ class ResponseItemTest {
             success = true
         )
         val item = ResponseItem.FunctionCallOutput(
-            call_id = "call-123",
+            callId = "call-123",
             output = output
         )
 
         assertTrue(item is ResponseItem.FunctionCallOutput)
-        assertEquals("call-123", item.call_id)
+        assertEquals("call-123", item.callId)
         assertEquals(true, item.output.success)
     }
 }
@@ -508,27 +513,27 @@ class CallToolResultTest {
     fun testCallToolResultWithTextContent() {
         val result = CallToolResult(
             content = listOf(ContentBlock.TextContent(text = "Result text")),
-            is_error = false
+            isError =false
         )
 
         assertEquals(1, result.content.size)
-        assertEquals(false, result.is_error)
-        assertNull(result.structured_content)
+        assertEquals(false, result.isError)
+        assertNull(result.structuredContent)
     }
 
     @Test
     fun testCallToolResultWithStructuredContent() {
         val result = CallToolResult(
             content = emptyList(),
-            is_error = null,
-            structured_content = buildJsonObject {
+            isError =null,
+            structuredContent =buildJsonObject {
                 put("status", "success")
             }
         )
 
         assertTrue(result.content.isEmpty())
-        assertNull(result.is_error)
-        assertNotNull(result.structured_content)
+        assertNull(result.isError)
+        assertNotNull(result.structuredContent)
     }
 }
 
@@ -582,43 +587,44 @@ class ModelProviderInfoTest {
 
     @Test
     fun testDefaultModelProviderInfo() {
-        val info = ModelProviderInfo()
+        val info = ModelProviderInfo(name = "openai")
         assertEquals("openai", info.name)
-        assertNull(info.apiBase)
+        assertNull(info.baseUrl)
     }
 
     @Test
     fun testCustomModelProviderInfo() {
         val info = ModelProviderInfo(
             name = "anthropic",
-            apiBase = "https://api.anthropic.com"
+            baseUrl = "https://api.anthropic.com"
         )
         assertEquals("anthropic", info.name)
-        assertEquals("https://api.anthropic.com", info.apiBase)
+        assertEquals("https://api.anthropic.com", info.baseUrl)
     }
 }
 
 class ModelFamilyTest {
 
     @Test
-    fun testDefaultModelFamily() {
-        val family = ModelFamily.default()
+    fun testDeriveDefaultModelFamily() {
+        val family = deriveDefaultModelFamily("gpt-4")
         assertEquals("gpt-4", family.slug)
-        assertTrue(family.supportsParallelToolCalls)
+        assertEquals("gpt-4", family.family)
+        assertEquals(false, family.supportsParallelToolCalls)
     }
 
     @Test
     fun testCustomModelFamily() {
         val family = ModelFamily(
             slug = "claude-3",
+            family = "claude-3",
             baseInstructions = "Custom instructions",
-            contextWindow = 200000,
+            contextWindow = 200_000L,
             supportsParallelToolCalls = false
         )
         assertEquals("claude-3", family.slug)
         assertEquals("Custom instructions", family.baseInstructions)
-        assertEquals(200000, family.contextWindow)
+        assertEquals(200_000L, family.contextWindow)
         assertEquals(false, family.supportsParallelToolCalls)
     }
 }
-

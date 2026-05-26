@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/responses.rs
+// port-lint: source responses.rs
 package io.github.kotlinmania.codex.api.endpoint
 
 import io.github.kotlinmania.codex.api.AuthProvider
@@ -68,7 +68,9 @@ class ResponsesClient<A : AuthProvider>(
         body: kotlinx.serialization.json.JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
     ): Result<ResponseStream> {
-        return streaming.stream("responses", body, configureExtraHeaders, isChat = false)
+        return streaming.stream("responses", body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            io.github.kotlinmania.codex.api.sse.spawnResponsesStream(client, requestConfig, idleTimeout, telemetry)
+        }
     }
 }
 

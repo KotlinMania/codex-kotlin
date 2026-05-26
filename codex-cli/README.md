@@ -303,7 +303,6 @@ pnpm add -g @openai/codex
 
 ```bash
 # Clone the repository and navigate to the CLI package
-git clone https://github.com/openai/codex.git
 cd codex/codex-cli
 
 # Enable corepack

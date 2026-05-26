@@ -1,7 +1,7 @@
 # System Specification: Storage
 
 ## Overview
-This document specifies the as-built state of the `io.github.kotlinmania.codex.core.auth.Storage.kt` component, which maps to the Rust `codex-rs/core/src/auth/storage.rs` implementation.
+This document specifies the as-built state of the `io.github.solaceharmony.codex.core.auth.Storage.kt` component, which maps to the Rust `codex-rs/core/src/auth/storage.rs` implementation.
 
 ## Structural Implementation
 The Kotlin implementation maintains a 1:1 structural parity with the Rust source, enabling consistent cross-platform authentication state management.

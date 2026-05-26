@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/error.rs
+// port-lint: source error.rs
 package io.github.kotlinmania.codex.api.error
 
 import io.github.kotlinmania.codex.client.error.TransportError
@@ -8,7 +8,7 @@ import kotlin.time.Duration
 /**
  * API error types.
  *
- * Mirrors Rust's ApiError from codex-api/src/error.rs
+ * Mirrors the upstream ApiError from codex-api/src/error.rs
  */
 sealed class ApiError : Exception() {
     /**

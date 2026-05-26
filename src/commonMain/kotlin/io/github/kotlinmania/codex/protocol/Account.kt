@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/account.rs
+// port-lint: source account.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName

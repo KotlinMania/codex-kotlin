@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/rate_limits.rs
+// port-lint: source rate_limits.rs
 package io.github.kotlinmania.codex.api.ratelimits
 
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot

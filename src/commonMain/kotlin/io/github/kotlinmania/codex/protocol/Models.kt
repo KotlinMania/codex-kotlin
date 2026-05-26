@@ -1,4 +1,6 @@
-// port-lint: source codex-rs/protocol/src/models.rs
+// port-lint: source models.rs
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package io.github.kotlinmania.codex.protocol
 
 import io.github.kotlinmania.codex.utils.git.GhostCommit
@@ -11,6 +13,10 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Represents input items that can be sent to the Responses API. Tagged union with discriminator
@@ -42,6 +48,56 @@ sealed class ResponseInputItem {
                 @kotlinx.serialization.SerialName("call_id") val callId: String,
                 val output: String
         ) : ResponseInputItem()
+
+        companion object {
+                fun from(items: List<UserInput>): ResponseInputItem {
+                        return Message(
+                                role = "user",
+                                content =
+                                        items.map { item ->
+                                                when (item) {
+                                                        is UserInput.Text ->
+                                                                ContentItem.InputText(text = item.text)
+                                                        is UserInput.Image ->
+                                                                ContentItem.InputImage(imageUrl = item.imageUrl)
+                                                        is UserInput.LocalImage -> {
+                                                                val path = item.path
+                                                                val bytes =
+                                                                        try {
+                                                                                FileSystem.SYSTEM.read(path.toPath()) {
+                                                                                        readByteArray()
+                                                                                }
+                                                                        } catch (e: Exception) {
+                                                                                return@map localImageErrorPlaceholder(
+                                                                                        path = path,
+                                                                                        error = e.toString(),
+                                                                                )
+                                                                        }
+
+                                                                val mimeGuess =
+                                                                        guessMimeType(path)
+                                                                                ?: return@map localImageErrorPlaceholder(
+                                                                                        path = path,
+                                                                                        error = "unsupported MIME type (unknown)",
+                                                                                )
+                                                                if (!mimeGuess.startsWith("image/")) {
+                                                                        return@map localImageErrorPlaceholder(
+                                                                                path = path,
+                                                                                error = "unsupported MIME type `$mimeGuess`",
+                                                                        )
+                                                                }
+
+                                                                @OptIn(ExperimentalEncodingApi::class)
+                                                                val encoded = Base64.encode(bytes)
+                                                                ContentItem.InputImage(
+                                                                        imageUrl = "data:$mimeGuess;base64,$encoded",
+                                                                )
+                                                        }
+                                                }
+                                        },
+                        )
+                }
+        }
 }
 
 /** Content items that can appear in messages. Tagged union with discriminator field "type". */
@@ -148,6 +204,30 @@ sealed class ResponseItem {
         ) : ResponseItem()
 
         @Serializable @kotlinx.serialization.SerialName("other") object Other : ResponseItem()
+
+        companion object {
+                fun from(item: ResponseInputItem): ResponseItem {
+                        return when (item) {
+                                is ResponseInputItem.Message ->
+                                        Message(role = item.role, content = item.content, id = null)
+                                is ResponseInputItem.FunctionCallOutput ->
+                                        FunctionCallOutput(callId = item.callId, output = item.output)
+                                is ResponseInputItem.McpToolCallOutput -> {
+                                        val output =
+                                                item.result.value?.let { result ->
+                                                        FunctionCallOutputPayload.from(result)
+                                                } ?: FunctionCallOutputPayload(
+                                                        content = "err: ${item.result.error ?: "missing result"}",
+                                                        contentItems = null,
+                                                        success = false,
+                                                )
+                                        FunctionCallOutput(callId = item.callId, output = output)
+                                }
+                                is ResponseInputItem.CustomToolCallOutput ->
+                                        CustomToolCallOutput(callId = item.callId, output = item.output)
+                        }
+                }
+        }
 }
 
 /** Status of a local shell execution. */
@@ -172,14 +252,6 @@ sealed class LocalShellAction {
                 val user: String? = null
         ) : LocalShellAction()
 }
-
-/**
- * Alias for LocalShellAction.Exec - in Rust this is a standalone struct, in Kotlin it's inlined
- * into the sealed class variant.
- *
- * Ported from Rust protocol/src/models.rs LocalShellExecAction.
- */
-typealias LocalShellExecAction = LocalShellAction.Exec
 
 /** Web search action types. Tagged union with discriminator field "type". */
 @Serializable
@@ -220,6 +292,38 @@ sealed class ReasoningItemContent {
         data class Text(val text: String) : ReasoningItemContent()
 }
 
+private fun shouldSerializeReasoningContent(content: List<ReasoningItemContent>?): Boolean {
+        return when {
+                content == null -> false
+                else -> !content.any { it is ReasoningItemContent.ReasoningText }
+        }
+}
+
+private fun localImageErrorPlaceholder(path: String, error: String): ContentItem {
+        return ContentItem.InputText(
+                text = "Codex could not read the local image at `$path`: $error",
+        )
+}
+
+private fun invalidImageErrorPlaceholder(path: String, error: String): ContentItem {
+        return ContentItem.InputText(
+                text = "Image located at `$path` is invalid: $error",
+        )
+}
+
+private fun guessMimeType(path: String): String? {
+        val lower = path.lowercase()
+        return when {
+                lower.endsWith(".png") -> "image/png"
+                lower.endsWith(".jpg") || lower.endsWith(".jpeg") -> "image/jpeg"
+                lower.endsWith(".gif") -> "image/gif"
+                lower.endsWith(".webp") -> "image/webp"
+                lower.endsWith(".bmp") -> "image/bmp"
+                lower.endsWith(".tif") || lower.endsWith(".tiff") -> "image/tiff"
+                else -> null
+        }
+}
+
 /**
  * Content items that can be returned by function calls. Tagged union with discriminator field
  * "type".
@@ -242,7 +346,7 @@ sealed class FunctionCallOutputContentItem {
  *
  * Ported from Rust codex-rs/protocol/src/models.rs FunctionCallOutputPayload
  */
-@Serializable
+@Serializable(with = FunctionCallOutputPayloadSerializer::class)
 data class FunctionCallOutputPayload(
         val content: String,
         @kotlinx.serialization.SerialName("content_items")
@@ -255,13 +359,13 @@ data class FunctionCallOutputPayload(
                 /**
                  * Create a FunctionCallOutputPayload from a CallToolResult.
                  *
-                 * Ported from Rust codex-rs/protocol/src/models.rs impl From<&CallToolResult> for
+                 * Ported from Rust codex-rs/protocol/src/models.rs implementation From<&CallToolResult> for
                  * FunctionCallOutputPayload
                  */
-                fun fromCallToolResult(callToolResult: CallToolResult): FunctionCallOutputPayload {
+                fun from(callToolResult: CallToolResult): FunctionCallOutputPayload {
                         val isSuccess = callToolResult.isError != true
 
-                        // If structured_content is present and not null, serialize and return it
+                        // If structuredContent is present and not null, serialize and return it
                         val structuredContent = callToolResult.structuredContent
                         if (structuredContent != null && structuredContent != JsonNull) {
                                 return try {
@@ -284,8 +388,17 @@ data class FunctionCallOutputPayload(
                                 }
                         }
 
-                        // Serialize content blocks
                         val content = callToolResult.content
+                        val convertedItems = convertContentBlocksToItems(content)
+                        if (convertedItems != null) {
+                                return FunctionCallOutputPayload(
+                                        content = "",
+                                        contentItems = convertedItems,
+                                        success = isSuccess
+                                )
+                        }
+
+                        // Serialize content blocks
                         val serializedContent =
                                 try {
                                         json.encodeToString(
@@ -301,9 +414,6 @@ data class FunctionCallOutputPayload(
                                                 contentItems = null
                                         )
                                 }
-
-                        // Convert content blocks to items
-                        val convertedItems = convertContentBlocksToItems(content)
 
                         return FunctionCallOutputPayload(
                                 content = serializedContent,
@@ -350,6 +460,10 @@ data class FunctionCallOutputPayload(
                         return if (sawImage) items else null
                 }
         }
+
+        fun fmt(): String = content
+
+        fun deref(): String = content
 }
 
 /**
@@ -361,17 +475,17 @@ object FunctionCallOutputPayloadSerializer : KSerializer<FunctionCallOutputPaylo
                 PrimitiveSerialDescriptor("FunctionCallOutputPayload", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, value: FunctionCallOutputPayload) {
-                if (value.contentItems != null) {
-                        val jsonEncoder =
-                                encoder as? JsonEncoder
-                                        ?: throw SerializationException(
-                                                "FunctionCallOutputPayload serialization requires JsonEncoder"
-                                        )
-                        val element = jsonEncoder.json.encodeToJsonElement(value.contentItems)
-                        jsonEncoder.encodeJsonElement(element)
-                } else {
-                        encoder.encodeString(value.content)
+                val items = value.contentItems
+                if (items != null) {
+                        encoder.encodeSerializableValue(
+                                kotlinx.serialization.builtins.ListSerializer(
+                                        FunctionCallOutputContentItem.serializer()
+                                ),
+                                items
+                        )
+                        return
                 }
+                encoder.encodeString(value.content)
         }
 
         override fun deserialize(decoder: Decoder): FunctionCallOutputPayload {
@@ -391,15 +505,18 @@ object FunctionCallOutputPayloadSerializer : KSerializer<FunctionCallOutputPaylo
                         }
                         is JsonArray -> {
                                 val items =
-                                        jsonDecoder.json.decodeFromJsonElement<
-                                                List<FunctionCallOutputContentItem>>(element)
-                                val content =
-                                        jsonDecoder.json.encodeToString(
+                                        jsonDecoder.json.decodeFromJsonElement(
                                                 kotlinx.serialization.builtins.ListSerializer(
                                                         FunctionCallOutputContentItem.serializer()
                                                 ),
-                                                items
+                                                element
                                         )
+                                val content = jsonDecoder.json.encodeToString(
+                                        kotlinx.serialization.builtins.ListSerializer(
+                                                FunctionCallOutputContentItem.serializer()
+                                        ),
+                                        items
+                                )
                                 FunctionCallOutputPayload(
                                         content = content,
                                         contentItems = items,
@@ -419,18 +536,22 @@ object FunctionCallOutputPayloadSerializer : KSerializer<FunctionCallOutputPaylo
 data class ShellToolCallParams(
         val command: List<String>,
         val workdir: String? = null,
-        @kotlinx.serialization.SerialName("timeout_ms") val timeoutMs: Long? = null,
+        @kotlinx.serialization.SerialName("timeout_ms")
+        @kotlinx.serialization.json.JsonNames("timeout")
+        val timeoutMs: Long? = null,
         @kotlinx.serialization.SerialName("with_escalated_permissions")
         val withEscalatedPermissions: Boolean? = null,
         val justification: String? = null
 )
 
-/** Parameters for shell_command tool calls. */
+/** Parameters for shellCommand tool calls. */
 @Serializable
 data class ShellCommandToolCallParams(
         val command: String,
         val workdir: String? = null,
-        @kotlinx.serialization.SerialName("timeout_ms") val timeoutMs: Long? = null,
+        @kotlinx.serialization.SerialName("timeout_ms")
+        @kotlinx.serialization.json.JsonNames("timeout")
+        val timeoutMs: Long? = null,
         @kotlinx.serialization.SerialName("with_escalated_permissions")
         val withEscalatedPermissions: Boolean? = null,
         val justification: String? = null
@@ -523,38 +644,16 @@ data class ReadResourceResult(
         @kotlinx.serialization.SerialName("mime_type") val mimeType: String? = null
 )
 
-/**
- * MCP Resource type representing a resource from an MCP server.
- */
-@Serializable
-data class Resource(
-        val uri: String,
-        val name: String,
-        val description: String? = null,
-        @kotlinx.serialization.SerialName("mimeType") val mimeType: String? = null
-)
-
-/**
- * MCP ResourceTemplate type representing a resource template from an MCP server.
- */
-@Serializable
-data class ResourceTemplate(
-        @kotlinx.serialization.SerialName("uriTemplate") val uriTemplate: String,
-        val name: String,
-        val description: String? = null,
-        @kotlinx.serialization.SerialName("mimeType") val mimeType: String? = null
-)
-
 @Serializable
 data class ListResourcesResult(
-        val resources: List<Resource>,
+        val resources: List<McpResource>,
         @kotlinx.serialization.SerialName("nextCursor") val nextCursor: String? = null
 )
 
 @Serializable
 data class ListResourceTemplatesResult(
         @kotlinx.serialization.SerialName("resourceTemplates")
-        val resourceTemplates: List<ResourceTemplate>,
+        val resourceTemplates: List<McpResourceTemplate>,
         @kotlinx.serialization.SerialName("nextCursor") val nextCursor: String? = null
 )
 

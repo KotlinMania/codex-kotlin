@@ -2,7 +2,7 @@
 
 ## What Was Accomplished
 
-Successfully created a clean, faithful port of the Rust `codex-rs/codex-api` crate to Kotlin Multiplatform Native under the package `io.github.kotlinmania.codex.api`. The port preserves the original API structure, module organization, and function semantics.
+Successfully created a clean, faithful port of the Rust `codex-rs/codex-api` crate to Kotlin Multiplatform Native under the package `io.github.solaceharmony.codex.api`. The port preserves the original API structure, module organization, and function semantics.
 
 ## Files Created (16 total)
 
@@ -118,22 +118,22 @@ Successfully created a clean, faithful port of the Rust `codex-rs/codex-api` cra
 ✅ **All new files compile without errors**
 - Verified with `./gradlew compileKotlinMacosArm64`
 - Only "never used" warnings present (expected for API types before wiring)
-- No type errors, no unresolved references in `io.github.kotlinmania.codex.api` package
+- No type errors, no unresolved references in `io.github.solaceharmony.codex.api` package
 
 ## Package Structure Alignment
 
 ```
 Rust                              Kotlin
 ----                              ------
-codex-api/src/auth.rs        →   io.github.kotlinmania.codex.api.auth/
-codex-api/src/error.rs       →   io.github.kotlinmania.codex.api.error/
-codex-api/src/provider.rs    →   io.github.kotlinmania.codex.api.provider/
-codex-api/src/common.rs      →   io.github.kotlinmania.codex.api.common/
-codex-api/src/requests/      →   io.github.kotlinmania.codex.api.requests/
-codex-api/src/endpoint/      →   io.github.kotlinmania.codex.api.endpoint/
-codex-api/src/sse/           →   io.github.kotlinmania.codex.api.sse/
-codex-api/src/telemetry.rs   →   io.github.kotlinmania.codex.api.telemetry/
-codex-api/src/rate_limits.rs →   io.github.kotlinmania.codex.api.ratelimits/
+codex-api/src/auth.rs        →   io.github.solaceharmony.codex.api.auth/
+codex-api/src/error.rs       →   io.github.solaceharmony.codex.api.error/
+codex-api/src/provider.rs    →   io.github.solaceharmony.codex.api.provider/
+codex-api/src/common.rs      →   io.github.solaceharmony.codex.api.common/
+codex-api/src/requests/      →   io.github.solaceharmony.codex.api.requests/
+codex-api/src/endpoint/      →   io.github.solaceharmony.codex.api.endpoint/
+codex-api/src/sse/           →   io.github.solaceharmony.codex.api.sse/
+codex-api/src/telemetry.rs   →   io.github.solaceharmony.codex.api.telemetry/
+codex-api/src/rate_limits.rs →   io.github.solaceharmony.codex.api.ratelimits/
 ```
 
 ## Next Steps Recommendation
@@ -145,7 +145,7 @@ codex-api/src/rate_limits.rs →   io.github.kotlinmania.codex.api.ratelimits/
 
 ## Notes
 
-- AuthManager in `io.github.kotlinmania.codex.client.auth` remains separate (from codex-core)
+- AuthManager in `io.github.solaceharmony.codex.client.auth` remains separate (from codex-core)
 - No consolidation across crate boundaries
 - All Rust semantics preserved in Kotlin idioms
 - Ready for incremental completion without breaking existing code

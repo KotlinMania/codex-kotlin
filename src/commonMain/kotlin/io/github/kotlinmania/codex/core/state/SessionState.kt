@@ -1,9 +1,9 @@
 // port-lint: source core/src/state/session.rs
 package io.github.kotlinmania.codex.core.state
 
+import io.github.kotlinmania.codex.core.session.SessionConfiguration
 import io.github.kotlinmania.codex.core.context.ContextManager
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
-import io.github.kotlinmania.codex.core.session.SessionConfiguration
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.TokenUsage
 import io.github.kotlinmania.codex.protocol.TokenUsageInfo
@@ -32,7 +32,7 @@ internal class SessionState(
     }
 
     fun cloneHistory(): ContextManager {
-        return history.copy()
+        return history.clone()
     }
 
     fun replaceHistory(items: List<ResponseItem>) {

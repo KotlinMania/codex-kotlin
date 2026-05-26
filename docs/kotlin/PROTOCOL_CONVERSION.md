@@ -1,14 +1,14 @@
 # Protocol Conversion Summary
 
 ## Overview
-This document summarizes the conversion of core protocol types from `codex-rs/protocol/src/protocol.rs` (1820 lines of Rust) to Kotlin Native in `io.github.kotlinmania.codex.protocol`.
+This document summarizes the conversion of core protocol types from `codex-rs/protocol/src/protocol.rs` (1820 lines of Rust) to Kotlin Native in `io.github.solaceharmony.codex.protocol`.
 
 ## Files Created
 
-### 1. `src/nativeMain/kotlin/io/github/kotlinmania/codex/protocol/Protocol.kt` (1599 lines)
+### 1. `src/nativeMain/kotlin/ai/solace/coder/protocol/Protocol.kt` (1599 lines)
 Main protocol definitions file containing all core types.
 
-### 2. `src/nativeTest/kotlin/io/github/kotlinmania/codex/protocol/ProtocolTest.kt` (531 lines)
+### 2. `src/nativeTest/kotlin/ai/solace/coder/protocol/ProtocolTest.kt` (531 lines)
 Comprehensive unit tests covering all protocol types with serialization round-trip tests.
 
 ## Types Converted

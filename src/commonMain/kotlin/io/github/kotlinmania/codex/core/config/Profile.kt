@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/config/profile.rs
+// port-lint: source profile.rs
 package io.github.kotlinmania.codex.core.config
 
 import io.github.kotlinmania.codex.protocol.AskForApproval

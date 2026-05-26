@@ -1,15 +1,10 @@
-// port-lint: source codex-rs/protocol/src/user_input.rs
+// port-lint: source protocol/src/user_input.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * User input types.
- *
- * Ported from Rust codex-rs/protocol/src/user_input.rs
- */
-
+/** User input */
 @Serializable
 sealed class UserInput {
     @Serializable
@@ -18,9 +13,7 @@ sealed class UserInput {
         val text: String
     ) : UserInput()
 
-    /**
-     * Pre-encoded data: URI image.
-     */
+    /** Pre‑encoded data: URI image. */
     @Serializable
     @SerialName("image")
     data class Image(
@@ -29,8 +22,8 @@ sealed class UserInput {
     ) : UserInput()
 
     /**
-     * Local image path provided by the user. This will be converted to an
-     * `Image` variant (base64 data URL) during request serialization.
+     * Local image path provided by the user.  This will be converted to an
+     * [Image] variant (base64 data URL) during request serialization.
      */
     @Serializable
     @SerialName("local_image")

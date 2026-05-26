@@ -1,10 +1,10 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/chat.rs
+// port-lint: source chat.rs
 package io.github.kotlinmania.codex.api.endpoint
 
 import io.github.kotlinmania.codex.api.AuthProvider
 import io.github.kotlinmania.codex.api.common.Prompt
-import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.api.common.ResponseStream
+import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.api.provider.Provider
 import io.github.kotlinmania.codex.api.provider.WireApi
 import io.github.kotlinmania.codex.api.requests.ChatRequest
@@ -59,7 +59,9 @@ class ChatClient<A : AuthProvider>(
         body: JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
     ): Result<ResponseStream> {
-        return streaming.stream(path(), body, configureExtraHeaders, isChat = true)
+        return streaming.stream(path(), body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            io.github.kotlinmania.codex.api.sse.spawnChatStream(client, requestConfig, idleTimeout, telemetry)
+        }
     }
 }
 
@@ -71,7 +73,7 @@ enum class AggregateMode {
 
 /**
  * Stream adapter that merges token deltas into a single assistant message per turn.
- * Mirrors Rust's AggregatedStream impl Stream for AggregatedStream.
+ * Mirrors the upstream AggregatedStream implementation Stream for AggregatedStream.
  */
 class AggregatedStream private constructor(
     private val inner: ResponseStream,
@@ -82,23 +84,10 @@ class AggregatedStream private constructor(
     private val pending = ArrayDeque<ResponseEvent>()
 
     /**
-     * Implements ResponseStream interface.
-     * Returns null on end-of-stream, otherwise a Result with the next event.
+     * Poll the next event from the aggregated stream.
+     * This implements the full Rust pollNext logic for event aggregation.
      */
     override suspend fun next(): Result<ResponseEvent>? {
-        val result = pollNext()
-        return when {
-            result.isFailure -> Result.failure(result.exceptionOrNull()!!)
-            result.getOrNull() == null -> null
-            else -> Result.success(result.getOrNull()!!)
-        }
-    }
-
-    /**
-     * Poll the next event from the aggregated stream.
-     * This implements the full Rust poll_next logic for event aggregation.
-     */
-    suspend fun pollNext(): Result<ResponseEvent?> {
         // Return pending events first
         pending.firstOrNull()?.let { event ->
             pending.removeFirst()
@@ -107,14 +96,14 @@ class AggregatedStream private constructor(
 
         // Poll inner stream in a loop, aggregating as we go
         while (true) {
-            val result = inner.next() ?: return Result.success(null)
+            val result = inner.next() ?: return null
 
             // Handle errors and end-of-stream
             if (result.isFailure) {
                 return Result.failure(result.exceptionOrNull()!!)
             }
 
-            val event = result.getOrNull() ?: return Result.success(null)
+            val event = result.getOrNull() ?: return null
 
             when (event) {
                 is ResponseEvent.OutputItemDone -> {
@@ -136,11 +125,11 @@ class AggregatedStream private constructor(
                                 continue // Don't emit, keep looping
                             }
                             AggregateMode.Streaming -> {
-                                // In streaming mode, emit the item if we haven't accumulated anything
+                                // In streaming mode, emit the item if we have not accumulated anything
                                 if (cumulative.isEmpty()) {
                                     return Result.success(event)
                                 } else {
-                                    continue // Skip this item, we're aggregating
+                                    continue // Skip this item, we are aggregating
                                 }
                             }
                         }
@@ -203,7 +192,7 @@ class AggregatedStream private constructor(
                     if (mode == AggregateMode.Streaming) {
                         return Result.success(event)
                     } else {
-                        continue // Accumulate but don't emit
+                        continue // Accumulate but do not emit
                     }
                 }
 
@@ -212,7 +201,7 @@ class AggregatedStream private constructor(
                     if (mode == AggregateMode.Streaming) {
                         return Result.success(event)
                     } else {
-                        continue // Accumulate but don't emit
+                        continue // Accumulate but do not emit
                     }
                 }
 
@@ -240,7 +229,7 @@ class AggregatedStream private constructor(
 
 /**
  * Extension functions for ResponseStream aggregation.
- * Mirrors Rust's AggregateStreamExt trait.
+ * Mirrors the upstream AggregateStreamExt trait.
  */
 fun ResponseStream.aggregate(): AggregatedStream {
     return AggregatedStream.new(this, AggregateMode.AggregatedOnly)

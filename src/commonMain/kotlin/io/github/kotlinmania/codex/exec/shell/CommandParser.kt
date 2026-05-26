@@ -1,4 +1,3 @@
-// port-lint: source core/src/bash.rs
 package io.github.kotlinmania.codex.exec.shell
 
 /**

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/parse_command.rs
+// port-lint: source parse_command.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Parsed command types.
  *
- * Ported from Rust codex-rs/protocol/src/parse_command.rs
+ * Ported from Rust codex-rs/protocol/src/parseCommand.rs
  */
 
 @Serializable
@@ -46,4 +46,18 @@ sealed class ParsedCommand {
     data class Unknown(
         val cmd: String
     ) : ParsedCommand()
+}
+
+/**
+ * Best-effort classification of a shell command. Mirrors the upstream `parseCommand`
+ * in codex-rs/core/src/parseCommand.rs.
+ *
+ * NOTE: The full Rust implementation is ~900 lines of pattern-matching for
+ * recognizing reads, list-files, searches, etc. This Kotlin version returns
+ * a single `Unknown` entry so that event emitters have a well-typed payload
+ * until the full parser is ported.
+ */
+fun parseCommand(command: List<String>): List<ParsedCommand> {
+    if (command.isEmpty()) return emptyList()
+    return listOf(ParsedCommand.Unknown(cmd = command.joinToString(" ")))
 }

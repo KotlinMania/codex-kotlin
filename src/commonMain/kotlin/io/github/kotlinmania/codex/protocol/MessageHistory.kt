@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/message_history.rs
+// port-lint: source message_history.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Message history types.
  *
- * Ported from Rust codex-rs/protocol/src/message_history.rs
+ * Ported from Rust codex-rs/protocol/src/messageHistory.rs
  */
 
 @Serializable

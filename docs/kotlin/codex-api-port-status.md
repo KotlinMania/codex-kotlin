@@ -1,26 +1,26 @@
 # codex-api Port to Kotlin
 
-This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Multiplatform Native under `src/nativeMain/kotlin/io/github/kotlinmania/codex/api`.
+This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Multiplatform Native under `src/nativeMain/kotlin/ai/solace/coder/api`.
 
 ## Port Status
 
 ### ✅ Completed Modules
 
 #### auth (codex-api/src/auth.rs)
-- **Location**: `io.github.kotlinmania.codex.api.auth`
+- **Location**: `io.github.solaceharmony.codex.api.auth`
 - **Files**: 
   - `AuthProvider.kt` - Interface for bearer token and account ID provisioning
   - `AuthHeaders.kt` - `addAuthHeaders()` function using Ktor `HttpRequestBuilder`
 - **Notes**: Fully ported, uses Ktor for HTTP integration
 
 #### error (codex-api/src/error.rs)
-- **Location**: `io.github.kotlinmania.codex.api.error`
+- **Location**: `io.github.solaceharmony.codex.api.error`
 - **Files**: `ApiError.kt`
 - **Status**: Sealed class with all error cases (Transport, Api, Stream, ContextWindowExceeded, QuotaExceeded, UsageNotIncluded, Retryable, RateLimit)
 - **TODOs**: Replace status `Int` with proper StatusCode type once ported
 
 #### provider (codex-api/src/provider.rs)
-- **Location**: `io.github.kotlinmania.codex.api.provider`
+- **Location**: `io.github.solaceharmony.codex.api.provider`
 - **Files**: `Provider.kt`
 - **Status**: 
   - `WireApi` enum (Responses, Chat, Compact)
@@ -29,7 +29,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
 - **Notes**: Uses Ktor `HttpRequestBuilder` for request construction
 
 #### common (codex-api/src/common.rs)
-- **Location**: `io.github.kotlinmania.codex.api.common`
+- **Location**: `io.github.solaceharmony.codex.api.common`
 - **Files**: `Common.kt`
 - **Status**: 
   - `Prompt`, `CompactionInput`, `ResponseEvent` (sealed class)
@@ -41,7 +41,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
   - Implement proper channel/Flow for ResponseStream
 
 #### requests (codex-api/src/requests/*.rs)
-- **Location**: `io.github.kotlinmania.codex.api.requests`
+- **Location**: `io.github.solaceharmony.codex.api.requests`
 - **Files**:
   - `Headers.kt` - Internal header helpers (`buildConversationHeaders`, `subagentHeader`, `insertHeader`)
   - `ChatRequest.kt` - `ChatRequest` and `ChatRequestBuilder`
@@ -54,7 +54,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
   - Azure ID attachment logic in ResponsesRequestBuilder
 
 #### telemetry (codex-api/src/telemetry.rs)
-- **Location**: `io.github.kotlinmania.codex.api.telemetry`
+- **Location**: `io.github.solaceharmony.codex.api.telemetry`
 - **Files**: `Telemetry.kt`
 - **Status**: 
   - `SseTelemetry` interface
@@ -63,7 +63,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
 - **TODOs**: Full retry policy integration with Ktor
 
 #### rate_limits (codex-api/src/rate_limits.rs)
-- **Location**: `io.github.kotlinmania.codex.api.ratelimits`
+- **Location**: `io.github.solaceharmony.codex.api.ratelimits`
 - **Files**: `RateLimits.kt`
 - **Status**: 
   - `RateLimitError`, `parseRateLimit()` with header parsing
@@ -71,7 +71,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
 - **Notes**: Fully functional, parses Codex-specific rate limit headers from Ktor `Headers`
 
 #### endpoint (codex-api/src/endpoint/*.rs)
-- **Location**: `io.github.kotlinmania.codex.api.endpoint`
+- **Location**: `io.github.solaceharmony.codex.api.endpoint`
 - **Files**:
   - `StreamingClient.kt` - Internal streaming client with auth and telemetry
   - `ChatClient.kt` - Chat completions endpoint client
@@ -84,7 +84,7 @@ This document tracks the progress of porting `codex-rs/codex-api` to Kotlin Mult
   - Implement `CompactClient.compact()` with POST and JSON parsing
 
 #### sse (codex-api/src/sse/*.rs)
-- **Location**: `io.github.kotlinmania.codex.api.sse`
+- **Location**: `io.github.solaceharmony.codex.api.sse`
 - **Files**: `SSE.kt`
 - **Status**: Stub functions created
 - **TODOs**:
@@ -111,7 +111,7 @@ The Kotlin port uses:
 ### 📝 Package Structure
 
 ```
-io.github.kotlinmania.codex.api/
+io.github.solaceharmony.codex.api/
 ├── auth/
 │   ├── AuthProvider.kt
 │   └── AuthHeaders.kt
@@ -151,7 +151,7 @@ io.github.kotlinmania.codex.api/
 
 ### 🔗 Cross-References
 
-- **AuthManager** remains in `io.github.kotlinmania.codex.client.auth` (from codex-core)
-- This `io.github.kotlinmania.codex.api` package is a clean port of codex-api crate only
+- **AuthManager** remains in `io.github.solaceharmony.codex.client.auth` (from codex-core)
+- This `io.github.solaceharmony.codex.api` package is a clean port of codex-api crate only
 - No cross-crate consolidation; API boundaries preserved
 

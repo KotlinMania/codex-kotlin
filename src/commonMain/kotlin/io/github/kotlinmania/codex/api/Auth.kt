@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/auth.rs
+// port-lint: source auth.rs
 package io.github.kotlinmania.codex.api
 
 import io.ktor.client.request.*
@@ -19,7 +19,7 @@ interface AuthProvider {
 /**
  * Add authentication headers to a request.
  *
- * Mirrors Rust add_auth_headers by injecting Authorization and ChatGPT-Account-ID
+ * Mirrors Rust addAuthHeaders by injecting Authorization and ChatGPT-Account-ID
  * when available. Extension function on HttpRequestBuilder for idiomatic usage.
  */
 fun <A : AuthProvider> HttpRequestBuilder.addAuthHeaders(auth: A) {

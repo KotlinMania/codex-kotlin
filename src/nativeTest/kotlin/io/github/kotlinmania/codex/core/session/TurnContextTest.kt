@@ -1,5 +1,8 @@
 package io.github.kotlinmania.codex.core.session
 
+import io.github.kotlinmania.codex.core.model.ApplyPatchToolType
+import io.github.kotlinmania.codex.core.tools.ConfigShellToolType
+import io.github.kotlinmania.codex.core.tools.ToolsConfig
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import kotlin.test.Test
@@ -93,8 +96,14 @@ class ToolsConfigTest {
 
     @Test
     fun testDefaultToolsConfig() {
-        val config = ToolsConfig()
-        assertEquals(ShellToolType.Default, config.shellType)
+        val config = ToolsConfig(
+            shellType = ConfigShellToolType.Default,
+            applyPatchToolType = null,
+            webSearchRequest = false,
+            includeViewImageTool = true,
+            experimentalSupportedTools = emptyList()
+        )
+        assertEquals(ConfigShellToolType.Default, config.shellType)
         assertEquals(null, config.applyPatchToolType)
         assertEquals(false, config.webSearchRequest)
         assertEquals(true, config.includeViewImageTool)
@@ -104,13 +113,13 @@ class ToolsConfigTest {
     @Test
     fun testCustomToolsConfig() {
         val config = ToolsConfig(
-            shellType = ShellToolType.UnifiedExec,
+            shellType = ConfigShellToolType.UnifiedExec,
             applyPatchToolType = ApplyPatchToolType.Freeform,
             webSearchRequest = true,
             includeViewImageTool = false,
             experimentalSupportedTools = listOf("custom_tool")
         )
-        assertEquals(ShellToolType.UnifiedExec, config.shellType)
+        assertEquals(ConfigShellToolType.UnifiedExec, config.shellType)
         assertEquals(ApplyPatchToolType.Freeform, config.applyPatchToolType)
         assertTrue(config.webSearchRequest)
         assertEquals(false, config.includeViewImageTool)

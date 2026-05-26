@@ -1,4 +1,4 @@
-// port-lint: source utils/git/src/ghost_commits.rs
+// port-lint: source utils/git/src/ghostCommits.rs
 package io.github.kotlinmania.codex.utils.git
 
 import io.github.kotlinmania.codex.utils.Environment
@@ -26,9 +26,8 @@ data class CreateGhostCommitOptions(
     val forceInclude: List<String> = emptyList()
 ) {
     companion object {
-        fun new(repoPath: String): CreateGhostCommitOptions {
-            return CreateGhostCommitOptions(repoPath)
-        }
+        fun new(repoPath: String): CreateGhostCommitOptions =
+            CreateGhostCommitOptions(repoPath = repoPath)
     }
 
     fun withMessage(message: String): CreateGhostCommitOptions {
@@ -41,7 +40,7 @@ data class CreateGhostCommitOptions(
 }
 
 /**
- * A ghost commit capturing the state of the repository's working tree.
+ * A ghost commit capturing the state of the repository working tree.
  */
 @Serializable
 data class GhostCommit(
@@ -138,7 +137,7 @@ class ShellGitOperations : GitOperations {
             }
             val largeUntrackedDirs = detectLargeUntrackedDirs(warningFiles, warningDirs)
 
-            // Validate force_include paths don't escape repository
+            // Validate forceInclude paths do not escape repository
             for (path in options.forceInclude) {
                 if (path.contains("..")) {
                     throw GitToolingError.PathEscapesRepository(path)
@@ -476,7 +475,7 @@ class ShellGitOperations : GitOperations {
     }
 
     private fun isDirectory(path: String): Boolean {
-        // Ported from Rust ghost_commits.rs symlink_metadata behavior:
+        // Ported from Rust ghostCommits.rs symlinkMetadata behavior:
         // If stat fails with ENOENT, treat as "not a directory" (return false)
         // Log other errors but still return false for safety
         return try {
@@ -492,7 +491,7 @@ class ShellGitOperations : GitOperations {
     }
 
     private fun deleteTempFile(path: String) {
-        // Ported from Rust ghost_commits.rs remove_path behavior:
+        // Ported from Rust ghostCommits.rs removePath behavior:
         // Only ignore "file not found", log other errors
         try {
             FileSystem.SYSTEM.delete(path.toPath())
@@ -506,12 +505,12 @@ class ShellGitOperations : GitOperations {
     }
 
     private fun deletePath(path: String) {
-        // Ported from Rust ghost_commits.rs remove_path behavior:
+        // Ported from Rust ghostCommits.rs removePath behavior:
         // Only ignore NotFound errors, log other errors
         // Use rm -rf for recursive directory deletion
         val exitCode = platformExecuteCommand(listOf("rm", "-rf", path))
         if (exitCode != 0) {
-            // rm -rf typically succeeds even if path doesn't exist,
+            // rm -rf typically succeeds even if path does not exist,
             // so a non-zero exit indicates a real error
             println("WARN: failed to delete path '$path': exit code $exitCode")
         }

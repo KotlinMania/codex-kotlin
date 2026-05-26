@@ -1,10 +1,8 @@
 // port-lint: source ollama/src/pull.rs
 package io.github.kotlinmania.codex.ollama
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlin.math.pow
-import kotlin.time.Duration
+import io.github.kotlinmania.codex.utils.writeStderrInline
+import kotlin.time.TimeSource
 
 /** Events emitted while pulling a model from Ollama. */
 sealed class PullEvent {
@@ -13,13 +11,13 @@ sealed class PullEvent {
 
     /** Byte-level progress update for a specific layer digest. */
     data class ChunkProgress(
-            val digest: String,
-            val total: Long? = null,
-            val completed: Long? = null
+        val digest: String,
+        val total: Long?,
+        val completed: Long?,
     ) : PullEvent()
 
     /** The pull finished successfully. */
-    object Success : PullEvent()
+    data object Success : PullEvent()
 
     /** Error event with a message. */
     data class Error(val message: String) : PullEvent()
@@ -33,14 +31,19 @@ interface PullProgressReporter {
     fun onEvent(event: PullEvent)
 }
 
-/** A minimal CLI reporter that writes inline progress to stderr. */
-class CliProgressReporter : PullProgressReporter {
-    private var printedHeader: Boolean = false
-    private var lastLineLen: Int = 0
-    private var lastCompletedSum: Long = 0
-    private var lastInstant: Instant = Clock.System.now()
-    private val totalsByDigest = mutableMapOf<String, Pair<Long, Long>>()
+private data class TotalAndCompleted(
+    var total: Long,
+    var completed: Long,
+)
 
+/** A minimal CLI reporter that writes inline progress to stderr. */
+class CliProgressReporter private constructor(
+    private var printedHeader: Boolean,
+    private var lastLineLen: Int,
+    private var lastCompletedSum: Long,
+    private var lastInstant: TimeSource.Monotonic.ValueTimeMark,
+    private val totalsByDigest: MutableMap<String, TotalAndCompleted>,
+) : PullProgressReporter {
     override fun onEvent(event: PullEvent) {
         when (event) {
             is PullEvent.Status -> {
@@ -50,69 +53,75 @@ class CliProgressReporter : PullProgressReporter {
                     return
                 }
                 val pad = (lastLineLen - status.length).coerceAtLeast(0)
-                val line = "\r$status${" ".repeat(pad)}"
+                val line = "\r$status" + " ".repeat(pad)
                 lastLineLen = status.length
-                print(line)
-                // In a real implementation we might need to flush stdout/stderr
+                writeStderrInline(line)
             }
             is PullEvent.ChunkProgress -> {
-                val digest = event.digest
-                val current = totalsByDigest.getOrPut(digest) { 0L to 0L }
-                var t = current.first
-                var c = current.second
+                if (event.total != null) {
+                    val entry = totalsByDigest.getOrPut(event.digest) { TotalAndCompleted(0, 0) }
+                    entry.total = event.total
+                }
+                if (event.completed != null) {
+                    val entry = totalsByDigest.getOrPut(event.digest) { TotalAndCompleted(0, 0) }
+                    entry.completed = event.completed
+                }
 
-                event.total?.let { t = it }
-                event.completed?.let { c = it }
-
-                totalsByDigest[digest] = t to c
-
-                var sumTotal = 0L
-                var sumCompleted = 0L
-                for (v in totalsByDigest.values) {
-                    sumTotal += v.first
-                    sumCompleted += v.second
+                val (sumTotal, sumCompleted) = totalsByDigest.values.fold(0L to 0L) { acc, tc ->
+                    (acc.first + tc.total) to (acc.second + tc.completed)
                 }
 
                 if (sumTotal > 0) {
                     if (!printedHeader) {
                         val gb = sumTotal.toDouble() / (1024.0 * 1024.0 * 1024.0)
-                        val header = "Downloading model: total ${gb.format(2)} GB\n"
-                        print("\r\u001b[2K")
-                        print(header)
+                        val header = "Downloading model: total ${formatDouble(gb, 2)} GB\n"
+                        writeStderrInline("\r[2K$header")
                         printedHeader = true
                     }
-                    val now = Clock.System.now()
-                    val dt = (now - lastInstant).toDouble(kotlin.time.DurationUnit.SECONDS).coerceAtLeast(0.001)
-                    val dbytes = (sumCompleted - lastCompletedSum).toDouble().coerceAtLeast(0.0)
+
+                    val dt = (lastInstant.elapsedNow().inWholeNanoseconds.toDouble() / 1e9)
+                        .coerceAtLeast(0.001)
+                    val dbytes = (sumCompleted - lastCompletedSum).coerceAtLeast(0).toDouble()
                     val speedMbS = dbytes / (1024.0 * 1024.0) / dt
                     lastCompletedSum = sumCompleted
-                    lastInstant = now
+                    lastInstant = TimeSource.Monotonic.markNow()
 
                     val doneGb = sumCompleted.toDouble() / (1024.0 * 1024.0 * 1024.0)
                     val totalGb = sumTotal.toDouble() / (1024.0 * 1024.0 * 1024.0)
                     val pct = sumCompleted.toDouble() * 100.0 / sumTotal.toDouble()
-                    val text = "${doneGb.format(2)}/${totalGb.format(2)} GB (${pct.format(1)}%) ${speedMbS.format(1)} MB/s"
+                    val text =
+                        "${formatDouble(doneGb, 2)}/${formatDouble(totalGb, 2)} GB (${formatDouble(pct, 1)}%) " +
+                            "${formatDouble(speedMbS, 1)} MB/s"
                     val pad = (lastLineLen - text.length).coerceAtLeast(0)
-                    val line = "\r$text${" ".repeat(pad)}"
+                    val line = "\r$text" + " ".repeat(pad)
                     lastLineLen = text.length
-                    print(line)
+                    writeStderrInline(line)
                 }
             }
             is PullEvent.Error -> {
-                // This will be handled by the caller, so we don't do anything
+                // This will be handled by the caller, so we do not do anything
                 // here or the error will be printed twice.
             }
-            is PullEvent.Success -> {
-                println()
+            PullEvent.Success -> {
+                writeStderrInline("\n")
             }
         }
     }
 
-    private fun Double.format(digits: Int): String {
-        // Simple manual formatting for commonMain
-        val factor = 10.0.pow(digits.toDouble())
-        val rounded = (this * factor).toLong().toDouble() / factor
-        return rounded.toString()
+    companion object {
+        fun default(): CliProgressReporter {
+            return new()
+        }
+
+        fun new(): CliProgressReporter {
+            return CliProgressReporter(
+                printedHeader = false,
+                lastLineLen = 0,
+                lastCompletedSum = 0,
+                lastInstant = TimeSource.Monotonic.markNow(),
+                totalsByDigest = HashMap(),
+            )
+        }
     }
 }
 
@@ -120,8 +129,10 @@ class CliProgressReporter : PullProgressReporter {
  * For now the TUI reporter delegates to the CLI reporter. This keeps UI and
  * CLI behavior aligned until a dedicated TUI integration is implemented.
  */
-class TuiProgressReporter(private val delegate: CliProgressReporter = CliProgressReporter()) : PullProgressReporter {
+class TuiProgressReporter(
+    private val inner: CliProgressReporter = CliProgressReporter.new(),
+) : PullProgressReporter {
     override fun onEvent(event: PullEvent) {
-        delegate.onEvent(event)
+        inner.onEvent(event)
     }
 }

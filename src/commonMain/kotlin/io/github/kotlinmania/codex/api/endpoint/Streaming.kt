@@ -1,36 +1,37 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/streaming.rs
+// port-lint: source streaming.rs
 package io.github.kotlinmania.codex.api.endpoint
 
 import io.github.kotlinmania.codex.api.AuthProvider
 import io.github.kotlinmania.codex.api.addAuthHeaders
 import io.github.kotlinmania.codex.api.common.ResponseStream
 import io.github.kotlinmania.codex.api.provider.Provider
-import io.github.kotlinmania.codex.api.sse.ChannelResponseStream
-import io.github.kotlinmania.codex.api.sse.processSse
-import io.github.kotlinmania.codex.api.sse.processChatSse
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
-import io.github.kotlinmania.codex.utils.asSource
 import io.ktor.client.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonElement
-import okio.buffer
 import kotlin.time.Duration
+import kotlinx.serialization.json.JsonElement
 
 /**
+ * Spawner closure invoked by [StreamingClient.stream] once the request has been
+ * fully configured. Mirrors the Rust signature
+ * `fn(StreamResponse, Duration, Option<Arc<dyn SseTelemetry>>) -> ResponseStream`,
+ * adapted for Kotlin: the request is delivered as a configured
+ * [HttpRequestBuilder] block and an [HttpClient].
+ */
+/**
  * Internal streaming client that handles HTTP streaming with auth and telemetry.
+ *
+ * Note: full retry policy / `runWithRequestTelemetry` plumbing is not yet
+ * ported. Today the stream is spawned directly; once retry telemetry lands the
+ * Rust `runWithRequestTelemetry(self.provider.retry.toPolicy(), ..., builder, |req| transport.stream(req))`
+ * loop should wrap the spawner call.
  */
 internal class StreamingClient<A : AuthProvider>(
     private val httpClient: HttpClient,
     private val provider: Provider,
     private val auth: A,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ) {
     private var requestTelemetry: RequestTelemetry? = null
     private var sseTelemetry: SseTelemetry? = null
@@ -50,40 +51,34 @@ internal class StreamingClient<A : AuthProvider>(
         path: String,
         body: JsonElement,
         configureExtraHeaders: HttpRequestBuilder.() -> Unit,
-        isChat: Boolean = false,
+        spawner:
+            suspend (
+                httpClient: HttpClient,
+                request: HttpRequestBuilder.() -> Unit,
+                idleTimeout: Duration,
+                telemetry: SseTelemetry?,
+            ) -> ResponseStream,
     ): Result<ResponseStream> {
         return try {
-            val channel = Channel<Result<io.github.kotlinmania.codex.protocol.ResponseEvent>>(1600)
-            
-            // We use preparePost and execute to get a streaming response
-            val requestBuilder = provider.buildRequest(HttpMethod.Post, path) {
+            // Build the request configuration block. Mirrors the upstream `builder` closure
+            // in runWithRequestTelemetry: each retry attempt re-applies the same
+            // headers/body, so we capture the configuration as a lambda the spawner
+            // can pass to ktor `prepareGet`/`prepareRequest`.
+            val builtBuilder = provider.buildRequest(HttpMethod.Post, path) {
                 configureExtraHeaders()
                 headers.append(HttpHeaders.Accept, "text/event-stream")
                 setBody(body.toString())
                 addAuthHeaders(auth)
             }
 
-            scope.launch {
-                try {
-                    httpClient.prepareRequest(requestBuilder).execute { response ->
-                        val source = response.bodyAsChannel().asSource().buffer()
-                        if (isChat) {
-                            processChatSse(source, channel, Duration.INFINITE, sseTelemetry)
-                        } else {
-                            processSse(source, channel, Duration.INFINITE, sseTelemetry)
-                        }
-                    }
-                } catch (e: Exception) {
-                    channel.send(Result.failure(e))
-                } finally {
-                    channel.close()
-                }
+            val configure: HttpRequestBuilder.() -> Unit = {
+                takeFrom(builtBuilder)
             }
 
-            Result.success(ChannelResponseStream(channel))
+            val stream = spawner(httpClient, configure, provider.streamIdleTimeout, sseTelemetry)
+            Result.success(stream)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 }
-

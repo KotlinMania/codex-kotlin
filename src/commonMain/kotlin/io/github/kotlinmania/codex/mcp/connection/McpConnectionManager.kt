@@ -1,4 +1,4 @@
-// port-lint: source core/src/mcp_connection_manager.rs
+// port-lint: source core/src/mcpConnectionManager.rs
 package io.github.kotlinmania.codex.mcp.connection
 
 import io.github.kotlinmania.codex.protocol.CallToolResult
@@ -26,7 +26,7 @@ data class McpServerConfig(
  * Manages connections to MCP (Model Context Protocol) servers and provides tool execution
  * capabilities.
  *
- * TODO: Port full implementation from Rust codex-rs/mcp-client/src/connection_manager.rs
+ * TODO: Port full implementation from Rust codex-rs/mcp-client/src/connectionManager.rs
  */
 class McpConnectionManager {
     private val tools = mutableMapOf<String, McpTool>()
@@ -55,7 +55,7 @@ class McpConnectionManager {
         return tools.toMap()
     }
 
-    /** Parse an MCP tool name into server and tool parts. Format: "mcp__servername__toolname" */
+    /** Parse an MCP tool name into server and tool parts. Format: "mcpServernameToolname" */
     fun parseToolName(toolName: String): Pair<String, String>? {
         if (!toolName.startsWith("mcp__")) return null
         val parts = toolName.removePrefix("mcp__").split("__", limit = 2)
@@ -87,12 +87,12 @@ class McpConnectionManager {
     }
 
     /** List all resources from all connected servers. */
-    fun listAllResources(): Map<String, List<io.github.kotlinmania.codex.protocol.Resource>> {
+    fun listAllResources(): Map<String, List<io.github.kotlinmania.codex.protocol.McpResource>> {
         return emptyMap()
     }
 
     /** List all resource templates from all connected servers. */
-    fun listAllResourceTemplates(): Map<String, List<io.github.kotlinmania.codex.protocol.ResourceTemplate>> {
+    fun listAllResourceTemplates(): Map<String, List<io.github.kotlinmania.codex.protocol.McpResourceTemplate>> {
         return emptyMap()
     }
 

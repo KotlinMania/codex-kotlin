@@ -1,6 +1,9 @@
-// port-lint: source codex-rs/protocol/src/conversation_id.rs
+// port-lint: source protocol/src/conversation_id.rs
 package io.github.kotlinmania.codex.protocol
 
+import io.github.kotlinmania.schemars.Schema
+import io.github.kotlinmania.schemars.StringJsonSchema
+import io.github.kotlinmania.schemars.generate.SchemaGenerator
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.KSerializer
@@ -11,54 +14,56 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-/**
- * Conversation ID wrapper.
- *
- * Ported from Rust codex-rs/protocol/src/conversation_id.rs
- */
+@OptIn(ExperimentalUuidApi::class)
 @Serializable(with = ConversationIdSerializer::class)
 data class ConversationId(
-    private val uuid: String
+    internal val uuid: Uuid,
 ) {
     companion object {
         fun new(): ConversationId {
-            return ConversationId(generateUuidV7())
-        }
-
-        fun default(): ConversationId {
-            return ConversationId("00000000-0000-0000-0000-000000000000")
+            return ConversationId(
+                uuid = Uuid.random(),
+            )
         }
 
         fun fromString(s: String): kotlin.Result<ConversationId> {
             return runCatching {
-                // Basic UUID validation
-                if (s.length == 36 && s.count { it == '-' } == 4) {
-                    ConversationId(s)
-                } else {
-                    throw IllegalArgumentException("Invalid UUID format: $s")
-                }
+                ConversationId(
+                    uuid = Uuid.parse(s),
+                )
             }
         }
 
-        @OptIn(ExperimentalUuidApi::class)
-        private fun generateUuidV7(): String {
-            // Use Kotlin's built-in UUID (random v4 for now, close enough for unique IDs)
-            return Uuid.random().toString()
+        fun default(): ConversationId {
+            return new()
+        }
+
+        fun schemaName(): String {
+            return "ConversationId"
+        }
+
+        fun jsonSchema(generator: SchemaGenerator): Schema {
+            return StringJsonSchema.jsonSchema(generator)
         }
     }
 
-    override fun toString(): String = uuid
+    override fun toString(): String {
+        return "$uuid"
+    }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 object ConversationIdSerializer : KSerializer<ConversationId> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ConversationId", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: ConversationId) {
-        encoder.encodeString(value.toString())
+        encoder.encodeString(value.uuid.toString())
     }
 
     override fun deserialize(decoder: Decoder): ConversationId {
-        return ConversationId.fromString(decoder.decodeString()).getOrThrow()
+        val value = decoder.decodeString()
+        val uuid = Uuid.parse(value)
+        return ConversationId(uuid = uuid)
     }
 }

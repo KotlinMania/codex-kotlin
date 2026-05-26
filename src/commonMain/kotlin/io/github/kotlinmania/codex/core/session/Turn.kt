@@ -1,15 +1,12 @@
 // port-lint: source core/src/state/turn.rs
 package io.github.kotlinmania.codex.core.session
 
+import io.github.kotlinmania.indexmap.IndexMap
 import io.github.kotlinmania.codex.client.auth.AuthManager
-import io.github.kotlinmania.codex.exec.shell.Shell
-import io.github.kotlinmania.codex.exec.shell.ShellDetector
-import io.github.kotlinmania.codex.mcp.connection.McpConnectionManager
 import io.github.kotlinmania.codex.protocol.ReviewDecision
+import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import io.github.kotlinmania.codex.protocol.TurnAbortReason
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
-import io.github.kotlinmania.codex.protocol.RolloutItem
-import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -33,16 +30,16 @@ enum class TaskKind {
  * Metadata about the currently running turn.
  */
 class ActiveTurn {
-    private val tasks = linkedMapOf<String, RunningTask>()
+    private val tasks = IndexMap.new<String, RunningTask>()
     val turnState = TurnState()
 
     fun addTask(task: RunningTask) {
         val subId = task.turnContext.subId
-        tasks[subId] = task
+        tasks.insert(subId, task)
     }
 
     /**
-     * Remove a task by sub_id. Returns true if no tasks remain.
+     * Remove a task by subId. Returns true if no tasks remain.
      */
     fun removeTask(subId: String): Boolean {
         tasks.remove(subId)
@@ -50,12 +47,12 @@ class ActiveTurn {
     }
 
     fun drainTasks(): List<RunningTask> {
-        val result = tasks.values.toList()
+        val result = tasks.values()
         tasks.clear()
         return result
     }
 
-    fun getTasks(): Map<String, RunningTask> = tasks.toMap()
+    fun getTasks(): Map<String, RunningTask> = tasks.asEntries().toMap()
 
     /**
      * Clear any pending approvals and input buffered for the current turn.
@@ -83,7 +80,7 @@ data class RunningTask(
  */
 class TurnState {
     private val mutex = Mutex()
-    private val pendingApprovals = mutableMapOf<String, CompletableDeferred<ReviewDecision>>()
+    private val pendingApprovals = IndexMap.new<String, CompletableDeferred<ReviewDecision>>()
     private val pendingInput = mutableListOf<ResponseInputItem>()
 
     /**
@@ -95,7 +92,7 @@ class TurnState {
         deferred: CompletableDeferred<ReviewDecision>
     ): CompletableDeferred<ReviewDecision>? {
         return mutex.withLock {
-            pendingApprovals.put(key, deferred)
+            pendingApprovals.insert(key, deferred)
         }
     }
 
@@ -153,7 +150,7 @@ class TurnState {
      */
     suspend fun hasPendingApprovals(): Boolean {
         return mutex.withLock {
-            pendingApprovals.isNotEmpty()
+            !pendingApprovals.isEmpty()
         }
     }
 }
@@ -194,7 +191,7 @@ interface SessionTask {
      * Gives the task a chance to perform cleanup after an abort.
      *
      * The default implementation is a no-op; override this if additional
-     * teardown or notifications are required once abort_all_tasks cancels the task.
+     * teardown or notifications are required once abortAllTasks cancels the task.
      */
     suspend fun abort(sessionContext: SessionTaskContext, turnContext: TurnContext) {
         // Default no-op
@@ -213,7 +210,7 @@ class SessionTaskContext(
 
     /**
      * Get the auth manager for API authentication.
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext::auth_manager
+     * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext::authManager
      */
     fun authManager(): AuthManager = session.services.authManager
 }
@@ -221,7 +218,7 @@ class SessionTaskContext(
 /**
  * User input for a turn.
  *
- * Ported from Rust codex-rs/protocol/src/user_input.rs
+ * Ported from Rust codex-rs/protocol/src/userInput.rs
  */
 sealed class UserInput {
     /**
@@ -256,143 +253,3 @@ sealed class UserInput {
 }
 
 // TurnAbortReason is imported from io.github.kotlinmania.codex.protocol
-
-// =============================================================================
-// ActiveTurnHolder - Mutex wrapper for nullable ActiveTurn
-// Ported from Rust codex-rs/core/src/codex.rs active_turn: Mutex<Option<ActiveTurn>>
-// =============================================================================
-
-/**
- * Thread-safe holder for the current active turn.
- * Provides mutex-protected access to the nullable ActiveTurn.
- */
-class ActiveTurnHolder {
-    private val mutex = Mutex()
-    private var value: ActiveTurn? = null
-
-    /**
-     * Execute a block while holding the lock, passing the current turn.
-     */
-    suspend fun <T> withLock(block: suspend (ActiveTurn?) -> T): T {
-        return mutex.withLock { block(value) }
-    }
-
-    /**
-     * Get the current active turn (requires lock).
-     */
-    suspend fun get(): ActiveTurn? = mutex.withLock { value }
-
-    /**
-     * Set the current active turn (requires lock).
-     */
-    suspend fun set(turn: ActiveTurn?) {
-        mutex.withLock { value = turn }
-    }
-}
-
-// =============================================================================
-// SessionServices - Services available to the session
-// Ported from Rust codex-rs/core/src/state/service.rs
-// =============================================================================
-
-/**
- * Services available during a session.
- *
- * Ported from Rust codex-rs/core/src/state/service.rs SessionServices
- */
-data class SessionServices(
-    val mcpConnectionManager: io.github.kotlinmania.codex.mcp.connection.McpConnectionManager,
-    val mcpStartupCancellationToken: CancellationToken,
-    val unifiedExecManager: UnifiedExecSessionManager,
-    val notifier: UserNotifier,
-    val rollout: RolloutRecorder?,
-    val userShell: io.github.kotlinmania.codex.exec.shell.Shell,
-    val showRawAgentReasoning: Boolean,
-    val authManager: AuthManager,
-    val toolApprovals: ApprovalStore
-)
-
-/**
- * Stores tool approval decisions.
- * Ported from Rust codex-rs/core/src/tools/sandboxing.rs ApprovalStore
- */
-class ApprovalStore {
-    private val approvals = mutableMapOf<String, Boolean>()
-
-    fun isApproved(key: String): Boolean? = approvals[key]
-
-    fun setApproval(key: String, approved: Boolean) {
-        approvals[key] = approved
-    }
-
-    fun clear() {
-        approvals.clear()
-    }
-}
-
-/**
- * Manages unified exec sessions.
- * Ported from Rust codex-rs/core/src/unified_exec.rs
- */
-class UnifiedExecSessionManager {
-    suspend fun terminateAllSessions() {
-        // TODO: Implement session termination
-    }
-}
-
-/**
- * User notification service.
- * Ported from Rust codex-rs/core/src/user_notification.rs
- */
-class UserNotifier(private val config: NotifyConfig?) {
-    fun notify(notification: UserNotification) {
-        // TODO: Implement notification
-    }
-}
-
-/**
- * Notification configuration.
- */
-data class NotifyConfig(
-    val enabled: Boolean = true
-)
-
-/**
- * User notification types.
- */
-sealed class UserNotification {
-    data class AgentTurnComplete(
-        val threadId: String,
-        val turnId: String,
-        val cwd: String,
-        val inputMessages: List<String>,
-        val lastAssistantMessage: String?
-    ) : UserNotification()
-}
-
-/**
- * Rollout recorder for session history.
- * Ported from Rust codex-rs/core/src/rollout.rs
- */
-class RolloutRecorder private constructor(
-    val rolloutPath: String
-) {
-    suspend fun recordItems(items: List<io.github.kotlinmania.codex.protocol.RolloutItem>) {
-        // TODO: Implement rollout recording
-    }
-
-    suspend fun flush() {
-        // TODO: Implement flush
-    }
-
-    suspend fun shutdown() {
-        // TODO: Implement shutdown
-    }
-
-    companion object {
-        fun new(config: Any, conversationId: String): RolloutRecorder? {
-            // TODO: Implement rollout recorder creation
-            return RolloutRecorder("/tmp/rollout-$conversationId.jsonl")
-        }
-    }
-}

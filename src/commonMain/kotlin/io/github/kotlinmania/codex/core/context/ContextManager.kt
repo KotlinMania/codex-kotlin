@@ -1,24 +1,33 @@
-// port-lint: source core/src/context_manager/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package io.github.kotlinmania.codex.core.context
 
-import io.github.kotlinmania.codex.core.model.ModelFamily
-import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.protocol.TokenUsage
 import io.github.kotlinmania.codex.protocol.TokenUsageInfo
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseItem
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 /**
  * Transcript of conversation history with token tracking.
  *
- * Ported from Rust codex-rs/core/src/context_manager/history.rs
+ * Ported from Rust codex-rs/core/src/contextManager/history.rs
  */
 class ContextManager {
     /** The oldest items are at the beginning of the list. */
     private val items = mutableListOf<ResponseItem>()
-    private var tokenInfo: TokenUsageInfo? = TokenUsageInfo.newOrAppend(null, null, null)
+    private var tokenInfo: TokenUsageInfo? = TokenUsageInfoFactory.newOrAppend(null, null, null)
+
+    /**
+     * Return a deep-enough clone mirroring Rust `(derive(Clone))` on `ContextManager`.
+     * ResponseItem variants are immutable data classes so list-level copy suffices.
+     */
+    fun clone(): ContextManager {
+        val cloned = ContextManager()
+        cloned.items.clear()
+        cloned.items.addAll(this.items)
+        cloned.tokenInfo = this.tokenInfo?.copy()
+        return cloned
+    }
 
     fun tokenInfo(): TokenUsageInfo? = tokenInfo?.copy()
 
@@ -31,7 +40,7 @@ class ContextManager {
         if (info != null) {
             tokenInfo = info.fillToContextWindow(contextWindow)
         } else {
-            tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
+            tokenInfo = TokenUsageInfoFactory.fullContextWindow(contextWindow)
         }
     }
 
@@ -89,7 +98,7 @@ class ContextManager {
      * Update token info from usage data.
      */
     fun updateTokenInfo(usage: TokenUsage, modelContextWindow: Long?) {
-        tokenInfo = TokenUsageInfo.newOrAppend(tokenInfo, usage, modelContextWindow)
+        tokenInfo = TokenUsageInfoFactory.newOrAppend(tokenInfo, usage, modelContextWindow)
     }
 
     /**
@@ -105,54 +114,6 @@ class ContextManager {
      * Returns a clone of the contents in the transcript.
      */
     fun contents(): List<ResponseItem> = items.toList()
-
-    /**
-     * Create a copy of this ContextManager with the same history and token info.
-     */
-    fun copy(): ContextManager {
-        val clone = ContextManager()
-        clone.items.addAll(this.items)
-        clone.tokenInfo = this.tokenInfo?.copy()
-        return clone
-    }
-
-    /**
-     * Estimate token usage using byte-based heuristics from the truncation helpers.
-     * This is a coarse lower bound, not a tokenizer-accurate count.
-     *
-     * Ported from Rust codex-rs/core/src/context_manager/history.rs estimate_token_count()
-     */
-    fun estimateTokenCount(turnContext: TurnContext): Long? {
-        val modelFamily = turnContext.modelFamily
-        val baseTokens = TruncationPolicy.approxTokenCount(modelFamily.baseInstructions).toLong()
-
-        val json = Json { ignoreUnknownKeys = true }
-        val itemsTokens = items.fold(0L) { acc, item ->
-            acc + when (item) {
-                is ResponseItem.Reasoning -> {
-                    if (item.encryptedContent != null) {
-                        estimateReasoningLength(item.encryptedContent.length).toLong()
-                    } else {
-                        val serialized = try {
-                            json.encodeToString(item)
-                        } catch (e: Exception) { "" }
-                        TruncationPolicy.approxTokenCount(serialized).toLong()
-                    }
-                }
-                is ResponseItem.CompactionSummary -> {
-                    estimateReasoningLength(item.encryptedContent.length).toLong()
-                }
-                else -> {
-                    val serialized = try {
-                        json.encodeToString(item)
-                    } catch (e: Exception) { "" }
-                    TruncationPolicy.approxTokenCount(serialized).toLong()
-                }
-            }
-        }
-
-        return baseTokens + itemsTokens
-    }
 
     /**
      * Normalize history to ensure call/output pairs are matched.
@@ -299,7 +260,7 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
 }
 
 /**
- * Remove outputs that don't have a corresponding call.
+ * Remove outputs that do not have a corresponding call.
  */
 private fun removeOrphanOutputs(items: MutableList<ResponseItem>) {
     val functionCallIds = items.filterIsInstance<ResponseItem.FunctionCall>()

@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/core/src/client.rs
+// port-lint: source client.rs
 package io.github.kotlinmania.codex.core.client
 
 import io.github.kotlinmania.codex.api.AuthProvider
@@ -12,24 +12,23 @@ import io.github.kotlinmania.codex.api.common.CompactionInput
 import io.github.kotlinmania.codex.api.common.Prompt as ApiPrompt
 import io.github.kotlinmania.codex.api.common.Reasoning
 import io.github.kotlinmania.codex.api.common.ResponseStream as ApiResponseStream
-import io.github.kotlinmania.codex.api.common.createTextParamForRequest
 import io.github.kotlinmania.codex.protocol.ResponseEvent
+import io.github.kotlinmania.codex.api.common.createTextParamForRequest
 import io.github.kotlinmania.codex.api.error.ApiError
-import io.github.kotlinmania.codex.client.error.TransportError
-import io.github.kotlinmania.codex.api.provider.WireApi
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 import io.github.kotlinmania.codex.core.AuthManager
-import io.github.kotlinmania.codex.core.auth.AuthMode
+import io.github.kotlinmania.codex.core.AuthMode
 import io.github.kotlinmania.codex.core.CodexAuth
 import io.github.kotlinmania.codex.core.config.Config
-import io.github.kotlinmania.codex.core.error.CodexError
+import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.core.model.ModelProviderInfo
+import io.github.kotlinmania.codex.core.model.WireApi
 import io.github.kotlinmania.codex.core.prompt.Prompt
 import io.github.kotlinmania.codex.protocol.ConversationId
-import io.github.kotlinmania.codex.protocol.ReasoningEffortConfig
-import io.github.kotlinmania.codex.protocol.ReasoningSummaryConfig
+import io.github.kotlinmania.codex.protocol.ReasoningEffort
+import io.github.kotlinmania.codex.protocol.ReasoningSummary
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.SessionSource
 import io.ktor.client.*
@@ -45,7 +44,7 @@ import kotlin.time.Duration
  * Manages authentication, API client creation, and streaming responses
  * through the Chat Completions or Responses API endpoints.
  *
- * Mirrors Rust's ModelClient from core/src/client.rs
+ * Mirrors the upstream ModelClient from core/src/client.rs
  */
 class ModelClient(
     private val config: Config,
@@ -53,8 +52,8 @@ class ModelClient(
     private val otelEventManager: OtelEventManager,
     private val provider: ModelProviderInfo,
     private val conversationId: ConversationId,
-    private val effort: ReasoningEffortConfig?,
-    private val summary: ReasoningSummaryConfig,
+    private val effort: ReasoningEffort?,
+    private val summary: ReasoningSummary,
     private val sessionSource: SessionSource,
 ) {
 
@@ -104,7 +103,6 @@ class ModelClient(
 
                 Result.success(mapResponseStream(processedStream, otelEventManager))
             }
-            else -> Result.failure(Exception("Unsupported wire API: ${provider.wireApi}"))
         }
     }
 
@@ -117,7 +115,7 @@ class ModelClient(
     private suspend fun streamChatCompletions(prompt: Prompt): Result<ApiResponseStream> {
         if (prompt.outputSchema != null) {
             return Result.failure(
-                CodexError.UnsupportedOperation(
+                CodexErr.UnsupportedOperation(
                     "output_schema is not supported for Chat Completions API"
                 ).toException()
             )
@@ -134,7 +132,6 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-                ?: return Result.failure(Exception("Failed to create API provider"))
             val apiAuth = authProviderFromAuth(auth, provider)
                 ?: return Result.failure(Exception("Failed to create API auth"))
 
@@ -215,7 +212,6 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-                ?: return Result.failure(Exception("Failed to create API provider"))
             val apiAuth = authProviderFromAuth(auth, provider)
                 ?: return Result.failure(Exception("Failed to create API auth"))
 
@@ -272,9 +268,9 @@ class ModelClient(
 
     fun getModelFamily(): ModelFamily = config.modelFamily
 
-    fun getReasoningEffort(): ReasoningEffortConfig? = effort
+    fun getReasoningEffort(): ReasoningEffort? = effort
 
-    fun getReasoningSummary(): ReasoningSummaryConfig = summary
+    fun getReasoningSummary(): ReasoningSummary = summary
 
     fun getAuthManager(): AuthManager? = authManager
 
@@ -291,7 +287,6 @@ class ModelClient(
 
         val auth = authManager?.auth()
         val apiProvider = provider.toApiProvider(auth?.mode)
-            ?: return Result.failure(Exception("Failed to create API provider"))
         val apiAuth = authProviderFromAuth(auth, provider)
             ?: return Result.failure(Exception("Failed to create API auth"))
 
@@ -310,8 +305,7 @@ class ModelClient(
         // Build extra headers for subagent
         val configureHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {
             if (sessionSource == SessionSource.SubAgent) {
-                // TODO: Extract SubAgentSource value once SessionSource carries data
-                val subagent = "review" // Placeholder
+                val subagent = "review"
                 headers.append("x-openai-subagent", subagent)
             }
         }
@@ -356,11 +350,18 @@ private fun mapResponseStream(
     otelEventManager: OtelEventManager
 ): ResponseStream {
     // TODO: Implement full stream mapping with telemetry events
+    // For now, return a placeholder
     return ResponseStream(
         flow {
             // Poll the API stream and emit events
-            var result: Result<ResponseEvent>? = apiStream.next()
-            while (result != null && result.isSuccess) {
+            while (true) {
+                val result = apiStream.next() ?: break
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull() ?: Exception("Unknown error")
+                    otelEventManager.seeEventCompletedFailed(error)
+                    emit(Result.failure(error))
+                    break
+                }
                 val event = result.getOrNull() ?: break
 
                 // Handle completion events for telemetry
@@ -377,14 +378,6 @@ private fun mapResponseStream(
                 }
 
                 emit(Result.success(event))
-                result = apiStream.next()
-            }
-
-            // Handle errors (result is non-null but failed)
-            if (result != null && result.isFailure) {
-                val error = result.exceptionOrNull() ?: Exception("Unknown error")
-                otelEventManager.seeEventCompletedFailed(error)
-                emit(Result.failure(error))
             }
         }
     )
@@ -408,7 +401,8 @@ private suspend fun handleUnauthorized(
         return if (refreshResult.isSuccess) {
             Result.success(Unit)
         } else {
-            Result.failure(refreshResult.exceptionOrNull() ?: Exception("Unknown refresh error"))
+            val msg = refreshResult.exceptionOrNull()?.message ?: "Unknown error"
+            Result.failure(CodexErr.RefreshTokenFailed(msg).toException())
         }
     }
 
@@ -416,12 +410,17 @@ private suspend fun handleUnauthorized(
 }
 
 private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception {
-    return ApiError.Transport(TransportError.Http(status, body = "Unauthorized"))
+    return ApiError.Transport(
+        io.github.kotlinmania.codex.client.error.TransportError.Http(status = status)
+    )
 }
 
 private fun isUnauthorizedError(result: Result<*>): Boolean {
     val error = result.exceptionOrNull()
-    return error is ApiError.Transport && error.message?.contains("401") == true
+    if (error !is ApiError.Transport) return false
+    val inner = error.error
+    return inner is io.github.kotlinmania.codex.client.error.TransportError.Http &&
+        inner.status == HttpStatusCode.Unauthorized
 }
 
 /**
@@ -449,9 +448,7 @@ private class ApiTelemetry(
         hasData: Boolean,
         duration: Duration
     ) {
-        // Convert hasData boolean to a result for the underlying logger
-        val result: Result<Unit> = if (hasData) Result.success(Unit) else Result.failure(Exception("No data"))
-        otelEventManager.logSseEvent(result, duration)
+        otelEventManager.logSseEvent(hasData, duration)
     }
 }
 
@@ -491,8 +488,8 @@ class OtelEventManager {
         // TODO: Implement request telemetry
     }
 
-    fun logSseEvent(result: Result<*>, duration: Duration) {
-        // TODO: Implement SSE event telemetry
+    fun logSseEvent(hasData: Boolean, duration: Duration) {
+        // SSE event telemetry placeholder
     }
 }
 
@@ -502,7 +499,7 @@ class OtelEventManager {
 // Placeholder functions that need to be ported from other modules
 
 private fun getModelInfo(modelFamily: ModelFamily): ModelInfo? {
-    // TODO: Port from openai_model_info.rs
+    // TODO: Port from openaiModelInfo.rs
     return null
 }
 
@@ -517,12 +514,12 @@ private fun createToolsJsonForResponsesApi(tools: List<Any>): List<JsonElement>?
 }
 
 private fun authProviderFromAuth(auth: CodexAuth?, provider: ModelProviderInfo): AuthProvider? {
-    // TODO: Port from api_bridge.rs
+    // TODO: Port from apiBridge.rs
     return null
 }
 
 private fun buildHttpClient(): HttpClient {
-    // TODO: Port from default_client.rs
+    // TODO: Port from defaultClient.rs
     return HttpClient()
 }
 
@@ -530,4 +527,3 @@ data class ModelInfo(
     val contextWindow: Long,
     val autoCompactTokenLimit: Long?
 )
-

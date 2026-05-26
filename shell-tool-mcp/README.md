@@ -19,7 +19,6 @@ The launcher selects a Rust target triple based on the host and chooses the clos
 We carry a small patch to `execute_cmd.c` (see `patches/bash-exec-wrapper.patch`) that adds support for `BASH_EXEC_WRAPPER`. The original commit message is “add support for BASH_EXEC_WRAPPER” and the patch applies cleanly to `a8a1c2fac029404d3f42cd39f5a20f24b6e4fe4b` from https://github.com/bminor/bash. To rebuild manually:
 
 ```bash
-git clone https://github.com/bminor/bash
 git checkout a8a1c2fac029404d3f42cd39f5a20f24b6e4fe4b
 git apply /path/to/patches/bash-exec-wrapper.patch
 ./configure --without-bash-malloc

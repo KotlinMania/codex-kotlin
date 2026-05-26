@@ -1,10 +1,11 @@
-// port-lint: source codex-rs/core/src/exec/mod.rs
+// port-lint: ignore
+// transliterated from upstream module root
 package io.github.kotlinmania.codex.exec.process
 
 /**
- * Identifies which platform sandbox (if any) is in use for a particular execution.
+ * Identifies which platform sandbox (if any) is in import for a particular execution.
  *
- * Mirrors Rust's SandboxType enum from codex-rs/core/src/exec/mod.rs
+ * Mirrors the upstream SandboxType enum from codex-rs/core/src/exec/mod.rs
  */
 enum class SandboxType {
     /** No sandbox - direct execution */

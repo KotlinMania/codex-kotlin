@@ -3,6 +3,7 @@ package io.github.kotlinmania.codex.core.auth
 import io.github.kotlinmania.codex.core.AuthDotJson
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlin.random.Random
 import kotlin.test.*
 import platform.posix.chmod
 import platform.posix.S_IRUSR
@@ -20,14 +21,14 @@ class StorageTest {
 
     @Test
     fun testFileStorageSaveAndLoad() {
-        val tempDir = Path("/tmp/codex_test_${SystemFileSystem.hashCode()}")
+        val tempDir = Path("/tmp/codex_test_${Random.nextInt(0, Int.MAX_VALUE)}")
         SystemFileSystem.createDirectories(tempDir)
         try {
             val storage = FileAuthStorage(tempDir)
             val auth = AuthDotJson(
-                openai_api_key = "test-key",
+                openaiApiKey = "test-key",
                 tokens = null,
-                last_refresh = null
+                lastRefresh = null
             )
 
             val saveResult = storage.save(auth)
@@ -40,6 +41,7 @@ class StorageTest {
             val authFile = getAuthFile(tempDir)
             assertTrue(SystemFileSystem.exists(authFile), "Auth file should exist")
         } finally {
+            SystemFileSystem.delete(getAuthFile(tempDir), mustExist = false)
             SystemFileSystem.delete(tempDir, mustExist = false)
         }
     }
@@ -47,11 +49,11 @@ class StorageTest {
     @Test
     fun testComputeStoreKey() {
         // Based on Rust test: "~/.codex" -> "cli|940db7b1d0e4eb40"
-        // Since we can't easily canonicalize "~" in a unit test without OS help,
+        // Since we cannot easily canonicalize "~" in a unit test without OS help,
         // we test the core hashing logic with a fixed string.
         val path = Path("/tmp/.codex") 
         // We know from our manual python check that hashlib.sha256(b'/tmp/.codex').hexdigest()[:16]
-        // is what we expect. Let's verify our implementation produces a stable key.
+        // is what we expect. Let verify our implementation produces a stable key.
         
         val keyResult = computeStoreKey(path)
         assertTrue(keyResult.isSuccess)
@@ -62,7 +64,7 @@ class StorageTest {
 
     @Test
     fun testAutoAuthStorageFallback() {
-        val tempDir = Path("/tmp/codex_auto_test_${SystemFileSystem.hashCode()}")
+        val tempDir = Path("/tmp/codex_auto_test_${Random.nextInt(0, Int.MAX_VALUE)}")
         SystemFileSystem.createDirectories(tempDir)
         try {
             val mockKeychain = MockKeychainStore()
@@ -70,13 +72,13 @@ class StorageTest {
             val keychainStorage = KeychainAuthStorage(tempDir, mockKeychain)
             val autoStorage = AutoAuthStorage(keychainStorage, fileStorage)
 
-            val auth = AuthDotJson(openai_api_key = "auto-key", tokens = null, last_refresh = null)
+            val auth = AuthDotJson(openaiApiKey = "auto-key", tokens = null, lastRefresh = null)
 
             // Setup: Keychain fails on save
-            mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we don't know exact key
+            mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we do not know exact key
             
             // This is tricky because computeStoreKey produces a real key. 
-            // Let's just use the real key.
+            // Let just import the real key.
             val key = computeStoreKey(tempDir).getOrThrow()
             mockKeychain.setError(key, Exception("Keychain failure"))
 
@@ -89,6 +91,7 @@ class StorageTest {
             val loadedAuth = autoStorage.load().getOrNull()
             assertEquals(auth, loadedAuth)
         } finally {
+            SystemFileSystem.delete(getAuthFile(tempDir), mustExist = false)
             SystemFileSystem.delete(tempDir, mustExist = false)
         }
     }

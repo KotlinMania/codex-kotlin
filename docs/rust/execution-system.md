@@ -15,7 +15,7 @@ The execution system provides secure command execution with platform-specific sa
 
 ### Core Components
 
-#### 1. ProcessExecutor (`io.github.kotlinmania.codex.exec.process.ProcessExecutor`)
+#### 1. Exec (`io.github.solaceharmony.codex.core.Exec`)
 
 Main class responsible for executing commands with sandboxing and streaming support.
 
@@ -27,7 +27,7 @@ Main class responsible for executing commands with sandboxing and streaming supp
 
 **Usage:**
 ```kotlin
-val executor = ProcessExecutor()
+val executor = Exec()
 val params = ExecParams(
     command = listOf("echo", "hello"),
     cwd = "/tmp",
@@ -37,7 +37,7 @@ val params = ExecParams(
 val result = executor.execute(params, sandboxPolicy, "/tmp")
 ```
 
-#### 2. ShellDetector (`io.github.kotlinmania.codex.exec.shell.ShellDetector`)
+#### 2. ShellDetector (`io.github.solaceharmony.codex.exec.shell.ShellDetector`)
 
 Detects and manages shell configurations across platforms.
 
@@ -51,7 +51,7 @@ Detects and manages shell configurations across platforms.
 - `getShell(shellType, path)` - Gets a specific shell with optional path
 - `detectShellType(shellPath)` - Detects shell type from path
 
-#### 3. CommandParser (`io.github.kotlinmania.codex.exec.shell.CommandParser`)
+#### 3. CommandParser (`io.github.solaceharmony.codex.exec.shell.CommandParser`)
 
 Parses shell command strings with proper quoting and escaping support.
 
@@ -61,7 +61,7 @@ Parses shell command strings with proper quoting and escaping support.
 - Shell-specific argument joining
 - Built-in command detection
 
-#### 4. SandboxManager (`io.github.kotlinmania.codex.exec.sandbox.SandboxManager`)
+#### 4. SandboxManager (`io.github.solaceharmony.codex.exec.sandbox.SandboxManager`)
 
 Manages sandbox policy application and transformation.
 
@@ -74,7 +74,7 @@ Manages sandbox policy application and transformation.
 
 ### Linux - Landlock Sandbox
 
-**Location:** `src/linuxX64Main/kotlin/io/github/kotlinmania/codex/exec/sandbox/LinuxSandbox.kt`
+**Location:** `src/linuxX64Main/kotlin/ai/solace/coder/exec/sandbox/LinuxSandbox.kt`
 
 **Features:**
 - Landlock ABI v4 support
@@ -98,7 +98,7 @@ LANDLOCK_ACCESS_NET_CONNECT_TCP = 0x02
 
 ### macOS - Seatbelt Sandbox
 
-**Location:** `src/macosArm64Main/kotlin/io/github/kotlinmania/codex/exec/sandbox/MacosSandbox.kt`
+**Location:** `src/macosArm64Main/kotlin/ai/solace/coder/exec/sandbox/MacosSandbox.kt`
 
 **Features:**
 - Dynamic Seatbelt profile generation
@@ -124,7 +124,7 @@ LANDLOCK_ACCESS_NET_CONNECT_TCP = 0x02
 
 ### Windows - Job Objects Sandbox
 
-**Location:** `src/mingwX64Main/kotlin/io/github/kotlinmania/codex/exec/sandbox/WindowsSandbox.kt`
+**Location:** `src/mingwX64Main/kotlin/ai/solace/coder/exec/sandbox/WindowsSandbox.kt`
 
 **Features:**
 - Job Object-based process containment
@@ -252,7 +252,7 @@ fun executeWithFlow(params: ExecParams): Flow<ExecOutputChunk>
 
 ### Unit Tests
 
-**Location:** `src/nativeTest/kotlin/io/github/kotlinmania/codex/exec/process/ProcessExecutorTest.kt`
+**Location:** `src/nativeTest/kotlin/ai/solace/coder/exec/process/ExecTest.kt`
 
 **Coverage:**
 - Data structure validation

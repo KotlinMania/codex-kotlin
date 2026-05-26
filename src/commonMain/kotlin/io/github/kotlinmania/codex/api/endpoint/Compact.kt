@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/endpoint/compact.rs
+// port-lint: source compact.rs
 package io.github.kotlinmania.codex.api.endpoint
 
 import io.github.kotlinmania.codex.api.AuthProvider
@@ -126,8 +126,8 @@ class CompactClient<A : AuthProvider>(
  * Response from compact endpoint.
  * Matches Rust CompactHistoryResponse.
  */
-// @Serializable
-data class CompactHistoryResponse(
+@Serializable
+private data class CompactHistoryResponse(
     val output: List<ResponseItem>
 )
 

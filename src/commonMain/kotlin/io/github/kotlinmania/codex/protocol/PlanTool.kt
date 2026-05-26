@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/plan_tool.rs
+// port-lint: source plan_tool.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Types for the TODO/plan tool arguments.
  *
- * Ported from Rust codex-rs/protocol/src/plan_tool.rs
+ * Ported from Rust codex-rs/protocol/src/planTool.rs
  */
 
 @Serializable

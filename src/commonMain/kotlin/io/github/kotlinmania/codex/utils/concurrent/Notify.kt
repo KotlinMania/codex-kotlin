@@ -21,7 +21,7 @@ class Notify {
      * Wakes up all coroutines currently waiting on [notified].
      *
      * If no coroutines are waiting, the next call to [notified] will complete immediately (due to
-     * extraBufferCapacity = 1 and DROP_OLDEST, but wait, Notify in Rust usually doesn't "remember"
+     * extraBufferCapacity = 1 and DROP_OLDEST, but wait, Notify in Rust usually does not "remember"
      * unless Permit is used). Actually, tokio Notify has a "notified" flag.
      */
     fun notifyWaiters() {

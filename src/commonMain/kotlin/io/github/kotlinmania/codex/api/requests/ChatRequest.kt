@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/requests/chat.rs
+// port-lint: source chat.rs
 package io.github.kotlinmania.codex.api.requests
 
 import io.github.kotlinmania.codex.api.provider.Provider

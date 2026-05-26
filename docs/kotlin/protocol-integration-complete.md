@@ -2,4 +2,4 @@
 
 ## What Was Accomplished
 
-Successfully wired up all protocol types from `io.github.kotlinmania.codex.protocol` into the `io.github.kotlinmania.codex.api` package, eliminating placeholder types and TODOs.
+Successfully wired up all protocol types from `io.github.solaceharmony.codex.protocol` into the `io.github.solaceharmony.codex.api` package, eliminating placeholder types and TODOs.

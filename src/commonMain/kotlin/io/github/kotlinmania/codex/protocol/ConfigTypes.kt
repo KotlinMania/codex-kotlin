@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/config_types.rs
+// port-lint: source protocol/src/config_types.rs
 package io.github.kotlinmania.codex.protocol
 
 import kotlinx.serialization.SerialName
@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Configuration type enums.
  *
- * Ported from Rust codex-rs/protocol/src/config_types.rs
+ * Ported from Rust codex-rs/protocol/src/configTypes.rs
  */
 
 /**
@@ -107,13 +107,3 @@ enum class TrustLevel {
     @SerialName("untrusted")
     Untrusted
 }
-
-/**
- * Type alias matching Rust: `use codex_protocol::config_types::ReasoningEffort as ReasoningEffortConfig`
- */
-typealias ReasoningEffortConfig = ReasoningEffort
-
-/**
- * Type alias matching Rust: `use codex_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig`
- */
-typealias ReasoningSummaryConfig = ReasoningSummary

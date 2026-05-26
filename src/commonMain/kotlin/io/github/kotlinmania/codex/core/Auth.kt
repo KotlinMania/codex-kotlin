@@ -1,27 +1,32 @@
-// port-lint: source codex-rs/core/src/auth.rs
+// port-lint: source auth.rs
 package io.github.kotlinmania.codex.core
 
-import io.github.kotlinmania.codex.core.auth.*
-import io.github.kotlinmania.codex.core.error.RefreshTokenFailedReason
-import io.github.kotlinmania.codex.core.error.RefreshTokenFailedError
+import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
+import io.github.kotlinmania.codex.core.auth.AuthStorageBackend
+import io.github.kotlinmania.codex.core.auth.FileAuthStorage
+import io.github.kotlinmania.codex.core.auth.createAuthStorage
+import io.github.kotlinmania.codex.core.config.Config
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.cinterop.toKString
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okio.Path
-import okio.Path.Companion.toPath
+import kotlinx.io.files.Path
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import kotlin.time.TimeSource
 import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
 // ============================================================================
 // Constants
 // ============================================================================
 
+@OptIn(ExperimentalTime::class)
 private val systemClock = TimeSource.Monotonic
 
 private const val TOKEN_REFRESH_INTERVAL = 8L // days
@@ -45,6 +50,15 @@ const val CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY"
 // ============================================================================
 // Core Types
 // ============================================================================
+
+/**
+ * Authentication mode for API access.
+ * Mirrors codexAppServerProtocol::AuthMode
+ */
+enum class AuthMode {
+    ApiKey,
+    ChatGPT
+}
 
 @ConsistentCopyVisibility
 data class CodexAuth internal constructor(
@@ -89,6 +103,7 @@ data class CodexAuth internal constructor(
     /**
      * Get token data, refreshing if necessary based on last refresh time.
      */
+    @OptIn(ExperimentalTime::class)
     suspend fun getTokenData(): Result<TokenData> {
         val authJson = getCurrentAuthJson()
             ?: return Result.failure(Exception("Token data is not available."))
@@ -140,7 +155,6 @@ data class CodexAuth internal constructor(
                 }
                 Result.success(tokenData.accessToken)
             }
-            AuthMode.None -> Result.success("")
         }
     }
 
@@ -204,68 +218,173 @@ data class CodexAuth internal constructor(
     private fun getCurrentTokenData(): TokenData? {
         return cachedAuthDotJson?.tokens
     }
+}
 
-    companion object {
-        /**
-         * Create a dummy ChatGPT auth for testing.
-         */
-        fun createDummyChatGptAuthForTesting(): CodexAuth {
-            val authDotJson = AuthDotJson(
-                openaiApiKey = null,
-                tokens = TokenData(
-                    idToken = IdTokenInfo(),
-                    accessToken = "Access Token",
-                    refreshToken = "test",
-                    accountId = "account_id"
-                ),
-                lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
-            )
+/**
+ * Create a dummy ChatGPT auth for testing.
+ */
+@OptIn(ExperimentalTime::class)
+fun createDummyChatGptAuthForTesting(): CodexAuth {
+    val authDotJson = AuthDotJson(
+        openaiApiKey = null,
+        tokens = TokenData(
+            idToken = IdTokenInfo(),
+            accessToken = "Access Token",
+            refreshToken = "test",
+            accountId = "account_id"
+        ),
+        lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
+    )
 
-            return CodexAuth(
-                mode = AuthMode.ChatGPT,
-                apiKey = null,
-                authDotJsonMutex = Mutex(),
-                cachedAuthDotJson = authDotJson,
-                storage = FileAuthStorage("".toPath()),
-                client = HttpClient()
-            )
-        }
+    return CodexAuth(
+        mode = AuthMode.ChatGPT,
+        apiKey = null,
+        authDotJsonMutex = Mutex(),
+        cachedAuthDotJson = authDotJson,
+        storage = FileAuthStorage(Path("")),
+        client = HttpClient()
+    )
+}
 
-        /**
-         * Create an auth from an API key.
-         */
-        fun fromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth {
-            return CodexAuth(
-                mode = AuthMode.ApiKey,
-                apiKey = apiKey,
-                authDotJsonMutex = Mutex(),
-                cachedAuthDotJson = null,
-                storage = FileAuthStorage("".toPath()),
-                client = client
-            )
-        }
+/**
+ * Create an auth from an API key.
+ */
+fun codexAuthFromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth {
+    return CodexAuth(
+        mode = AuthMode.ApiKey,
+        apiKey = apiKey,
+        authDotJsonMutex = Mutex(),
+        cachedAuthDotJson = null,
+        storage = FileAuthStorage(Path("")),
+        client = client
+    )
+}
 
-        /**
-         * Loads the available auth information from auth storage.
-         */
-        fun fromAuthStorage(
-            codexHome: Path,
-            authCredentialsStoreMode: AuthCredentialsStoreMode
-        ): Result<CodexAuth?> {
-            return loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
+/**
+ * Loads the available auth information from auth storage.
+ */
+fun codexAuthFromAuthStorage(
+    codexHome: Path,
+    authCredentialsStoreMode: AuthCredentialsStoreMode
+): Result<CodexAuth?> {
+    return loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
+}
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/**
+ * Error types for refresh token operations.
+ * Mirrors the upstream RefreshTokenError enum.
+ */
+sealed class RefreshTokenError(message: String) : Exception(message) {
+    class Permanent(val reason: RefreshTokenFailedReason, message: String) : RefreshTokenError(message)
+    class Transient(message: String) : RefreshTokenError(message)
+
+    fun failedReason(): RefreshTokenFailedReason? {
+        return when (this) {
+            is Permanent -> reason
+            is Transient -> null
         }
     }
 }
 
 // ============================================================================
+// Token Data & Storage Types
+// ============================================================================
+
+/**
+ * Plan type classification from ID token.
+ */
+sealed class PlanType {
+    data class Known(val plan: KnownPlan) : PlanType()
+    data class Unknown(val value: String) : PlanType()
+}
+
+enum class KnownPlan {
+    Free, Plus, Pro, Team, Business, Enterprise, Edu
+}
+
+private fun planTypeFromString(value: String): PlanType {
+    val knownPlan = when (value.lowercase()) {
+        "free" -> KnownPlan.Free
+        "plus" -> KnownPlan.Plus
+        "pro" -> KnownPlan.Pro
+        "team" -> KnownPlan.Team
+        "business" -> KnownPlan.Business
+        "enterprise" -> KnownPlan.Enterprise
+        "edu" -> KnownPlan.Edu
+        else -> null
+    }
+    return if (knownPlan != null) {
+        PlanType.Known(knownPlan)
+    } else {
+        PlanType.Unknown(value)
+    }
+}
+
+/**
+ * Account plan type for external API.
+ * Maps to codexProtocol::account::PlanType
+ */
+enum class AccountPlanType {
+    Free, Plus, Pro, Team, Business, Enterprise, Edu, Unknown
+}
+
+/**
+ * ID token information parsed from JWT.
+ */
+@Serializable
+data class IdTokenInfo(
+    val email: String? = null,
+    @Contextual
+    val chatgptPlanType: PlanType? = null,
+    val chatgptAccountId: String? = null,
+    val rawJwt: String = ""
+)
+
+/**
+ * Token data from auth.json.
+ */
+@Serializable
+data class TokenData(
+    var idToken: IdTokenInfo = IdTokenInfo(),
+    var accessToken: String = "",
+    var refreshToken: String = "",
+    val accountId: String? = null
+)
+
+/**
+ * Auth.json file structure.
+ */
+@Serializable
+data class AuthDotJson(
+    @SerialName("OPENAI_API_KEY")
+    val openaiApiKey: String? = null,
+    val tokens: TokenData? = null,
+    @SerialName("last_refresh")
+    val lastRefresh: Long? = null  // Store as epoch milliseconds
+)
+
+/**
+ * Forced login method configuration.
+ */
+enum class ForcedLoginMethod {
+    Api,
+    Chatgpt
+}
+
+// ============================================================================
 // Public API Functions
+// ============================================================================
 // ============================================================================
 
 /**
  * Read OpenAI API key from environment.
  */
 fun readOpenaiApiKeyFromEnv(): String? {
-    return io.github.kotlinmania.codex.utils.Environment.get(OPENAI_API_KEY_ENV_VAR)
+    return getEnvironmentVariable(OPENAI_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
 }
@@ -274,7 +393,7 @@ fun readOpenaiApiKeyFromEnv(): String? {
  * Read Codex API key from environment.
  */
 fun readCodexApiKeyFromEnv(): String? {
-    return io.github.kotlinmania.codex.utils.Environment.get(CODEX_API_KEY_ENV_VAR)
+    return getEnvironmentVariable(CODEX_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
 }
@@ -293,6 +412,7 @@ fun logout(
 /**
  * Write an auth.json that contains only the API key.
  */
+@OptIn(ExperimentalTime::class)
 fun loginWithApiKey(
     codexHome: Path,
     apiKey: String,
@@ -332,7 +452,7 @@ fun loadAuthDotJson(
 /**
  * Enforce login restrictions from config.
  */
-suspend fun enforceLoginRestrictions(config: AuthConfig): Result<Unit> {
+suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
     val auth = loadAuth(
         config.codexHome,
         enableCodexApiKeyEnv = true,
@@ -350,12 +470,10 @@ suspend fun enforceLoginRestrictions(config: AuthConfig): Result<Unit> {
             ForcedLoginMethod.Api -> when (auth.mode) {
                 AuthMode.ApiKey -> null
                 AuthMode.ChatGPT -> "API key login is required, but ChatGPT is currently being used. Logging out."
-                AuthMode.None -> null
             }
             ForcedLoginMethod.Chatgpt -> when (auth.mode) {
                 AuthMode.ChatGPT -> null
                 AuthMode.ApiKey -> "ChatGPT login is required, but an API key is currently being used. Logging out."
-                AuthMode.None -> null
             }
         }
 
@@ -401,7 +519,7 @@ suspend fun enforceLoginRestrictions(config: AuthConfig): Result<Unit> {
 // Internal Functions
 // ============================================================================
 
-private suspend fun logoutWithMessage(
+private fun logoutWithMessage(
     codexHome: Path,
     message: String,
     authCredentialsStoreMode: AuthCredentialsStoreMode
@@ -426,7 +544,7 @@ internal fun loadAuth(
     if (enableCodexApiKeyEnv) {
         readCodexApiKeyFromEnv()?.let { apiKey ->
             val client = HttpClient()
-            return Result.success(CodexAuth.fromApiKey(apiKey, client))
+            return Result.success(codexAuthFromApiKey(apiKey, client))
         }
     }
 
@@ -439,7 +557,7 @@ internal fun loadAuth(
 
     // Prefer API key if set in auth.json
     if (authDotJson.openaiApiKey != null) {
-        return Result.success(CodexAuth.fromApiKey(authDotJson.openaiApiKey, client))
+        return Result.success(codexAuthFromApiKey(authDotJson.openaiApiKey, client))
     }
 
     // Use ChatGPT tokens
@@ -458,6 +576,7 @@ internal fun loadAuth(
 /**
  * Update tokens in storage and return the updated auth.json.
  */
+@OptIn(ExperimentalTime::class)
 private fun updateTokens(
     storage: AuthStorageBackend,
     idToken: String?,
@@ -506,7 +625,7 @@ private suspend fun tryRefreshToken(
         scope = "openid profile email"
     )
 
-    val endpoint = io.github.kotlinmania.codex.utils.Environment.get(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
+    val endpoint = getEnvironmentVariable(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
         ?: REFRESH_TOKEN_URL
 
     return try {
@@ -526,7 +645,7 @@ private suspend fun tryRefreshToken(
                 val failed = classifyRefreshTokenFailure(body)
                 Result.failure(RefreshTokenError.Permanent(failed.reason, failed.message))
             } else {
-                val message = tryParseErrorMessage(body)
+                val message = parseAuthRefreshErrorMessage(body)
                 Result.failure(
                     RefreshTokenError.Transient("Failed to refresh token: ${response.status}: $message")
                 )
@@ -574,7 +693,7 @@ private fun extractRefreshTokenErrorCode(body: String): String? {
     val json = try {
         Json.parseToJsonElement(body).jsonObject
     } catch (_: Exception) {
-        // Return empty object on parse failure (matches Rust's unwrap_or_default)
+        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
         JsonObject(emptyMap())
     }
 
@@ -592,12 +711,16 @@ private fun extractRefreshTokenErrorCode(body: String): String? {
 
 /**
  * Try to parse an error message from JSON body.
+ *
+ * Auth-specific helper that accepts either `error` as a string or `message` as a string.
+ * Distinct from [io.github.kotlinmania.codex.core.tryParseErrorMessage] in util.rs which expects
+ * `{"error": {"message": "..."}}`.
  */
-private fun tryParseErrorMessage(body: String): String {
+private fun parseAuthRefreshErrorMessage(body: String): String {
     val json = try {
         Json.parseToJsonElement(body).jsonObject
     } catch (_: Exception) {
-        // Return empty object on parse failure (matches Rust's unwrap_or_default)
+        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
         JsonObject(emptyMap())
     }
 
@@ -613,6 +736,57 @@ private fun tryParseErrorMessage(body: String): String {
     // Otherwise return the raw body
     return body
 }
+
+/**
+ * Parse ID token JWT and extract claims.
+ *
+ * Uses the io.github.kotlinmania.jwt library to decode the JWT without verification.
+ * Extracts claims from the payload:
+ * - email
+ * - https://api.openai.com/auth.chatgptPlanType
+ * - https://api.openai.com/auth.chatgptAccountId
+ *
+ * Note: Signature verification is NOT performed.
+ * This is only for extracting user info from trusted tokens.
+ *
+ * Reference: codex-rs/core/src/tokenData.rs - parseIdToken()
+ */
+private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
+    return try {
+        // Decode JWT without verification
+        val decoded = io.github.kotlinmania.jwt.JWT.decode(jwt)
+
+        // Extract email
+        val email = decoded.getClaim("email").asString()
+
+        // Extract OpenAI auth claims
+        val authClaim = decoded.getClaim("https://api.openai.com/auth")
+        val authMap = authClaim.asMap()
+
+        val planTypeStr = authMap?.get("chatgpt_plan_type") as? String
+        val planType = planTypeStr?.let { planTypeFromString(it) }
+
+        val accountId = authMap?.get("chatgpt_account_id") as? String
+
+        Result.success(
+            IdTokenInfo(
+                email = email,
+                chatgptPlanType = planType,
+                chatgptAccountId = accountId,
+                rawJwt = jwt
+            )
+        )
+    } catch (e: io.github.kotlinmania.jwt.exceptions.JWTDecodeException) {
+        Result.failure(Exception("Failed to decode JWT: ${e.message}", e))
+    } catch (e: Exception) {
+        Result.failure(Exception("JWT parsing failed: ${e.message}", e))
+    }
+}
+
+/**
+ * Create auth storage backend.
+ */
+
 
 @Serializable
 private data class RefreshRequest(
@@ -642,6 +816,14 @@ private data class RefreshResponse(
 /**
  * Central manager providing a single source of truth for auth.json derived
  * authentication data.
+ *
+ * It loads once (or on preference change) and then hands out cloned `CodexAuth`
+ * values so the rest of the program has a consistent snapshot.
+ *
+ * External modifications to `auth.json` will NOT be observed until `reload()`
+ * is called explicitly.
+ *
+ * Mirrors the upstream AuthManager from core/src/auth.rs
  */
 class AuthManager private constructor(
     private val codexHome: Path,
@@ -649,6 +831,24 @@ class AuthManager private constructor(
     private val authCredentialsStoreMode: AuthCredentialsStoreMode,
     initialAuth: CodexAuth?
 ) {
+    constructor(
+        codexHome: Path,
+        enableCodexApiKeyEnv: Boolean,
+        authCredentialsStoreMode: AuthCredentialsStoreMode
+    ) : this(
+        codexHome,
+        enableCodexApiKeyEnv,
+        authCredentialsStoreMode,
+        loadAuth(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode).getOrNull()
+    )
+
+    internal constructor(auth: CodexAuth) : this(
+        codexHome = Path(""),
+        enableCodexApiKeyEnv = false,
+        authCredentialsStoreMode = AuthCredentialsStoreMode.File,
+        initialAuth = auth
+    )
+
     private val mutex = Mutex()
     private var cachedAuth: CodexAuth? = initialAuth
 
@@ -679,6 +879,10 @@ class AuthManager private constructor(
 
     /**
      * Attempt to refresh the current auth token (if any).
+     *
+     * On success, reloads the auth state from disk so other components
+     * observe the refreshed token. If the token refresh fails in a permanent
+     * (non-transient) way, logs out to clear invalid auth state.
      */
     suspend fun refreshToken(): Result<String?> {
         val currentAuth = auth() ?: return Result.success(null)
@@ -699,9 +903,13 @@ class AuthManager private constructor(
 
     /**
      * Log out by deleting the on-disk auth.json (if present).
+     *
+     * Returns Ok(true) if a file was removed, Ok(false) if no auth file existed.
+     * On success, reloads the in-memory auth cache so callers immediately
+     * observe the unauthenticated state.
      */
     suspend fun logout(): Result<Boolean> {
-        val result = io.github.kotlinmania.codex.core.logout(codexHome, authCredentialsStoreMode)
+        val result = logout(codexHome, authCredentialsStoreMode)
         // Always reload to clear any cached auth (even if file absent)
         reload()
         return result
@@ -714,35 +922,19 @@ class AuthManager private constructor(
             else -> false
         }
     }
+}
 
-    companion object {
-        /**
-         * Create a new manager loading the initial auth.
-         */
-        operator fun invoke(
-            codexHome: Path,
-            enableCodexApiKeyEnv: Boolean,
-            authCredentialsStoreMode: AuthCredentialsStoreMode
-        ): AuthManager {
-            val auth = loadAuth(
-                codexHome,
-                enableCodexApiKeyEnv,
-                authCredentialsStoreMode
-            ).getOrNull()
+// ============================================================================
+// Platform-specific stubs
+// ============================================================================
 
-            return AuthManager(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode, auth)
-        }
-
-        /**
-         * Create an AuthManager with a specific CodexAuth, for testing only.
-         */
-        fun fromAuthForTesting(auth: CodexAuth): AuthManager {
-            return AuthManager(
-                codexHome = "".toPath(),
-                enableCodexApiKeyEnv = false,
-                authCredentialsStoreMode = AuthCredentialsStoreMode.File,
-                initialAuth = auth
-            )
-        }
-    }
+/**
+ * Get environment variable value.
+ *
+ * Uses platform.posix.getenv for Native platforms (macOS/Linux/Windows).
+ * For more complex multiplatform scenarios, consider creating expect/actual.
+ */
+@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+private fun getEnvironmentVariable(name: String): String? {
+    return platform.posix.getenv(name)?.toKString()
 }

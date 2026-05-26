@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/requests/responses.rs
+// port-lint: source responses.rs
 package io.github.kotlinmania.codex.api.requests
 
 import io.github.kotlinmania.codex.api.common.Reasoning

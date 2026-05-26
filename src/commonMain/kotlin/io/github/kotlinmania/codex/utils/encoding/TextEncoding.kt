@@ -1,4 +1,4 @@
-// port-lint: source core/src/text_encoding.rs
+// port-lint: source core/src/textEncoding.rs
 package io.github.kotlinmania.codex.utils.encoding
 
 import com.fleeksoft.charset.Charset
@@ -10,11 +10,11 @@ import com.fleeksoft.charset.decodeToString
  *
  * Windows users frequently run into code pages such as CP1251 or CP866 when invoking commands
  * through VS Code. Those bytes show up as invalid UTF-8 and used to be replaced with the standard
- * Unicode replacement character. We now use charset detection heuristics so we can
+ * Unicode replacement character. We now import charset detection heuristics so we can
  * automatically detect and decode the vast majority of legacy encodings before falling back to
  * lossy UTF-8 decoding.
  *
- * Ported from Rust codex-rs/core/src/text_encoding.rs
+ * Ported from Rust codex-rs/core/src/textEncoding.rs
  */
 
 /**
@@ -36,7 +36,7 @@ private val WINDOWS_1252_PUNCT_BYTES = byteArrayOf(
 /**
  * Attempts to convert arbitrary bytes to UTF-8 with best-effort encoding detection.
  *
- * Ported from Rust codex-rs/core/src/text_encoding.rs bytes_to_string_smart
+ * Ported from Rust codex-rs/core/src/textEncoding.rs bytesToStringSmart
  */
 fun bytesToStringSmart(bytes: ByteArray): String {
     if (bytes.isEmpty()) {
@@ -60,7 +60,7 @@ fun bytesToStringSmart(bytes: ByteArray): String {
  */
 private fun tryDecodeUtf8(bytes: ByteArray): String? {
     return try {
-        // Use Kotlin stdlib's strict UTF-8 decoding
+        // Use Kotlin stdlib strict UTF-8 decoding
         bytes.decodeToString(throwOnInvalidSequence = true)
     } catch (e: CharacterCodingException) {
         null
@@ -72,10 +72,10 @@ private fun tryDecodeUtf8(bytes: ByteArray): String? {
 /**
  * Detect the encoding of the byte array using heuristics.
  *
- * This is a simplified version of chardetng's detection. We use heuristics
+ * This is a simplified version of chardetng detection. We import heuristics
  * based on byte patterns common in various encodings.
  *
- * Ported from Rust codex-rs/core/src/text_encoding.rs detect_encoding
+ * Ported from Rust codex-rs/core/src/textEncoding.rs detectEncoding
  */
 private fun detectEncoding(bytes: ByteArray): Charset {
     // Check for BOM markers first
@@ -245,7 +245,7 @@ private fun detectCjkEncoding(bytes: ByteArray): Charset {
  * `"test"` into unreadable Cyrillic. To avoid that, we treat inputs comprising a handful of bytes
  * from the problematic range plus ASCII letters as CP1252 punctuation.
  *
- * Ported from Rust codex-rs/core/src/text_encoding.rs looks_like_windows_1252_punctuation
+ * Ported from Rust codex-rs/core/src/textEncoding.rs looksLikeWindows1252Punctuation
  */
 private fun looksLikeWindows1252Punctuation(bytes: ByteArray): Boolean {
     var sawExtendedPunctuation = false
@@ -286,7 +286,7 @@ private fun isWindows1252Punct(byte: Byte): Boolean {
 /**
  * Decode bytes using the specified charset, falling back to lossy UTF-8 if decoding fails.
  *
- * Ported from Rust codex-rs/core/src/text_encoding.rs decode_bytes
+ * Ported from Rust codex-rs/core/src/textEncoding.rs decodeBytes
  */
 private fun decodeBytes(bytes: ByteArray, charset: Charset): String {
     return try {

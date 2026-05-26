@@ -1,4 +1,5 @@
-// port-lint: source async-utils/src/lib.rs
+// port-lint: ignore
+// transliterated from upstream module root (async-utils crate)
 package io.github.kotlinmania.codex.utils.concurrent
 
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,8 +15,8 @@ import kotlinx.coroutines.sync.withLock
  *
  * Cancellation can be requested through the [cancel] method.
  *
- * Ported from Rust tokio_util::sync::CancellationToken
- * Source: https://github.com/tokio-rs/tokio/blob/master/tokio-util/src/sync/cancellation_token.rs
+ * Ported from Rust tokioUtil::sync::CancellationToken
+ * Source: https://github.com/tokio-rs/tokio/blob/master/tokio-util/src/sync/cancellationToken.rs
  *
  * Key semantics from Rust:
  * - Child tokens get cancelled when parent is cancelled
@@ -79,7 +80,7 @@ class CancellationToken private constructor(
      * The function will complete immediately if the token is already cancelled
      * when this method is called.
      *
-     * This is the Kotlin equivalent of Rust's `cancelled().await`.
+     * This is the Kotlin equivalent of the upstream `cancelled().await`.
      */
     suspend fun cancelled() {
         node.awaitCancellation()
@@ -91,7 +92,7 @@ class CancellationToken private constructor(
      * The returned guard will cancel this token (and all its children) when
      * [DropGuard.close] is called, unless [DropGuard.disarm] is called first.
      *
-     * Use with Kotlin's `use` extension for RAII-like behavior:
+     * Use with Kotlin `use` extension for RAII-like behavior:
      * ```
      * token.dropGuard().use {
      *     // token will be cancelled when this block exits
@@ -111,7 +112,7 @@ class CancellationToken private constructor(
 /**
  * Internal tree node for managing parent-child cancellation relationships.
  *
- * Ported from Rust tokio_util::sync::cancellation_token::tree_node
+ * Ported from Rust tokioUtil::sync::cancellationToken::treeNode
  */
 internal class TreeNode {
     private val state = MutableStateFlow(false)
@@ -161,7 +162,7 @@ internal class TreeNode {
 /**
  * A wrapper for [CancellationToken] which automatically cancels it on close.
  *
- * Implements [AutoCloseable] for use with Kotlin's `use` extension:
+ * Implements [AutoCloseable] for import with Kotlin `use` extension:
  * ```
  * token.dropGuard().use {
  *     // If this block exits (normally or via exception),
@@ -169,7 +170,7 @@ internal class TreeNode {
  * }
  * ```
  *
- * Ported from Rust tokio_util::sync::cancellation_token::guard::DropGuard
+ * Ported from Rust tokioUtil::sync::cancellationToken::guard::DropGuard
  */
 class DropGuard internal constructor(
     private var inner: CancellationToken?
@@ -200,7 +201,7 @@ class DropGuard internal constructor(
  *
  * This is a non-owning version of [DropGuard].
  *
- * Ported from Rust tokio_util::sync::cancellation_token::guard_ref::DropGuardRef
+ * Ported from Rust tokioUtil::sync::cancellationToken::guardRef::DropGuardRef
  */
 class DropGuardRef internal constructor(
     private var inner: CancellationToken?

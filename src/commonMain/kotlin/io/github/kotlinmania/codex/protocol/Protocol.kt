@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/protocol/src/protocol.rs
+// port-lint: source protocol.rs
 package io.github.kotlinmania.codex.protocol
 
 import io.github.kotlinmania.codex.utils.Environment
@@ -9,9 +9,7 @@ import kotlinx.serialization.json.JsonElement
 // ========== Constants ==========
 
 /** Helper function to get environment variable in a platform-agnostic way. */
-private fun getEnvironmentVariable(name: String): String? {
-    return Environment.get(name)
-}
+private fun getEnvironmentVariable(name: String): String? = Environment.get(name)
 
 /** Open/close tags for special user-input blocks. */
 const val USER_INSTRUCTIONS_OPEN_TAG = "<user_instructions>"
@@ -171,12 +169,6 @@ sealed class SandboxPolicy {
     }
 
 }
-
-/** Returns a policy with read-only disk access and no network. */
-fun newReadOnlyPolicy(): SandboxPolicy = SandboxPolicy.ReadOnly
-
-/** Returns a workspace-write policy with default settings. */
-fun newWorkspaceWritePolicy(): SandboxPolicy = SandboxPolicy.WorkspaceWrite()
 
 /** A writable root path with read-only subpaths. */
 @Serializable
@@ -456,7 +448,8 @@ data class ErrorEvent(
 
 @Serializable data class WarningEvent(val message: String)
 
-@Serializable class ContextCompactedEvent
+@Serializable
+object ContextCompactedEvent
 
 @Serializable
 data class TaskStartedEvent(
@@ -523,23 +516,23 @@ data class TokenUsageInfo(
                 lastTokenUsage = TokenUsage(totalTokens = delta)
         )
     }
+}
 
-    companion object {
-        fun newOrAppend(
-                info: TokenUsageInfo?,
-                last: TokenUsage?,
-                modelContextWindow: Long?
-        ): TokenUsageInfo? {
-            if (info == null && last == null) return null
-            var result = info ?: TokenUsageInfo(TokenUsage(), TokenUsage(), modelContextWindow)
-            if (last != null) result = result.appendLastUsage(last)
-            return result
-        }
+object TokenUsageInfoFactory {
+    fun newOrAppend(
+            info: TokenUsageInfo?,
+            last: TokenUsage?,
+            modelContextWindow: Long?
+    ): TokenUsageInfo? {
+        if (info == null && last == null) return null
+        var result = info ?: TokenUsageInfo(TokenUsage(), TokenUsage(), modelContextWindow)
+        if (last != null) result = result.appendLastUsage(last)
+        return result
+    }
 
-        fun fullContextWindow(contextWindow: Long): TokenUsageInfo {
-            return TokenUsageInfo(TokenUsage(), TokenUsage(), contextWindow)
-                    .fillToContextWindow(contextWindow)
-        }
+    fun fullContextWindow(contextWindow: Long): TokenUsageInfo {
+        return TokenUsageInfo(TokenUsage(), TokenUsage(), contextWindow)
+                .fillToContextWindow(contextWindow)
     }
 }
 
@@ -1064,14 +1057,34 @@ data class ReasoningRawContentDeltaEvent(
 
 // ========== MCP Types ==========
 
-@Serializable data class McpTool(val name: String, val description: String? = null)
+@Serializable
+data class ToolInputSchema(
+        val properties: JsonElement? = null,
+        val required: List<String>? = null,
+        val type: String = "object"
+)
 
-@Serializable data class McpResource(val uri: String, val name: String? = null)
+@Serializable
+data class McpTool(
+        val name: String,
+        val description: String? = null,
+        @SerialName("inputSchema") val inputSchema: ToolInputSchema = ToolInputSchema()
+)
+
+@Serializable
+data class McpResource(
+        val uri: String,
+        val name: String = "",
+        val description: String? = null,
+        @SerialName("mimeType") val mimeType: String? = null
+)
 
 @Serializable
 data class McpResourceTemplate(
-        @SerialName("uri_template") val uriTemplate: String,
-        val name: String? = null
+        @SerialName("uriTemplate") val uriTemplate: String,
+        val name: String = "",
+        val description: String? = null,
+        @SerialName("mimeType") val mimeType: String? = null
 )
 
 @Serializable
@@ -1080,6 +1093,8 @@ data class McpResult<T, E>(val value: T? = null, val error: E? = null) {
         get() = error == null
     val isFailure: Boolean
         get() = error != null
+
+    companion object
 }
 
 interface HasLegacyEvent {
@@ -1091,4 +1106,3 @@ data class ConversationPathResponseEvent(
         @SerialName("conversation_id") val conversationId: ConversationId,
         val path: String
 )
-

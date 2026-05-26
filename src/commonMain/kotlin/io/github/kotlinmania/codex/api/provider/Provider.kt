@@ -1,4 +1,4 @@
-// port-lint: source codex-rs/codex-api/src/provider.rs
+// port-lint: source provider.rs
 package io.github.kotlinmania.codex.api.provider
 
 import io.ktor.client.request.*

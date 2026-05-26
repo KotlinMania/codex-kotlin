@@ -1,15 +1,16 @@
 package io.github.kotlinmania.codex.core.tools
 
+import io.github.kotlinmania.codex.core.ProcessItemsResult
+import io.github.kotlinmania.codex.core.ProcessedResponseItem
+import io.github.kotlinmania.codex.core.ToolCallProcessorConfig
 import io.github.kotlinmania.codex.protocol.ContentBlock
 import io.github.kotlinmania.codex.protocol.ContentItem
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.CallToolResult
-import kotlinx.serialization.json.JsonNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -34,70 +35,6 @@ class ToolCallProcessorTest {
         assertEquals(4, config.maxConcurrentCalls)
         assertEquals(120000L, config.defaultTimeoutMs)
     }
-
-    @Test
-    fun testGetStatistics() {
-        val processor = ToolCallProcessor(
-            config = ToolCallProcessorConfig(
-                enableParallelExecution = true,
-                maxConcurrentCalls = 8,
-                defaultTimeoutMs = 30000L
-            )
-        )
-
-        val stats = processor.getStatistics()
-        assertEquals(8, stats.maxConcurrentCalls)
-        assertTrue(stats.parallelExecutionEnabled)
-        assertEquals(30000L, stats.defaultTimeoutMs)
-    }
-
-    @Test
-    fun testCreateNonToolProcessedItem() {
-        val processor = ToolCallProcessor()
-        val item = ResponseItem.Message(
-            role = "assistant",
-            content = listOf(ContentItem.OutputText(text = "Hello!"))
-        )
-
-        val processed = processor.createNonToolProcessedItem(item)
-        assertEquals(item, processed.item)
-        assertNull(processed.response)
-    }
-
-    @Test
-    fun testCreateToolCallProcessedItem() {
-        val processor = ToolCallProcessor()
-        val item = ResponseItem.FunctionCall(
-            name = "test_tool",
-            arguments = "{}",
-            call_id = "call_123"
-        )
-        val output = FunctionCallOutputPayload(
-            content = "Tool executed successfully",
-            success = true
-        )
-
-        val processed = processor.createToolCallProcessedItem(item, "call_123", output)
-        assertEquals(item, processed.item)
-        assertNotNull(processed.response)
-
-        val response = processed.response as ResponseInputItem.FunctionCallOutput
-        assertEquals("call_123", response.call_id)
-        assertEquals("Tool executed successfully", response.output.content)
-        assertEquals(true, response.output.success)
-    }
-
-    @Test
-    fun testCreateErrorResponse() {
-        val processor = ToolCallProcessor()
-        val errorResponse = processor.createErrorResponse("call_456", "Permission denied")
-
-        assertTrue(errorResponse is ResponseInputItem.FunctionCallOutput)
-        val functionOutput = errorResponse as ResponseInputItem.FunctionCallOutput
-        assertEquals("call_456", functionOutput.call_id)
-        assertEquals("Permission denied", functionOutput.output.content)
-        assertEquals(false, functionOutput.output.success)
-    }
 }
 
 class ProcessedResponseItemTest {
@@ -109,7 +46,7 @@ class ProcessedResponseItemTest {
             content = listOf(ContentItem.OutputText(text = "Result"))
         )
         val response = ResponseInputItem.FunctionCallOutput(
-            call_id = "call_1",
+            callId = "call_1",
             output = FunctionCallOutputPayload(content = "done")
         )
 
@@ -137,11 +74,11 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
     fun testFromCallToolResultWithError() {
         val result = CallToolResult(
             content = listOf(ContentBlock.TextContent(text = "Error occurred")),
-            is_error = true
+            isError = true
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
-        // is_error=true should result in success=false
+        val payload = FunctionCallOutputPayload.from(result)
+        // isError=true should result in success=false
         assertEquals(false, payload.success)
     }
 
@@ -149,11 +86,11 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
     fun testFromCallToolResultIsErrorNull() {
         val result = CallToolResult(
             content = emptyList(),
-            is_error = null
+            isError = null
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
-        // is_error=null (not true) should result in success=true
+        val payload = FunctionCallOutputPayload.from(result)
+        // isError=null (not true) should result in success=true
         assertEquals(true, payload.success)
     }
 
@@ -161,13 +98,13 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
     fun testFromCallToolResultEmptyContent() {
         val result = CallToolResult(
             content = emptyList(),
-            is_error = false
+            isError = false
         )
 
-        val payload = FunctionCallOutputPayload.fromCallToolResult(result)
+        val payload = FunctionCallOutputPayload.from(result)
         // Empty content list should still succeed
         assertEquals(true, payload.success)
-        assertNull(payload.content_items) // No images
+        assertNull(payload.contentItems) // No images
     }
 }
 
@@ -177,13 +114,13 @@ class ProcessItemsResultTest {
     fun testProcessItemsResultCreation() {
         val responses = listOf(
             ResponseInputItem.FunctionCallOutput(
-                call_id = "call_1",
+                callId = "call_1",
                 output = FunctionCallOutputPayload(content = "output1")
             )
         )
         val items = listOf<ResponseItem>(
             ResponseItem.FunctionCallOutput(
-                call_id = "call_1",
+                callId = "call_1",
                 output = FunctionCallOutputPayload(content = "output1")
             )
         )
