@@ -308,11 +308,14 @@ kotlin {
                 // TUI libraries
                 implementation("io.github.kotlinmania:ratatui-kotlin:0.1.9")
                 implementation("io.github.kotlinmania:crossterm-kotlin:0.1.4")
-                implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.4")
+                // ansi-to-tui-kotlin v0.1.1 does not support linuxArm64
+                // implementation("io.github.kotlinmania:ansi-to-tui-kotlin:0.1.4")
                 implementation("io.github.kotlinmania:anstyle-kotlin:0.1.4")
                 implementation("io.github.kotlinmania:kasuari-kotlin:0.1.2")
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
+                // roff-kotlin:0.1.2 and cansi-kotlin:0.1.2 not published to Maven Central yet
+                // or lack linuxArm64 support in published versions
+                // implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
+                // implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
 
                 // JWT library
                 implementation("io.github.kotlinmania:jwt-kmp:0.2.2")
@@ -345,7 +348,10 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 implementation("io.github.tree-sitter:ktreesitter:0.24.1")
-                implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
+                // ktreesitter-bash:0.23.3 does not exist on Maven Central.
+                // The io.github.tree-sitter:ktreesitter-bash artifact is not published.
+                // Consider using io.github.kotlinmania:tree-sitter-bash-kotlin once published.
+                // implementation("io.github.tree-sitter:ktreesitter-bash:0.23.3")
                 implementation("io.github.kotlinmania:landlock-kotlin:0.1.1")
             }
         }
