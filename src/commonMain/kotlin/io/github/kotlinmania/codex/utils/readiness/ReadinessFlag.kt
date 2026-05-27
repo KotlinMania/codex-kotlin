@@ -1,9 +1,5 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/utils/readiness/ReadinessFlag.kt
-// port-lint: source async-utils/src/lib.rs
-========
 // port-lint: ignore
 // transliterated from upstream module root (async-utils crate)
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/utils/readiness/ReadinessFlag.kt
 package io.github.kotlinmania.codex.utils.readiness
 
 import kotlinx.coroutines.CompletableDeferred

@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/otel/Config.kt
-// port-lint: source codex-rs/otel/src/config.rs
-========
 // port-lint: source config.rs
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/otel/Config.kt
 package io.github.kotlinmania.codex.otel
 
 import kotlinx.io.files.Path

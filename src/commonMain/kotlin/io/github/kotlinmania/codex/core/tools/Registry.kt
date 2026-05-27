@@ -2,10 +2,7 @@
 package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.FunctionCallError
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Registry.kt
-========
 import io.github.kotlinmania.codex.core.session.ToolSpec
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Registry.kt
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 
 /**

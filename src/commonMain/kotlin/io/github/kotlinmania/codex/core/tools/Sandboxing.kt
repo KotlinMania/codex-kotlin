@@ -1,11 +1,7 @@
 // port-lint: source core/src/tools/sandboxing.rs
 package io.github.kotlinmania.codex.core.tools
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-========
 import io.github.kotlinmania.codex.core.CodexErr
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.session.SessionServices
 import io.github.kotlinmania.codex.core.session.TurnContext
@@ -13,10 +9,6 @@ import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
 import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
 import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
-import io.github.kotlinmania.codex.exec.sandbox.SandboxPreference
-========
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.protocol.SandboxCommandAssessment
@@ -24,13 +16,9 @@ import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
-// ApprovalStore is imported from io.github.kotlinmania.codex.core.session.Turn
-========
 class ApprovalStore {
     private val mutex = Mutex()
     private val map = mutableMapOf<String, ReviewDecision>()
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Sandboxing.kt
 
     suspend fun get(key: Any): ReviewDecision? {
         return mutex.withLock {

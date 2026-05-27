@@ -1,13 +1,7 @@
 // port-lint: source core/src/unified_exec/errors.rs
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/unified_exec/Errors.kt
-package io.github.kotlinmania.codex.core.unified_exec
-
-import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
-========
 package io.github.kotlinmania.codex.core.unifiedexec
 
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/unifiedexec/Errors.kt
 
 sealed class UnifiedExecError : Exception() {
     data class CreateSession(override val message: String) : UnifiedExecError()

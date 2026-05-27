@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/FunctionTool.kt
-// port-lint: source codex-rs/core/src/function_tool.rs
-========
 // port-lint: source core/src/function_tool.rs
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/FunctionTool.kt
 package io.github.kotlinmania.codex.core
 
 /**

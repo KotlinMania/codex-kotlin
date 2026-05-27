@@ -3,14 +3,9 @@ package io.github.kotlinmania.codex.client.http
 
 import io.github.kotlinmania.codex.client.auth.AuthManager
 import io.github.kotlinmania.codex.client.streaming.SseParser
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/client/http/HttpClient.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-import io.github.kotlinmania.codex.core.error.CodexResult
-========
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.core.UnexpectedResponseError
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/client/http/HttpClient.kt
 import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.ktor.client.*

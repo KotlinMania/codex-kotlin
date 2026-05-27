@@ -1,18 +1,9 @@
-<<<<<<<< HEAD:src/commonMain/kotlin/io/github/kotlinmania/codex/core/command_safety/IsDangerousCommand.kt
-// port-lint: source core/src/command_safety/is_dangerous_command.rs
-package io.github.kotlinmania.codex.core.command_safety
-
-import io.github.kotlinmania.codex.protocol.AskForApproval
-import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import io.github.kotlinmania.codex.core.sandboxing.SandboxPermissions
-========
 // port-lint: source core/src/commandSafety/isDangerousCommand.rs
 package io.github.kotlinmania.codex.core.commandsafety
 
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.exec.sandbox.SandboxPermissions
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/commandsafety/IsDangerousCommand.kt
 import io.github.kotlinmania.codex.core.bash.parseShellLcPlainCommands
 
 /**

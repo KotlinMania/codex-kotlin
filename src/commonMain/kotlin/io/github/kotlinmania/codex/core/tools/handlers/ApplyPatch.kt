@@ -1,9 +1,6 @@
 // port-lint: source core/src/tools/handlers/apply_patch.rs
 package io.github.kotlinmania.codex.core.tools.handlers
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ApplyPatch.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-========
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.FreeformTool
 import io.github.kotlinmania.codex.core.session.FreeformToolFormat
@@ -11,7 +8,6 @@ import io.github.kotlinmania.codex.core.session.ResponsesApiTool
 import io.github.kotlinmania.codex.core.session.ToolSpec
 import io.github.kotlinmania.codex.core.tools.AdditionalProperties
 import io.github.kotlinmania.codex.core.tools.JsonSchema
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ApplyPatch.kt
 import io.github.kotlinmania.codex.core.tools.ToolError
 import io.github.kotlinmania.codex.core.tools.ToolHandler
 import io.github.kotlinmania.codex.core.tools.ToolInvocation

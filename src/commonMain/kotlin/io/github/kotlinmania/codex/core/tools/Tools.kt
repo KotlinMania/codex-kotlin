@@ -1,12 +1,3 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Tools.kt
-// port-lint: source core/src/tools/mod.rs
-package io.github.kotlinmania.codex.core.tools
-
-import io.github.kotlinmania.codex.core.context.TruncationPolicy
-import io.github.kotlinmania.codex.core.context.formattedTruncateText
-import io.github.kotlinmania.codex.core.context.truncateText
-import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
-========
 // port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.tools
@@ -15,7 +6,6 @@ import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.context.truncateText
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Tools.kt
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.round

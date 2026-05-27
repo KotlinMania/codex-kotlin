@@ -1,18 +1,6 @@
 // port-lint: source core/src/tools/spec.rs
 package io.github.kotlinmania.codex.core.tools
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Spec.kt
-import io.github.kotlinmania.codex.core.common.tools.ResponsesApiTool
-import io.github.kotlinmania.codex.core.features.Feature
-import io.github.kotlinmania.codex.core.features.Features
-import io.github.kotlinmania.codex.core.model_family.ModelFamily
-import io.github.kotlinmania.codex.core.session.ToolSpec
-import io.github.kotlinmania.codex.core.tools.handlers.PLAN_TOOL
-import io.github.kotlinmania.codex.core.tools.handlers.apply_patch.ApplyPatchToolType
-import io.github.kotlinmania.codex.core.tools.handlers.apply_patch.createApplyPatchFreeformTool
-import io.github.kotlinmania.codex.core.tools.handlers.apply_patch.createApplyPatchJsonTool
-import io.github.kotlinmania.codex.core.tools.handlers.ApplyPatchHandler
-========
 import io.github.kotlinmania.codex.core.session.FreeformTool
 import io.github.kotlinmania.codex.core.session.FreeformToolFormat
 import io.github.kotlinmania.codex.core.session.ResponsesApiTool
@@ -26,7 +14,6 @@ import io.github.kotlinmania.codex.core.tools.handlers.ApplyPatchHandler
 import io.github.kotlinmania.codex.core.tools.handlers.PLAN_TOOL
 import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchFreeformTool
 import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchJsonTool
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Spec.kt
 import io.github.kotlinmania.codex.core.tools.handlers.GrepFilesHandler
 import io.github.kotlinmania.codex.core.tools.handlers.ListDirHandler
 import io.github.kotlinmania.codex.core.tools.handlers.McpHandler

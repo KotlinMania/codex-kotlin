@@ -259,36 +259,4 @@ enum class ChangeType {
     Renamed
 }
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/session/TurnDiffTracker.kt
-/**
- * Thread-safe wrapper for TurnDiffTracker that can be shared across tasks.
- *
- * Ported from Rust codex-rs/core/src/tools/context.rs SharedTurnDiffTracker
- */
-actual class SharedTurnDiffTracker {
-    private val tracker = TurnDiffTracker()
-
-    actual suspend fun onPatchBegin(changes: Map<String, FileChange>) {
-        tracker.onPatchBegin(changes)
-    }
-
-    actual suspend fun computeUnifiedDiff(): String {
-        return tracker.computeUnifiedDiff()
-    }
-
-    actual suspend fun getChangedFiles(): List<ChangedFile> {
-        return tracker.getChangedFiles()
-    }
-
-    actual suspend fun clear() {
-        tracker.clear()
-    }
-
-    actual suspend fun hasChanges(): Boolean {
-        return tracker.hasChanges()
-    }
-}
-
-========
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/session/TurnDiffTracker.kt
 // FileChange is imported from io.github.kotlinmania.codex.protocol.FileChange

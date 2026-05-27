@@ -1,13 +1,3 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/SandboxManager.kt
-// port-lint: source codex-rs/core/src/sandboxing/mod.rs
-package io.github.kotlinmania.codex.exec.sandbox
-
-import io.github.kotlinmania.codex.core.exec.ExecExpiration
-import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.error.CodexResult
-import io.github.kotlinmania.codex.core.isLikelySandboxDenied
-import io.github.kotlinmania.codex.core.sandboxing.SandboxPermissions
-========
 // port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.exec.sandbox
@@ -16,7 +6,6 @@ import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/SandboxManager.kt
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 
@@ -58,9 +47,6 @@ enum class SandboxPreference {
     Forbid,
 }
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/SandboxManager.kt
-// SandboxPermissions moved to commonMain: io.github.kotlinmania.codex.core.sandboxing.SandboxPermissions
-========
 /** Sandbox permissions levels */
 enum class SandboxPermissions {
     UseDefault,
@@ -80,7 +66,6 @@ enum class SandboxPermissions {
         }
     }
 }
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/exec/sandbox/SandboxManager.kt
 
 /**
  * Manager for sandbox selection and command transformation. Mirrors the upstream SandboxManager from

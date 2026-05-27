@@ -1,11 +1,7 @@
 // port-lint: source core/src/tools/handlers/view_image.rs
 package io.github.kotlinmania.codex.core.tools.handlers
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ViewImage.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-========
 import io.github.kotlinmania.codex.core.CodexErr
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/handlers/ViewImage.kt
 import io.github.kotlinmania.codex.core.tools.ToolError
 import io.github.kotlinmania.codex.core.tools.ToolHandler
 import io.github.kotlinmania.codex.core.tools.ToolInvocation

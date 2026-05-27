@@ -1,18 +1,10 @@
 // port-lint: source core/src/tools/parallel.rs
 package io.github.kotlinmania.codex.core.tools
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Parallel.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-import io.github.kotlinmania.codex.core.error.CodexException
-import io.github.kotlinmania.codex.core.session.Session
-import io.github.kotlinmania.codex.core.session.TurnContext
-import io.github.kotlinmania.codex.core.session.SharedTurnDiffTracker
-========
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.TurnContext
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Parallel.kt
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import kotlin.time.TimeSource
@@ -113,11 +105,7 @@ class ToolCallRuntime(
                             result = Result.success(abortedResponse(call, secs.coerceAtLeast(0.1f)))
                         }
                         job.onJoin {
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Parallel.kt
-                            // Job completed normally
-========
                             // Normal completion; `result` already populated by the launched coroutine.
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Parallel.kt
                         }
                     }
                 } else {

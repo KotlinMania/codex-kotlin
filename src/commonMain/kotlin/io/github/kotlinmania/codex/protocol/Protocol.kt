@@ -1087,7 +1087,6 @@ data class McpResourceTemplate(
         @SerialName("mimeType") val mimeType: String? = null
 )
 
-@Serializable
 data class McpResult<T, E>(val value: T? = null, val error: E? = null) {
     val isSuccess: Boolean
         get() = error == null

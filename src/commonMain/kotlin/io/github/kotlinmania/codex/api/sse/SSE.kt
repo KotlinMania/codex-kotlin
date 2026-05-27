@@ -1,9 +1,5 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/api/sse/SSE.kt
-// port-lint: source codex-rs/codex-api/src/sse/mod.rs, codex-rs/codex-api/src/sse/chat.rs, codex-rs/codex-api/src/sse/responses.rs
-========
 // port-lint: ignore
 // transliterated from upstream module root + chat.rs + responses.rs
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/api/sse/SSE.kt
 package io.github.kotlinmania.codex.api.sse
 
 import io.github.kotlinmania.codex.api.error.ApiError

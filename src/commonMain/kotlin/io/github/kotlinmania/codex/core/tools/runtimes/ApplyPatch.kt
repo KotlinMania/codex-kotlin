@@ -2,19 +2,11 @@
 package io.github.kotlinmania.codex.core.tools.runtimes
 
 import io.github.kotlinmania.codex.core.Exec
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/ApplyPatch.kt
-import io.github.kotlinmania.codex.core.StdoutStream
-import io.github.kotlinmania.codex.core.exec.ExecExpiration
-import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.error.CodexError
-import io.github.kotlinmania.codex.core.error.CodexResult
-========
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StdoutStream
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/ApplyPatch.kt
 import io.github.kotlinmania.codex.core.tools.Approvable
 import io.github.kotlinmania.codex.core.tools.ApprovalCtx
 import io.github.kotlinmania.codex.core.tools.ProvidesSandboxRetryData

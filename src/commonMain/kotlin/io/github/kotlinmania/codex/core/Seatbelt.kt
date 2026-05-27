@@ -1,17 +1,7 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/Seatbelt.kt
-// port-lint: source core/src/seatbelt.kt
-package io.github.kotlinmania.codex.core
-
-import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import io.github.kotlinmania.codex.protocol.WritableRoot
-import kotlinx.cinterop.*
-import platform.posix.*
-========
 // port-lint: source seatbelt.rs
 package io.github.kotlinmania.codex.core
 
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/Seatbelt.kt
 
 private const val MACOS_SEATBELT_BASE_POLICY: String = """(version 1)
 

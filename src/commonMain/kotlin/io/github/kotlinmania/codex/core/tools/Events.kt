@@ -1,22 +1,12 @@
 // port-lint: source core/src/tools/events.rs
 package io.github.kotlinmania.codex.core.tools
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Events.kt
-import io.github.kotlinmania.codex.core.error.CodexError
-import io.github.kotlinmania.codex.core.exec.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.FunctionCallError
-import io.github.kotlinmania.codex.core.session.Session
-import io.github.kotlinmania.codex.core.session.TurnContext
-import io.github.kotlinmania.codex.core.session.SharedTurnDiffTracker
-import io.github.kotlinmania.codex.core.tools.ToolError
-========
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.FunctionCallError
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.TurnContext
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Events.kt
 import io.github.kotlinmania.codex.protocol.EventMsg
 import io.github.kotlinmania.codex.protocol.ExecCommandBeginEvent
 import io.github.kotlinmania.codex.protocol.ExecCommandEndEvent
@@ -26,11 +16,7 @@ import io.github.kotlinmania.codex.protocol.ParsedCommand
 import io.github.kotlinmania.codex.protocol.PatchApplyBeginEvent
 import io.github.kotlinmania.codex.protocol.PatchApplyEndEvent
 import io.github.kotlinmania.codex.protocol.TurnDiffEvent
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Events.kt
-import kotlinx.coroutines.sync.withLock
-========
 import io.github.kotlinmania.codex.protocol.parseCommand
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Events.kt
 import kotlin.time.Duration
 
 class ToolEventCtx(

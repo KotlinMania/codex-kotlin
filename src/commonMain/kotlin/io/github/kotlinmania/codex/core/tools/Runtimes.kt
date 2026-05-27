@@ -1,18 +1,9 @@
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/Runtimes.kt
-// port-lint: source core/src/tools/runtimes/mod.rs
-package io.github.kotlinmania.codex.core.tools
-
-import io.github.kotlinmania.codex.core.exec.ExecExpiration
-import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
-// ToolError is in the same package (io.github.kotlinmania.codex.core.tools)
-========
 // port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/Runtimes.kt
 
 // Module: runtimes
 // Concrete ToolRuntime implementations for specific tools. Each runtime stays

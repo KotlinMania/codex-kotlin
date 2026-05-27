@@ -1,13 +1,8 @@
 // port-lint: source core/src/tools/runtimes/unified_exec.rs
 package io.github.kotlinmania.codex.core.tools.runtimes
 
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/UnifiedExec.kt
-import io.github.kotlinmania.codex.core.exec.ExecExpiration
-import io.github.kotlinmania.codex.core.error.CodexError
-========
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.CodexErr
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/UnifiedExec.kt
 import io.github.kotlinmania.codex.core.tools.Approvable
 import io.github.kotlinmania.codex.core.tools.ApprovalCtx
 import io.github.kotlinmania.codex.core.tools.ApprovalRequirement
@@ -22,15 +17,9 @@ import io.github.kotlinmania.codex.core.tools.ToolError
 import io.github.kotlinmania.codex.core.tools.ToolRuntime
 import io.github.kotlinmania.codex.core.tools.buildCommandSpec
 import io.github.kotlinmania.codex.core.tools.withCachedApproval
-<<<<<<<< HEAD:src/nativeMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/UnifiedExec.kt
-import io.github.kotlinmania.codex.core.unified_exec.UnifiedExecError
-import io.github.kotlinmania.codex.core.unified_exec.UnifiedExecSession
-import io.github.kotlinmania.codex.core.unified_exec.UnifiedExecSessionManager
-========
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecError
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSession
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSessionManager
->>>>>>>> origin/main:src/commonMain/kotlin/io/github/kotlinmania/codex/core/tools/runtimes/UnifiedExec.kt
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 
 data class UnifiedExecRequest(
