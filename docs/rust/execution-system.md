@@ -15,7 +15,7 @@ The execution system provides secure command execution with platform-specific sa
 
 ### Core Components
 
-#### 1. Exec (`io.github.solaceharmony.codex.core.Exec`)
+#### 1. Exec (`io.github.kotlinmania.codex.core.Exec`)
 
 Main class responsible for executing commands with sandboxing and streaming support.
 
@@ -37,7 +37,7 @@ val params = ExecParams(
 val result = executor.execute(params, sandboxPolicy, "/tmp")
 ```
 
-#### 2. ShellDetector (`io.github.solaceharmony.codex.exec.shell.ShellDetector`)
+#### 2. ShellDetector (`io.github.kotlinmania.codex.exec.shell.ShellDetector`)
 
 Detects and manages shell configurations across platforms.
 
@@ -51,7 +51,7 @@ Detects and manages shell configurations across platforms.
 - `getShell(shellType, path)` - Gets a specific shell with optional path
 - `detectShellType(shellPath)` - Detects shell type from path
 
-#### 3. CommandParser (`io.github.solaceharmony.codex.exec.shell.CommandParser`)
+#### 3. CommandParser (`io.github.kotlinmania.codex.exec.shell.CommandParser`)
 
 Parses shell command strings with proper quoting and escaping support.
 
@@ -61,7 +61,7 @@ Parses shell command strings with proper quoting and escaping support.
 - Shell-specific argument joining
 - Built-in command detection
 
-#### 4. SandboxManager (`io.github.solaceharmony.codex.exec.sandbox.SandboxManager`)
+#### 4. SandboxManager (`io.github.kotlinmania.codex.exec.sandbox.SandboxManager`)
 
 Manages sandbox policy application and transformation.
 

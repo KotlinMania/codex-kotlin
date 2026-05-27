@@ -200,7 +200,7 @@ All types, enums, and sealed classes have been faithfully ported with correct:
 
 ### Integration Points
 
-1. **GhostCommit**: Imported from `io.github.solaceharmony.codex.utils.git.GhostCommit` (external dependency)
+1. **GhostCommit**: Imported from `io.github.kotlinmania.codex.utils.git.GhostCommit` (external dependency)
 2. **MCP types**: CallToolResult and ContentBlock are stubs; need full MCP integration
 3. **ResponseEvent**: Defined in Models.kt but conceptually belongs to codex-api integration
 

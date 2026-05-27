@@ -24,7 +24,7 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 
 **Next Steps**:
 - Implement SSE stream parsing
-- Wire up protocol types from io.github.solaceharmony.codex.protocol
+- Wire up protocol types from io.github.kotlinmania.codex.protocol
 - Add retry policy with exponential backoff
 - Complete request builders with full message transformation
 
@@ -79,8 +79,8 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 - Method signatures preserved (camelCase naming convention applied)
 
 ### ✅ Preserved API Boundaries
-- codex-api → io.github.solaceharmony.codex.api (clean separation)
-- codex-protocol → io.github.solaceharmony.codex.protocol (already existed, now verified)
+- codex-api → io.github.kotlinmania.codex.api (clean separation)
+- codex-protocol → io.github.kotlinmania.codex.protocol (already existed, now verified)
 - No unauthorized consolidation across crate boundaries
 - AuthManager kept in client.auth (from codex-core) as intended
 
@@ -99,7 +99,7 @@ Created 16 new Kotlin files under `src/nativeMain/kotlin/ai/solace/coder/api/`:
 ## Compilation Status
 
 ✅ **All new codex-api files compile without errors**
-✅ **No errors in io.github.solaceharmony.codex.api package**
+✅ **No errors in io.github.kotlinmania.codex.api package**
 ✅ **Protocol files already compiled** (pre-existing work)
 
 Only "never used" warnings present (expected for API types before consumers are wired).
