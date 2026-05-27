@@ -97,10 +97,8 @@ local.properties
 build_log*.txt
 /*.hprof
 
-# ast_distance build artifacts
-tools/ast_distance/build/
-tools/ast_distance/ast_distance
-tools/ast_distance/ast_distance.real
+# ast_distance binary (local developer artifact, never tracked)
+tools/ast_distance
 
 # ast_distance temporary output files
 *.scan_output.txt
@@ -108,9 +106,6 @@ tools/ast_distance/ast_distance.real
 all_matched.txt
 files_with_headers.txt
 tasks.json
-tools/ast_distance/deep_*.txt
-tools/ast_distance/deep_current.txt
-tools/ast_distance/missing_current.txt
 
 # Generated port reports
 port_status_report.md
