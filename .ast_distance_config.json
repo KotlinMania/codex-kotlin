@@ -6,7 +6,7 @@
     "lang": "rust"
   },
   "target": {
-    "path": "src/commonMain/kotlin/io/github/solaceharmony/codex",
+    "path": "src/commonMain/kotlin/io/github/kotlinmania/codex",
     "lang": "kotlin"
   },
   "checks": {

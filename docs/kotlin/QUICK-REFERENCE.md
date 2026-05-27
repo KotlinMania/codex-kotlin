@@ -5,7 +5,7 @@
 ```
 Rust                                  Kotlin
 ----                                  ------
-codex-rs/codex-api/                → io.github.solaceharmony.codex.api/
+codex-rs/codex-api/                → io.github.kotlinmania.codex.api/
   ├── src/auth.rs                  → auth/AuthProvider.kt, AuthHeaders.kt
   ├── src/error.rs                 → error/ApiError.kt
   ├── src/provider.rs              → provider/Provider.kt
@@ -16,13 +16,13 @@ codex-rs/codex-api/                → io.github.solaceharmony.codex.api/
   ├── src/telemetry.rs             → telemetry/Telemetry.kt
   └── src/rate_limits.rs           → ratelimits/RateLimits.kt
 
-codex-rs/protocol/                 → io.github.solaceharmony.codex.protocol/
+codex-rs/protocol/                 → io.github.kotlinmania.codex.protocol/
   ├── src/account.rs               → Account.kt
   ├── src/models.rs                → Models.kt
   ├── src/protocol.rs              → Protocol.kt
   └── (11 other files)             → (11 other .kt files)
 
-codex-rs/core/src/auth.rs          → io.github.solaceharmony.codex.client.auth/AuthManager.kt
+codex-rs/core/src/auth.rs          → io.github.kotlinmania.codex.client.auth/AuthManager.kt
 ```
 
 ## Port-Lint Header Format
@@ -30,7 +30,7 @@ codex-rs/core/src/auth.rs          → io.github.solaceharmony.codex.client.auth
 Always use full workspace path:
 ```kotlin
 // port-lint: source codex-rs/<crate-name>/src/<file>.rs
-package io.github.solaceharmony.codex.<package>
+package io.github.kotlinmania.codex.<package>
 ```
 
 Examples:
