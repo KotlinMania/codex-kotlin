@@ -24,11 +24,41 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collectionsImmutable" }
 
+indexmap-kotlin = { module = "io.github.kotlinmania:indexmap-kotlin", version = "0.1.4" }
+icu-decimal-kotlin = { module = "io.github.kotlinmania:icu-decimal-kotlin", version = "0.1.2" }
+http-kotlin = { module = "io.github.kotlinmania:http-kotlin", version = "0.1.0" }
+bytes-kotlin = { module = "io.github.kotlinmania:bytes-kotlin", version = "0.2.1" }
+ratatui-kotlin = { module = "io.github.kotlinmania:ratatui-kotlin", version = "0.1.11" }
+crossterm-kotlin = { module = "io.github.kotlinmania:crossterm-kotlin", version = "0.1.6" }
+ansi-to-tui-kotlin = { module = "io.github.kotlinmania:ansi-to-tui-kotlin", version = "0.1.4" }
+anstyle-kotlin = { module = "io.github.kotlinmania:anstyle-kotlin", version = "0.1.5" }
+kasuari-kotlin = { module = "io.github.kotlinmania:kasuari-kotlin", version = "0.1.6" }
+roff-kotlin = { module = "io.github.kotlinmania:roff-kotlin", version = "0.1.4" }
+cansi-kotlin = { module = "io.github.kotlinmania:cansi-kotlin", version = "0.1.4" }
+jwt-kmp = { module = "io.github.kotlinmania:jwt-kmp", version = "0.2.2" }
+schemars-kotlin = { module = "io.github.kotlinmania:schemars-kotlin", version = "0.1.0" }
+log-kotlin = { module = "io.github.kotlinmania:log-kotlin", version = "0.1.1" }
+landlock-kotlin = { module = "io.github.kotlinmania:landlock-kotlin", version = "0.1.1" }
 [bundles]
 codex-commonMain = [
-  "kotlinx-coroutines-core",
-  "kotlinx-serialization-core",
-  "kotlinx-serialization-json",
-  "kotlinx-datetime",
-  "collections-immutable",
+    "kotlinx-coroutines-core",
+    "kotlinx-serialization-core",
+    "kotlinx-serialization-json",
+    "kotlinx-datetime",
+    "collections-immutable",
+    "indexmap-kotlin",
+    "icu-decimal-kotlin",
+    "http-kotlin",
+    "bytes-kotlin",
+    "ratatui-kotlin",
+    "crossterm-kotlin",
+    "ansi-to-tui-kotlin",
+    "anstyle-kotlin",
+    "kasuari-kotlin",
+    "roff-kotlin",
+    "cansi-kotlin",
+    "jwt-kmp",
+    "schemars-kotlin",
+    "log-kotlin",
+    "landlock-kotlin",
 ]
