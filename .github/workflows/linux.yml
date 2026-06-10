@@ -34,7 +34,6 @@ jobs:
           compileKotlinLinuxArm64
           linuxX64Test
           --no-configuration-cache
-          --no-daemon
 
       - name: Upload test reports (Linux)
         if: success() || failure()

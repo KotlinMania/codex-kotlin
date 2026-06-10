@@ -30,8 +30,6 @@ jobs:
       - name: Build and test Windows target
         run: >
           ./gradlew
-          --no-daemon
-          setupAndroidSdk
           mingwX64Test
           --no-configuration-cache
 
