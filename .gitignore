@@ -97,10 +97,8 @@ local.properties
 build_log*.txt
 /*.hprof
 
-# ast_distance build artifacts
-tools/ast_distance/build/
-tools/ast_distance/ast_distance
-tools/ast_distance/ast_distance.real
+# ast_distance binary (local developer artifact, never tracked)
+tools/ast_distance
 
 # ast_distance temporary output files
 *.scan_output.txt
@@ -108,9 +106,6 @@ tools/ast_distance/ast_distance.real
 all_matched.txt
 files_with_headers.txt
 tasks.json
-tools/ast_distance/deep_*.txt
-tools/ast_distance/deep_current.txt
-tools/ast_distance/missing_current.txt
 
 # Generated port reports
 port_status_report.md
@@ -121,3 +116,22 @@ deep_report.txt
 # ktreesitter plugin build output
 ktreesitter-kotlin/ktreesitter-plugin/bin/
 /tmp/
+
+# Swift Package Manager / Xcode workspace state.
+#
+# `swift-test-harness/` is a real SPM package that exercises the Kotlin
+# Swift Export pipeline against the artifacts produced by
+# `embedSwiftExportForXcode`. Its `Package.swift`, `Tests/`, and
+# per-package `.gitignore` (which ignores its own `.build/`) are all
+# tracked. The patterns below cover the Swift/Xcode workspace state
+# that this harness — or any future Swift Package added under the
+# repo — would also produce.
+#
+# Note: the staging directory the Kotlin Swift Export pipeline writes
+# to (`build/swift-test/lib*.a` + `.swiftmodule/` bundles when run with
+# the Xcode-style env vars) is already covered by `build/` above.
+.swiftpm/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
