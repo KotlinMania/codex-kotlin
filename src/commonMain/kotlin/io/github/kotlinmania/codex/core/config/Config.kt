@@ -1,8 +1,8 @@
 // port-lint: source config_api.rs
 package io.github.kotlinmania.codex.core.config
 
-import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
 import io.github.kotlinmania.codex.core.ForcedLoginMethod
+import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
 import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.protocol.Verbosity
 import kotlinx.io.files.Path
@@ -20,5 +20,5 @@ data class Config(
     val modelVerbosity: Verbosity? = null,
     val showRawAgentReasoning: Boolean = false,
     val outputSchema: JsonElement? = null,
-    val tools: List<Any> = emptyList()
+    val tools: List<Any> = emptyList(),
 )

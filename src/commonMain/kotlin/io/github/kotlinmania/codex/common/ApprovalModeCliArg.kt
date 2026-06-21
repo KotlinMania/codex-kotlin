@@ -1,6 +1,6 @@
 // port-lint: source utils/cli/src/approval_mode_cli_arg.rs
-//! Standard type to import with the `--approval-mode` CLI option.
-//! Available when the `cli` feature is enabled for the crate.
+// ! Standard type to import with the `--approval-mode` CLI option.
+// ! Available when the `cli` feature is enabled for the crate.
 package io.github.kotlinmania.codex.common
 
 import io.github.kotlinmania.codex.protocol.AskForApproval
@@ -30,9 +30,10 @@ enum class ApprovalModeCliArg {
     Never,
 }
 
-fun ApprovalModeCliArg.toAskForApproval(): AskForApproval = when (this) {
-    ApprovalModeCliArg.Untrusted -> AskForApproval.UnlessTrusted
-    ApprovalModeCliArg.OnFailure -> AskForApproval.OnFailure
-    ApprovalModeCliArg.OnRequest -> AskForApproval.OnRequest
-    ApprovalModeCliArg.Never -> AskForApproval.Never
-}
+fun ApprovalModeCliArg.toAskForApproval(): AskForApproval =
+    when (this) {
+        ApprovalModeCliArg.Untrusted -> AskForApproval.UnlessTrusted
+        ApprovalModeCliArg.OnFailure -> AskForApproval.OnFailure
+        ApprovalModeCliArg.OnRequest -> AskForApproval.OnRequest
+        ApprovalModeCliArg.Never -> AskForApproval.Never
+    }

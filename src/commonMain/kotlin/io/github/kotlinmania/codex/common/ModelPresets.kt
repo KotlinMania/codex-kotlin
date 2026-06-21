@@ -56,24 +56,25 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5.1-codex-max",
             description = "Latest Codex-optimized flagship for deep and fast reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Low,
-                    description = "Fast responses with lighter reasoning",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Low,
+                        description = "Fast responses with lighter reasoning",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Balances speed and reasoning depth for everyday tasks",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex problems",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.XHigh,
+                        description = "Extra high reasoning depth for complex problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Balances speed and reasoning depth for everyday tasks",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex problems",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.XHigh,
-                    description = "Extra high reasoning depth for complex problems",
-                ),
-            ),
             isDefault = true,
             upgrade = null,
             showInPicker = true,
@@ -84,26 +85,28 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5.1-codex",
             description = "Optimized for codex.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Low,
-                    description = "Fastest responses with limited reasoning",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Low,
+                        description = "Fastest responses with limited reasoning",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Dynamically adjusts reasoning based on the task",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Dynamically adjusts reasoning based on the task",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-max",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-max",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = true,
         ),
         ModelPreset(
@@ -112,22 +115,24 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5.1-codex-mini",
             description = "Optimized for codex. Cheaper, faster, but less capable.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Dynamically adjusts reasoning based on the task",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Dynamically adjusts reasoning based on the task",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-max",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-max",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = true,
         ),
         ModelPreset(
@@ -136,26 +141,28 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5.1",
             description = "Broad world knowledge with strong general reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Low,
-                    description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Low,
+                        description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-max",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-max",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = true,
         ),
         // Deprecated models.
@@ -165,26 +172,28 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5-codex",
             description = "Optimized for codex.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Low,
-                    description = "Fastest responses with limited reasoning",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Low,
+                        description = "Fastest responses with limited reasoning",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Dynamically adjusts reasoning based on the task",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Dynamically adjusts reasoning based on the task",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-max",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-max",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = false,
         ),
         ModelPreset(
@@ -193,22 +202,24 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5-codex-mini",
             description = "Optimized for codex. Cheaper, faster, but less capable.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Dynamically adjusts reasoning based on the task",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Dynamically adjusts reasoning based on the task",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-mini",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT5_1_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-mini",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT5_1_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = false,
         ),
         ModelPreset(
@@ -217,44 +228,43 @@ private val PRESETS: List<ModelPreset> by lazy {
             displayName = "gpt-5",
             description = "Broad world knowledge with strong general reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
-            supportedReasoningEfforts = listOf(
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Minimal,
-                    description = "Fastest responses with little reasoning",
+            supportedReasoningEfforts =
+                listOf(
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Minimal,
+                        description = "Fastest responses with little reasoning",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Low,
+                        description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.Medium,
+                        description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
+                    ),
+                    ReasoningEffortPreset(
+                        effort = ReasoningEffort.High,
+                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                    ),
                 ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Low,
-                    description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.Medium,
-                    description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
-                ),
-                ReasoningEffortPreset(
-                    effort = ReasoningEffort.High,
-                    description = "Maximizes reasoning depth for complex or ambiguous problems",
-                ),
-            ),
             isDefault = false,
-            upgrade = ModelUpgrade(
-                id = "gpt-5.1-codex-max",
-                reasoningEffortMapping = null,
-                migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
-            ),
+            upgrade =
+                ModelUpgrade(
+                    id = "gpt-5.1-codex-max",
+                    reasoningEffortMapping = null,
+                    migrationConfigKey = HIDE_GPT_5_1_CODEX_MAX_MIGRATION_PROMPT_CONFIG,
+                ),
             showInPicker = false,
         ),
     )
 }
 
-fun builtinModelPresets(authMode: AuthMode?): List<ModelPreset> {
-    return PRESETS.filter { preset ->
+fun builtinModelPresets(authMode: AuthMode?): List<ModelPreset> =
+    PRESETS.filter { preset ->
         when (authMode) {
             AuthMode.ApiKey -> preset.showInPicker && preset.id != "gpt-5.1-codex-max"
             else -> preset.showInPicker
         }
     }
-}
 
-fun allModelPresets(): List<ModelPreset> {
-    return PRESETS
-}
+fun allModelPresets(): List<ModelPreset> = PRESETS

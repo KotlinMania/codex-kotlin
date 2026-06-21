@@ -1,7 +1,6 @@
 package io.github.kotlinmania.codex.core.tools.handlers
 
 import okio.FileSystem
-import okio.Path.Companion.toPath
 import okio.buffer
 import okio.use
 import kotlin.random.Random
@@ -11,7 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class ReadFileTest {
-
     private val fileSystem = FileSystem.SYSTEM
     private val handler = ReadFileHandler(fileSystem)
     private val testDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "codex-readfile-test-${Random.nextInt()}"
@@ -44,9 +42,10 @@ class ReadFileTest {
     @Test
     fun errorsWhenOffsetExceedsLength() {
         val path = writeFile("short.txt", "only\n")
-        val error = assertFailsWith<IllegalArgumentException> {
-            handler.readSlice(path, offset = 3, limit = 1)
-        }
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                handler.readSlice(path, offset = 3, limit = 1)
+            }
         assertEquals("offset exceeds file length", error.message)
     }
 

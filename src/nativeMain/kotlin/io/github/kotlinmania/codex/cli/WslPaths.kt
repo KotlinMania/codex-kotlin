@@ -3,14 +3,13 @@
 
 package io.github.kotlinmania.codex.cli
 
-import kotlin.native.OsFamily
-import kotlin.native.Platform
-import kotlinx.cinterop.toKString
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readString
 import platform.posix.getenv
+import kotlin.native.OsFamily
+import kotlin.native.Platform
 
 /**
  * WSL-specific path helpers used by the updater logic.

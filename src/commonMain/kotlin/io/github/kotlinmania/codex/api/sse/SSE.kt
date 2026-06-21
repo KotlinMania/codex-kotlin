@@ -15,12 +15,12 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import kotlin.time.Duration
@@ -31,18 +31,17 @@ import kotlin.time.TimeSource
  * Response stream wrapper around a channel.
  */
 class ChannelResponseStream(
-    private val channel: Channel<Result<ResponseEvent>>
+    private val channel: Channel<Result<ResponseEvent>>,
 ) : io.github.kotlinmania.codex.api.common.ResponseStream {
     /**
      * Receive the next event, or null if stream ended.
      */
-    override suspend fun next(): Result<ResponseEvent>? {
-        return try {
+    override suspend fun next(): Result<ResponseEvent>? =
+        try {
             channel.receive()
         } catch (e: ClosedReceiveChannelException) {
             null
         }
-    }
 
     /**
      * Close the stream.
@@ -61,7 +60,7 @@ suspend fun spawnChatStream(
     request: HttpRequestBuilder.() -> Unit,
     idleTimeout: Duration,
     telemetry: SseTelemetry?,
-    scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ): ChannelResponseStream {
     val channel = Channel<Result<ResponseEvent>>(1600)
 
@@ -89,7 +88,7 @@ suspend fun spawnResponsesStream(
     request: HttpRequestBuilder.() -> Unit,
     idleTimeout: Duration,
     telemetry: SseTelemetry?,
-    scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ): ChannelResponseStream {
     val channel = Channel<Result<ResponseEvent>>(1600)
 
@@ -120,7 +119,7 @@ suspend fun spawnResponsesStream(
 fun streamFromFixture(
     path: String,
     idleTimeout: Duration,
-    scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ): ChannelResponseStream {
     val channel = Channel<Result<ResponseEvent>>(1600)
 
@@ -150,13 +149,13 @@ private data class SseError(
     @kotlinx.serialization.SerialName("plan_type")
     val planType: String? = null,
     @kotlinx.serialization.SerialName("resets_at")
-    val resetsAt: Long? = null
+    val resetsAt: Long? = null,
 )
 
 @Serializable
 private data class ResponseCompleted(
     val id: String,
-    val usage: ResponseCompletedUsage? = null
+    val usage: ResponseCompletedUsage? = null,
 )
 
 @Serializable
@@ -170,30 +169,29 @@ private data class ResponseCompletedUsage(
     @kotlinx.serialization.SerialName("output_tokens_details")
     val outputTokensDetails: OutputTokensDetails? = null,
     @kotlinx.serialization.SerialName("total_tokens")
-    val totalTokens: Long
+    val totalTokens: Long,
 )
 
 @Serializable
 private data class InputTokensDetails(
     @kotlinx.serialization.SerialName("cached_tokens")
-    val cachedTokens: Long = 0
+    val cachedTokens: Long = 0,
 )
 
 @Serializable
 private data class OutputTokensDetails(
     @kotlinx.serialization.SerialName("reasoning_tokens")
-    val reasoningTokens: Long = 0
+    val reasoningTokens: Long = 0,
 )
 
-private fun ResponseCompletedUsage.toTokenUsage(): TokenUsage {
-    return TokenUsage(
+private fun ResponseCompletedUsage.toTokenUsage(): TokenUsage =
+    TokenUsage(
         inputTokens = inputTokens,
         cachedInputTokens = inputTokensDetails?.cachedTokens ?: 0,
         outputTokens = outputTokens,
         reasoningOutputTokens = outputTokensDetails?.reasoningTokens ?: 0,
-        totalTokens = totalTokens
+        totalTokens = totalTokens,
     )
-}
 
 @Serializable
 private data class SseEvent(
@@ -204,7 +202,7 @@ private data class SseEvent(
     @kotlinx.serialization.SerialName("summary_index")
     val summaryIndex: Long? = null,
     @kotlinx.serialization.SerialName("content_index")
-    val contentIndex: Long? = null
+    val contentIndex: Long? = null,
 )
 
 /**
@@ -214,7 +212,7 @@ internal suspend fun processSse(
     response: HttpResponse,
     channel: Channel<Result<ResponseEvent>>,
     idleTimeout: Duration,
-    telemetry: SseTelemetry?
+    telemetry: SseTelemetry?,
 ) {
     val bodyChannel = response.bodyAsChannel()
     var responseCompleted: ResponseCompleted? = null
@@ -226,9 +224,10 @@ internal suspend fun processSse(
         val start = timeSource.markNow()
 
         // Read with timeout
-        val line = withTimeoutOrNull(idleTimeout) {
-            readSseLine(bodyChannel)
-        }
+        val line =
+            withTimeoutOrNull(idleTimeout) {
+                readSseLine(bodyChannel)
+            }
 
         val elapsed = start.elapsedNow()
         telemetry?.onSsePoll(line != null, elapsed)
@@ -245,21 +244,23 @@ internal suspend fun processSse(
         if (data.isBlank()) continue
 
         // Parse JSON
-        val event = try {
-            json.decodeFromString<SseEvent>(data)
-        } catch (e: Exception) {
-            // Skip malformed events
-            continue
-        }
+        val event =
+            try {
+                json.decodeFromString<SseEvent>(data)
+            } catch (e: Exception) {
+                // Skip malformed events
+                continue
+            }
 
         when (event.type) {
             "response.output_item.done" -> {
                 val itemVal = event.item ?: continue
-                val item = try {
-                    json.decodeFromJsonElement<ResponseItem>(itemVal)
-                } catch (e: Exception) {
-                    continue
-                }
+                val item =
+                    try {
+                        json.decodeFromJsonElement<ResponseItem>(itemVal)
+                    } catch (e: Exception) {
+                        continue
+                    }
                 if (channel.trySend(Result.success(ResponseEvent.OutputItemDone(item))).isFailure) {
                     return
                 }
@@ -302,16 +303,17 @@ internal suspend fun processSse(
                 if (errorVal != null) {
                     try {
                         val error = json.decodeFromJsonElement<SseError>(errorVal)
-                        responseError = when {
-                            isContextWindowError(error) -> ApiError.ContextWindowExceeded()
-                            isQuotaExceededError(error) -> ApiError.QuotaExceeded()
-                            isUsageNotIncluded(error) -> ApiError.UsageNotIncluded()
-                            else -> {
-                                val delay = tryParseRetryAfter(error)
-                                val message = error.message ?: ""
-                                ApiError.Retryable(message, delay)
+                        responseError =
+                            when {
+                                isContextWindowError(error) -> ApiError.ContextWindowExceeded()
+                                isQuotaExceededError(error) -> ApiError.QuotaExceeded()
+                                isUsageNotIncluded(error) -> ApiError.UsageNotIncluded()
+                                else -> {
+                                    val delay = tryParseRetryAfter(error)
+                                    val message = error.message ?: ""
+                                    ApiError.Retryable(message, delay)
+                                }
                             }
-                        }
                     } catch (e: Exception) {
                         // Keep the default error
                     }
@@ -329,11 +331,12 @@ internal suspend fun processSse(
 
             "response.output_item.added" -> {
                 val itemVal = event.item ?: continue
-                val item = try {
-                    json.decodeFromJsonElement<ResponseItem>(itemVal)
-                } catch (e: Exception) {
-                    continue
-                }
+                val item =
+                    try {
+                        json.decodeFromJsonElement<ResponseItem>(itemVal)
+                    } catch (e: Exception) {
+                        continue
+                    }
                 if (channel.trySend(Result.success(ResponseEvent.OutputItemAdded(item))).isFailure) {
                     return
                 }
@@ -352,10 +355,11 @@ internal suspend fun processSse(
     when {
         responseCompleted != null -> {
             val rc = responseCompleted
-            val event = ResponseEvent.Completed(
-                responseId = rc.id,
-                tokenUsage = rc.usage?.toTokenUsage()
-            )
+            val event =
+                ResponseEvent.Completed(
+                    responseId = rc.id,
+                    tokenUsage = rc.usage?.toTokenUsage(),
+                )
             channel.send(Result.success(event))
         }
         responseError != null -> {
@@ -378,7 +382,7 @@ internal suspend fun processChatSse(
     response: HttpResponse,
     channel: Channel<Result<ResponseEvent>>,
     idleTimeout: Duration,
-    telemetry: SseTelemetry?
+    telemetry: SseTelemetry?,
 ) {
     val bodyChannel = response.bodyAsChannel()
     val json = Json { ignoreUnknownKeys = true }
@@ -387,7 +391,7 @@ internal suspend fun processChatSse(
     // State for accumulating tool calls
     data class ToolCallState(
         var name: String? = null,
-        var arguments: String = ""
+        var arguments: String = "",
     )
 
     val toolCalls = mutableMapOf<String, ToolCallState>()
@@ -399,9 +403,10 @@ internal suspend fun processChatSse(
     while (!bodyChannel.isClosedForRead) {
         val start = timeSource.markNow()
 
-        val line = withTimeoutOrNull(idleTimeout) {
-            readSseLine(bodyChannel)
-        }
+        val line =
+            withTimeoutOrNull(idleTimeout) {
+                readSseLine(bodyChannel)
+            }
 
         val elapsed = start.elapsedNow()
         telemetry?.onSsePoll(line != null, elapsed)
@@ -416,11 +421,12 @@ internal suspend fun processChatSse(
 
         if (data.isBlank()) continue
 
-        val value = try {
-            json.parseToJsonElement(data).jsonObject
-        } catch (e: Exception) {
-            continue
-        }
+        val value =
+            try {
+                json.parseToJsonElement(data).jsonObject
+            } catch (e: Exception) {
+                continue
+            }
 
         val choices = value["choices"]?.jsonArray ?: continue
 
@@ -433,12 +439,14 @@ internal suspend fun processChatSse(
                 // Handle reasoning
                 val reasoning = delta["reasoning"]
                 if (reasoning != null) {
-                    val text = when {
-                        reasoning is JsonPrimitive && reasoning.isString -> reasoning.content
-                        reasoning is JsonObject -> reasoning["text"]?.jsonPrimitive?.contentOrNull
-                            ?: reasoning["content"]?.jsonPrimitive?.contentOrNull
-                        else -> null
-                    }
+                    val text =
+                        when {
+                            reasoning is JsonPrimitive && reasoning.isString -> reasoning.content
+                            reasoning is JsonObject ->
+                                reasoning["text"]?.jsonPrimitive?.contentOrNull
+                                    ?: reasoning["content"]?.jsonPrimitive?.contentOrNull
+                            else -> null
+                        }
                     if (text != null) {
                         appendReasoningText(channel, reasoningItem, text).also { reasoningItem = it }
                     }
@@ -467,8 +475,9 @@ internal suspend fun processChatSse(
                 if (toolCallsVal != null) {
                     for (toolCall in toolCallsVal) {
                         val tcObj = toolCall.jsonObject
-                        val id = tcObj["id"]?.jsonPrimitive?.contentOrNull
-                            ?: "tool-call-${toolCallOrder.size}"
+                        val id =
+                            tcObj["id"]?.jsonPrimitive?.contentOrNull
+                                ?: "tool-call-${toolCallOrder.size}"
 
                         val callState = toolCalls.getOrPut(id) { ToolCallState() }
                         if (id !in toolCallOrder) {
@@ -489,12 +498,14 @@ internal suspend fun processChatSse(
             if (message != null) {
                 val reasoning = message["reasoning"]
                 if (reasoning != null) {
-                    val text = when {
-                        reasoning is JsonPrimitive && reasoning.isString -> reasoning.content
-                        reasoning is JsonObject -> reasoning["text"]?.jsonPrimitive?.contentOrNull
-                            ?: reasoning["content"]?.jsonPrimitive?.contentOrNull
-                        else -> null
-                    }
+                    val text =
+                        when {
+                            reasoning is JsonPrimitive && reasoning.isString -> reasoning.content
+                            reasoning is JsonObject ->
+                                reasoning["text"]?.jsonPrimitive?.contentOrNull
+                                    ?: reasoning["content"]?.jsonPrimitive?.contentOrNull
+                            else -> null
+                        }
                     if (text != null) {
                         appendReasoningText(channel, reasoningItem, text).also { reasoningItem = it }
                     }
@@ -513,10 +524,14 @@ internal suspend fun processChatSse(
                         channel.trySend(Result.success(ResponseEvent.OutputItemDone(it)))
                     }
                     if (!completedSent) {
-                        channel.trySend(Result.success(ResponseEvent.Completed(
-                            responseId = "",
-                            tokenUsage = null
-                        )))
+                        channel.trySend(
+                            Result.success(
+                                ResponseEvent.Completed(
+                                    responseId = "",
+                                    tokenUsage = null,
+                                ),
+                            ),
+                        )
                         completedSent = true
                     }
                     reasoningItem = null
@@ -536,12 +551,13 @@ internal suspend fun processChatSse(
 
                     for (callId in toolCallOrder) {
                         val state = toolCalls.remove(callId) ?: ToolCallState()
-                        val item = ResponseItem.FunctionCall(
-                            id = null,
-                            name = state.name ?: "",
-                            arguments = state.arguments,
-                            callId = callId
-                        )
+                        val item =
+                            ResponseItem.FunctionCall(
+                                id = null,
+                                name = state.name ?: "",
+                                arguments = state.arguments,
+                                callId = callId,
+                            )
                         channel.trySend(Result.success(ResponseEvent.OutputItemDone(item)))
                     }
                     toolCallOrder.clear()
@@ -558,10 +574,14 @@ internal suspend fun processChatSse(
         channel.trySend(Result.success(ResponseEvent.OutputItemDone(it)))
     }
     if (!completedSent) {
-        channel.trySend(Result.success(ResponseEvent.Completed(
-            responseId = "",
-            tokenUsage = null
-        )))
+        channel.trySend(
+            Result.success(
+                ResponseEvent.Completed(
+                    responseId = "",
+                    tokenUsage = null,
+                ),
+            ),
+        )
     }
 }
 
@@ -629,19 +649,21 @@ private fun parseSseLine(line: String): Pair<String, String>? {
 private suspend fun appendAssistantText(
     channel: Channel<Result<ResponseEvent>>,
     current: ResponseItem.Message?,
-    text: String
+    text: String,
 ): ResponseItem.Message {
-    val item = if (current == null) {
-        val newItem = ResponseItem.Message(
-            id = null,
-            role = "assistant",
-            content = mutableListOf()
-        )
-        channel.trySend(Result.success(ResponseEvent.OutputItemAdded(newItem)))
-        newItem
-    } else {
-        current
-    }
+    val item =
+        if (current == null) {
+            val newItem =
+                ResponseItem.Message(
+                    id = null,
+                    role = "assistant",
+                    content = mutableListOf(),
+                )
+            channel.trySend(Result.success(ResponseEvent.OutputItemAdded(newItem)))
+            newItem
+        } else {
+            current
+        }
 
     (item.content as MutableList).add(ContentItem.OutputText(text))
     channel.trySend(Result.success(ResponseEvent.OutputTextDelta(text)))
@@ -655,20 +677,22 @@ private suspend fun appendAssistantText(
 private suspend fun appendReasoningText(
     channel: Channel<Result<ResponseEvent>>,
     current: ResponseItem.Reasoning?,
-    text: String
+    text: String,
 ): ResponseItem.Reasoning {
-    val item = if (current == null) {
-        val newItem = ResponseItem.Reasoning(
-            id = "",
-            summary = emptyList(),
-            content = mutableListOf(),
-            encryptedContent = null
-        )
-        channel.trySend(Result.success(ResponseEvent.OutputItemAdded(newItem)))
-        newItem
-    } else {
-        current
-    }
+    val item =
+        if (current == null) {
+            val newItem =
+                ResponseItem.Reasoning(
+                    id = "",
+                    summary = emptyList(),
+                    content = mutableListOf(),
+                    encryptedContent = null,
+                )
+            channel.trySend(Result.success(ResponseEvent.OutputItemAdded(newItem)))
+            newItem
+        } else {
+            current
+        }
 
     val contentList = item.content as? MutableList ?: mutableListOf()
     val contentIndex = contentList.size.toLong()
@@ -682,23 +706,17 @@ private suspend fun appendReasoningText(
 /**
  * Check if error is context window exceeded.
  */
-private fun isContextWindowError(error: SseError): Boolean {
-    return error.code == "context_length_exceeded"
-}
+private fun isContextWindowError(error: SseError): Boolean = error.code == "context_length_exceeded"
 
 /**
  * Check if error is quota exceeded.
  */
-private fun isQuotaExceededError(error: SseError): Boolean {
-    return error.code == "insufficient_quota"
-}
+private fun isQuotaExceededError(error: SseError): Boolean = error.code == "insufficient_quota"
 
 /**
  * Check if error is usage not included.
  */
-private fun isUsageNotIncluded(error: SseError): Boolean {
-    return error.code == "usage_not_included"
-}
+private fun isUsageNotIncluded(error: SseError): Boolean = error.code == "usage_not_included"
 
 /**
  * Try to parse retry-after duration from rate limit error message.

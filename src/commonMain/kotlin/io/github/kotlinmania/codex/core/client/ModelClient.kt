@@ -2,26 +2,23 @@
 package io.github.kotlinmania.codex.core.client
 
 import io.github.kotlinmania.codex.api.AuthProvider
+import io.github.kotlinmania.codex.api.common.CompactionInput
+import io.github.kotlinmania.codex.api.common.Reasoning
+import io.github.kotlinmania.codex.api.common.createTextParamForRequest
 import io.github.kotlinmania.codex.api.endpoint.ChatClient
 import io.github.kotlinmania.codex.api.endpoint.CompactClient
 import io.github.kotlinmania.codex.api.endpoint.ResponsesClient
 import io.github.kotlinmania.codex.api.endpoint.ResponsesOptions
 import io.github.kotlinmania.codex.api.endpoint.aggregate
 import io.github.kotlinmania.codex.api.endpoint.streamingMode
-import io.github.kotlinmania.codex.api.common.CompactionInput
-import io.github.kotlinmania.codex.api.common.Prompt as ApiPrompt
-import io.github.kotlinmania.codex.api.common.Reasoning
-import io.github.kotlinmania.codex.api.common.ResponseStream as ApiResponseStream
-import io.github.kotlinmania.codex.protocol.ResponseEvent
-import io.github.kotlinmania.codex.api.common.createTextParamForRequest
 import io.github.kotlinmania.codex.api.error.ApiError
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 import io.github.kotlinmania.codex.core.AuthManager
 import io.github.kotlinmania.codex.core.AuthMode
 import io.github.kotlinmania.codex.core.CodexAuth
-import io.github.kotlinmania.codex.core.config.Config
 import io.github.kotlinmania.codex.core.CodexErr
+import io.github.kotlinmania.codex.core.config.Config
 import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.core.model.ModelProviderInfo
 import io.github.kotlinmania.codex.core.model.WireApi
@@ -29,6 +26,7 @@ import io.github.kotlinmania.codex.core.prompt.Prompt
 import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ReasoningEffort
 import io.github.kotlinmania.codex.protocol.ReasoningSummary
+import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.SessionSource
 import io.ktor.client.*
@@ -37,6 +35,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonElement
 import kotlin.time.Duration
+import io.github.kotlinmania.codex.api.common.Prompt as ApiPrompt
+import io.github.kotlinmania.codex.api.common.ResponseStream as ApiResponseStream
 
 /**
  * Main client for streaming model interactions.
@@ -56,25 +56,24 @@ class ModelClient(
     private val summary: ReasoningSummary,
     private val sessionSource: SessionSource,
 ) {
-
     /**
      * Get the effective model context window accounting for the configured percentage.
      */
     fun getModelContextWindow(): Long? {
         val pct = config.modelFamily.effectiveContextWindowPercent
-        val window = config.modelContextWindow
-            ?: getModelInfo(config.modelFamily)?.contextWindow
-            ?: return null
+        val window =
+            config.modelContextWindow
+                ?: getModelInfo(config.modelFamily)?.contextWindow
+                ?: return null
         return (window * pct) / 100
     }
 
     /**
      * Get the auto-compact token limit for this model.
      */
-    fun getAutoCompactTokenLimit(): Long? {
-        return config.modelAutoCompactTokenLimit
+    fun getAutoCompactTokenLimit(): Long? =
+        config.modelAutoCompactTokenLimit
             ?: getModelInfo(config.modelFamily)?.autoCompactTokenLimit
-    }
 
     fun config(): Config = config
 
@@ -91,15 +90,17 @@ class ModelClient(
         return when (provider.wireApi) {
             WireApi.Responses -> streamResponsesApi(prompt)
             WireApi.Chat -> {
-                val apiStream = streamChatCompletions(prompt).getOrElse {
-                    return Result.failure(it)
-                }
+                val apiStream =
+                    streamChatCompletions(prompt).getOrElse {
+                        return Result.failure(it)
+                    }
 
-                val processedStream = if (config.showRawAgentReasoning) {
-                    apiStream.streamingMode()
-                } else {
-                    apiStream.aggregate()
-                }
+                val processedStream =
+                    if (config.showRawAgentReasoning) {
+                        apiStream.streamingMode()
+                    } else {
+                        apiStream.aggregate()
+                    }
 
                 Result.success(mapResponseStream(processedStream, otelEventManager))
             }
@@ -115,15 +116,17 @@ class ModelClient(
     private suspend fun streamChatCompletions(prompt: Prompt): Result<ApiResponseStream> {
         if (prompt.outputSchema != null) {
             return Result.failure(
-                CodexErr.UnsupportedOperation(
-                    "output_schema is not supported for Chat Completions API"
-                ).toException()
+                CodexErr
+                    .UnsupportedOperation(
+                        "output_schema is not supported for Chat Completions API",
+                    ).toException(),
             )
         }
 
         val instructions = prompt.getFullInstructions(config.modelFamily)
-        val toolsJson = createToolsJsonForChatCompletionsApi(prompt.tools)
-            ?: return Result.failure(Exception("Failed to create tools JSON"))
+        val toolsJson =
+            createToolsJsonForChatCompletionsApi(prompt.tools)
+                ?: return Result.failure(Exception("Failed to create tools JSON"))
         val apiPrompt = buildApiPrompt(prompt, instructions, toolsJson)
         val conversationIdStr = conversationId.toString()
         val sessionSourceClone = sessionSource
@@ -132,20 +135,23 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-            val apiAuth = authProviderFromAuth(auth, provider)
-                ?: return Result.failure(Exception("Failed to create API auth"))
+            val apiAuth =
+                authProviderFromAuth(auth, provider)
+                    ?: return Result.failure(Exception("Failed to create API auth"))
 
             val httpClient = buildHttpClient()
             val (requestTelemetry, sseTelemetry) = buildStreamingTelemetry()
-            val client = ChatClient(httpClient, apiProvider, apiAuth)
-                .withTelemetry(requestTelemetry, sseTelemetry)
+            val client =
+                ChatClient(httpClient, apiProvider, apiAuth)
+                    .withTelemetry(requestTelemetry, sseTelemetry)
 
-            val streamResult = client.streamPrompt(
-                model = config.model,
-                prompt = apiPrompt,
-                conversationId = conversationIdStr,
-                sessionSource = sessionSourceClone
-            )
+            val streamResult =
+                client.streamPrompt(
+                    model = config.model,
+                    prompt = apiPrompt,
+                    conversationId = conversationIdStr,
+                    sessionSource = sessionSourceClone,
+                )
 
             return when {
                 streamResult.isSuccess -> streamResult
@@ -154,14 +160,15 @@ class ModelClient(
                         HttpStatusCode.Unauthorized,
                         refreshed,
                         authManager,
-                        auth
+                        auth,
                     ).getOrElse { return Result.failure(it) }
                     refreshed = true
                     continue
                 }
-                else -> Result.failure(
-                    streamResult.exceptionOrNull() ?: Exception("Unknown error")
-                )
+                else ->
+                    Result.failure(
+                        streamResult.exceptionOrNull() ?: Exception("Unknown error"),
+                    )
             }
         }
     }
@@ -176,32 +183,36 @@ class ModelClient(
         // TODO: Handle SSE fixture loading if CODEX_RS_SSE_FIXTURE is set
 
         val instructions = prompt.getFullInstructions(config.modelFamily)
-        val toolsJson = createToolsJsonForResponsesApi(prompt.tools)
-            ?: return Result.failure(Exception("Failed to create tools JSON"))
+        val toolsJson =
+            createToolsJsonForResponsesApi(prompt.tools)
+                ?: return Result.failure(Exception("Failed to create tools JSON"))
 
-        val reasoning = if (config.modelFamily.supportsReasoningSummaries) {
-            Reasoning(
-                effort = effort ?: config.modelFamily.defaultReasoningEffort,
-                summary = summary
-            )
-        } else {
-            null
-        }
-
-        val include = if (reasoning != null) {
-            listOf("reasoning.encrypted_content")
-        } else {
-            emptyList()
-        }
-
-        val verbosity = if (config.modelFamily.supportVerbosity) {
-            config.modelVerbosity ?: config.modelFamily.defaultVerbosity
-        } else {
-            if (config.modelVerbosity != null) {
-                // TODO: Log warning about verbosity being ignored
+        val reasoning =
+            if (config.modelFamily.supportsReasoningSummaries) {
+                Reasoning(
+                    effort = effort ?: config.modelFamily.defaultReasoningEffort,
+                    summary = summary,
+                )
+            } else {
+                null
             }
-            null
-        }
+
+        val include =
+            if (reasoning != null) {
+                listOf("reasoning.encrypted_content")
+            } else {
+                emptyList()
+            }
+
+        val verbosity =
+            if (config.modelFamily.supportVerbosity) {
+                config.modelVerbosity ?: config.modelFamily.defaultVerbosity
+            } else {
+                if (config.modelVerbosity != null) {
+                    // TODO: Log warning about verbosity being ignored
+                }
+                null
+            }
 
         val text = createTextParamForRequest(verbosity, prompt.outputSchema)
         val apiPrompt = buildApiPrompt(prompt, instructions, toolsJson)
@@ -212,29 +223,33 @@ class ModelClient(
         while (true) {
             val auth = authManager?.auth()
             val apiProvider = provider.toApiProvider(auth?.mode)
-            val apiAuth = authProviderFromAuth(auth, provider)
-                ?: return Result.failure(Exception("Failed to create API auth"))
+            val apiAuth =
+                authProviderFromAuth(auth, provider)
+                    ?: return Result.failure(Exception("Failed to create API auth"))
 
             val httpClient = buildHttpClient()
             val (requestTelemetry, sseTelemetry) = buildStreamingTelemetry()
-            val client = ResponsesClient(httpClient, apiProvider, apiAuth)
-                .withTelemetry(requestTelemetry, sseTelemetry)
+            val client =
+                ResponsesClient(httpClient, apiProvider, apiAuth)
+                    .withTelemetry(requestTelemetry, sseTelemetry)
 
-            val options = ResponsesOptions(
-                reasoning = reasoning,
-                include = include,
-                promptCacheKey = conversationIdStr,
-                text = text,
-                storeOverride = null,
-                conversationId = conversationIdStr,
-                sessionSource = sessionSourceClone
-            )
+            val options =
+                ResponsesOptions(
+                    reasoning = reasoning,
+                    include = include,
+                    promptCacheKey = conversationIdStr,
+                    text = text,
+                    storeOverride = null,
+                    conversationId = conversationIdStr,
+                    sessionSource = sessionSourceClone,
+                )
 
-            val streamResult = client.streamPrompt(
-                model = config.model,
-                prompt = apiPrompt,
-                options = options
-            )
+            val streamResult =
+                client.streamPrompt(
+                    model = config.model,
+                    prompt = apiPrompt,
+                    options = options,
+                )
 
             return when {
                 streamResult.isSuccess -> {
@@ -246,14 +261,15 @@ class ModelClient(
                         HttpStatusCode.Unauthorized,
                         refreshed,
                         authManager,
-                        auth
+                        auth,
                     ).getOrElse { return Result.failure(it) }
                     refreshed = true
                     continue
                 }
-                else -> Result.failure(
-                    streamResult.exceptionOrNull() ?: Exception("Unknown error")
-                )
+                else ->
+                    Result.failure(
+                        streamResult.exceptionOrNull() ?: Exception("Unknown error"),
+                    )
             }
         }
     }
@@ -287,20 +303,23 @@ class ModelClient(
 
         val auth = authManager?.auth()
         val apiProvider = provider.toApiProvider(auth?.mode)
-        val apiAuth = authProviderFromAuth(auth, provider)
-            ?: return Result.failure(Exception("Failed to create API auth"))
+        val apiAuth =
+            authProviderFromAuth(auth, provider)
+                ?: return Result.failure(Exception("Failed to create API auth"))
 
         val httpClient = buildHttpClient()
         val requestTelemetry = buildRequestTelemetry()
-        val client = CompactClient(httpClient, apiProvider, apiAuth)
-            .withTelemetry(requestTelemetry)
+        val client =
+            CompactClient(httpClient, apiProvider, apiAuth)
+                .withTelemetry(requestTelemetry)
 
         val instructions = prompt.getFullInstructions(config.modelFamily)
-        val payload = CompactionInput(
-            model = config.model,
-            input = prompt.input,
-            instructions = instructions
-        )
+        val payload =
+            CompactionInput(
+                model = config.model,
+                input = prompt.input,
+                instructions = instructions,
+            )
 
         // Build extra headers for subagent
         val configureHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {
@@ -324,30 +343,27 @@ class ModelClient(
     /**
      * Builds request telemetry for unary API calls (e.g., Compact endpoint).
      */
-    private fun buildRequestTelemetry(): RequestTelemetry {
-        return ApiTelemetry(otelEventManager)
-    }
+    private fun buildRequestTelemetry(): RequestTelemetry = ApiTelemetry(otelEventManager)
 }
 
 /**
  * Adapts the core `Prompt` type into the `codex-api` payload shape.
  */
-private fun buildApiPrompt(prompt: Prompt, instructions: String, toolsJson: List<JsonElement>): ApiPrompt {
-    return ApiPrompt(
+private fun buildApiPrompt(prompt: Prompt, instructions: String, toolsJson: List<JsonElement>): ApiPrompt =
+    ApiPrompt(
         instructions = instructions,
         input = prompt.getFormattedInput(),
         tools = toolsJson,
         parallelToolCalls = prompt.parallelToolCalls,
-        outputSchema = prompt.outputSchema
+        outputSchema = prompt.outputSchema,
     )
-}
 
 /**
  * Maps an API response stream to the core ResponseStream type.
  */
 private fun mapResponseStream(
     apiStream: ApiResponseStream,
-    otelEventManager: OtelEventManager
+    otelEventManager: OtelEventManager,
 ): ResponseStream {
     // TODO: Implement full stream mapping with telemetry events
     // For now, return a placeholder
@@ -372,14 +388,14 @@ private fun mapResponseStream(
                             outputTokens = usage.outputTokens,
                             cachedInputTokens = usage.cachedInputTokens,
                             reasoningOutputTokens = usage.reasoningOutputTokens,
-                            totalTokens = usage.totalTokens
+                            totalTokens = usage.totalTokens,
                         )
                     }
                 }
 
                 emit(Result.success(event))
             }
-        }
+        },
     )
 }
 
@@ -390,7 +406,7 @@ private suspend fun handleUnauthorized(
     status: HttpStatusCode,
     refreshed: Boolean,
     authManager: AuthManager?,
-    auth: CodexAuth?
+    auth: CodexAuth?,
 ): Result<Unit> {
     if (refreshed) {
         return Result.failure(mapUnauthorizedStatus(status))
@@ -409,11 +425,11 @@ private suspend fun handleUnauthorized(
     return Result.failure(mapUnauthorizedStatus(status))
 }
 
-private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception {
-    return ApiError.Transport(
-        io.github.kotlinmania.codex.client.error.TransportError.Http(status = status)
+private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception =
+    ApiError.Transport(
+        io.github.kotlinmania.codex.client.error.TransportError
+            .Http(status = status),
     )
-}
 
 private fun isUnauthorizedError(result: Result<*>): Boolean {
     val error = result.exceptionOrNull()
@@ -427,26 +443,26 @@ private fun isUnauthorizedError(result: Result<*>): Boolean {
  * Telemetry implementation for API requests and SSE events.
  */
 private class ApiTelemetry(
-    private val otelEventManager: OtelEventManager
-) : RequestTelemetry, SseTelemetry {
-
+    private val otelEventManager: OtelEventManager,
+) : RequestTelemetry,
+    SseTelemetry {
     override fun onRequest(
         attempt: Int,
         status: HttpStatusCode?,
         error: Throwable?,
-        duration: Duration
+        duration: Duration,
     ) {
         otelEventManager.recordApiRequest(
             attempt = attempt.toLong(),
             status = status?.value,
             errorMessage = error?.message,
-            duration = duration
+            duration = duration,
         )
     }
 
     override fun onSsePoll(
         hasData: Boolean,
-        duration: Duration
+        duration: Duration,
     ) {
         otelEventManager.logSseEvent(hasData, duration)
     }
@@ -457,7 +473,7 @@ private class ApiTelemetry(
  * TODO: This should be defined in core, not here.
  */
 data class ResponseStream(
-    val events: Flow<Result<ResponseEvent>>
+    val events: Flow<Result<ResponseEvent>>,
 )
 
 /**
@@ -470,7 +486,7 @@ class OtelEventManager {
         outputTokens: Long,
         cachedInputTokens: Long?,
         reasoningOutputTokens: Long?,
-        totalTokens: Long
+        totalTokens: Long,
     ) {
         // TODO: Implement telemetry logging
     }
@@ -483,7 +499,7 @@ class OtelEventManager {
         attempt: Long,
         status: Int?,
         errorMessage: String?,
-        duration: Duration
+        duration: Duration,
     ) {
         // TODO: Implement request telemetry
     }
@@ -492,9 +508,6 @@ class OtelEventManager {
         // SSE event telemetry placeholder
     }
 }
-
-
-
 
 // Placeholder functions that need to be ported from other modules
 
@@ -525,5 +538,5 @@ private fun buildHttpClient(): HttpClient {
 
 data class ModelInfo(
     val contextWindow: Long,
-    val autoCompactTokenLimit: Long?
+    val autoCompactTokenLimit: Long?,
 )

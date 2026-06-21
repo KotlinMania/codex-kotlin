@@ -28,7 +28,8 @@ typealias ResponsesApiRequest = io.github.kotlinmania.codex.api.common.Responses
 fun createTextParamForRequest(
     verbosity: io.github.kotlinmania.codex.api.common.VerbosityConfig?,
     outputSchema: kotlinx.serialization.json.JsonElement?,
-) = io.github.kotlinmania.codex.api.common.createTextParamForRequest(verbosity, outputSchema)
+) = io.github.kotlinmania.codex.api.common
+    .createTextParamForRequest(verbosity, outputSchema)
 
 /** Re-export from endpoint */
 typealias ChatClient<A> = io.github.kotlinmania.codex.api.endpoint.ChatClient<A>
@@ -64,4 +65,3 @@ typealias ResponsesRequest = io.github.kotlinmania.codex.api.requests.ResponsesR
 typealias ResponsesRequestBuilder = io.github.kotlinmania.codex.api.requests.ResponsesRequestBuilder
 
 // TODO: streamFromFixture once SSE testing utils are ported
-

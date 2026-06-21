@@ -1,37 +1,37 @@
 // port-lint: source codex-api/src/sse/responses.rs
 package io.github.kotlinmania.codex.client.streaming
 
+import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.TokenUsage
-import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Parser for Server-Sent Events (SSE) format.
  * Parses SSE streams from the Codex API /responses endpoint.
- * 
+ *
  * Maps to the upstream SSE parsing in eventsource-stream.
  */
 class SseParser {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+
     /**
      * Parse an SSE stream into response events.
      */
     fun parse(sseData: String): List<ResponseEvent> {
         val events = mutableListOf<ResponseEvent>()
         val lines = sseData.lines()
-        
+
         var currentEvent: String? = null
         var currentData = StringBuilder()
-        
+
         for (line in lines) {
             when {
                 line.startsWith("event:") -> {
@@ -39,11 +39,11 @@ class SseParser {
                     if (currentEvent != null && currentData.isNotEmpty()) {
                         parseEvent(currentEvent, currentData.toString())?.let { events.add(it) }
                     }
-                    
+
                     currentEvent = line.substring(6).trim()
                     currentData = StringBuilder()
                 }
-                
+
                 line.startsWith("data:") -> {
                     val data = line.substring(5).trim()
                     if (currentData.isNotEmpty()) {
@@ -51,7 +51,7 @@ class SseParser {
                     }
                     currentData.append(data)
                 }
-                
+
                 line.isEmpty() -> {
                     // End of event
                     if (currentEvent != null && currentData.isNotEmpty()) {
@@ -62,39 +62,39 @@ class SseParser {
                 }
             }
         }
-        
+
         // Flush final event if any
         if (currentEvent != null && currentData.isNotEmpty()) {
             parseEvent(currentEvent, currentData.toString())?.let { events.add(it) }
         }
-        
+
         return events
     }
-    
+
     /**
      * Parse a single SSE event into a ResponseEvent.
      */
-    private fun parseEvent(eventType: String, data: String): ResponseEvent? {
-        return try {
+    private fun parseEvent(eventType: String, data: String): ResponseEvent? =
+        try {
             when (eventType) {
                 "response.created" -> ResponseEvent.Created
-                
+
                 "response.output_item.added" -> {
                     val item = json.decodeFromString<ResponseItem>(data)
                     ResponseEvent.OutputItemAdded(item)
                 }
-                
+
                 "response.output_item.done" -> {
                     val item = json.decodeFromString<ResponseItem>(data)
                     ResponseEvent.OutputItemDone(item)
                 }
-                
+
                 "response.output.text.delta" -> {
                     val jsonElement = json.parseToJsonElement(data)
                     val delta = jsonElement.jsonObject["delta"]?.jsonPrimitive?.content ?: ""
                     ResponseEvent.OutputTextDelta(delta)
                 }
-                
+
                 "response.reasoning.summary.delta" -> {
                     val jsonElement = json.parseToJsonElement(data)
                     val obj = jsonElement.jsonObject
@@ -102,13 +102,17 @@ class SseParser {
                     val summaryIndex = obj["summary_index"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                     ResponseEvent.ReasoningSummaryDelta(delta, summaryIndex)
                 }
-                
+
                 "response.reasoning.summary.part.added" -> {
                     val jsonElement = json.parseToJsonElement(data)
-                    val summaryIndex = jsonElement.jsonObject["summary_index"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                    val summaryIndex =
+                        jsonElement.jsonObject["summary_index"]
+                            ?.jsonPrimitive
+                            ?.content
+                            ?.toLongOrNull() ?: 0L
                     ResponseEvent.ReasoningSummaryPartAdded(summaryIndex)
                 }
-                
+
                 "response.reasoning.content.delta" -> {
                     val jsonElement = json.parseToJsonElement(data)
                     val obj = jsonElement.jsonObject
@@ -116,22 +120,23 @@ class SseParser {
                     val contentIndex = obj["content_index"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                     ResponseEvent.ReasoningContentDelta(delta, contentIndex)
                 }
-                
+
                 "rate_limits" -> {
                     val snapshot = json.decodeFromString<RateLimitSnapshot>(data)
                     ResponseEvent.RateLimits(snapshot)
                 }
-                
+
                 "response.completed" -> {
                     val jsonElement = json.parseToJsonElement(data)
                     val obj = jsonElement.jsonObject
                     val responseId = obj["response_id"]?.jsonPrimitive?.content ?: ""
-                    val tokenUsage = obj["usage"]?.let { 
-                        json.decodeFromJsonElement(TokenUsage.serializer(), it)
-                    }
+                    val tokenUsage =
+                        obj["usage"]?.let {
+                            json.decodeFromJsonElement(TokenUsage.serializer(), it)
+                        }
                     ResponseEvent.Completed(responseId, tokenUsage)
                 }
-                
+
                 else -> {
                     // Unknown event type, skip
                     null
@@ -143,7 +148,6 @@ class SseParser {
             println("WARN: SSE parse failed for event type '$eventType': ${e.message}")
             null
         }
-    }
 }
 
 /**
@@ -153,5 +157,5 @@ data class SseEvent(
     val eventType: String,
     val data: String,
     val id: String? = null,
-    val retry: Long? = null
+    val retry: Long? = null,
 )

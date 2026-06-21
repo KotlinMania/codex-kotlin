@@ -32,7 +32,7 @@ private fun extractExitCode(status: Int): Int {
 internal actual fun platformExecuteGit(
     cwd: String,
     args: List<String>,
-    extraEnv: Map<String, String>
+    extraEnv: Map<String, String>,
 ): Pair<String, Int> {
     // Set up environment variables
     for ((key, value) in extraEnv) {
@@ -41,13 +41,14 @@ internal actual fun platformExecuteGit(
 
     // Build command string with proper escaping
     val gitArgs = listOf("git") + args
-    val command = gitArgs.joinToString(" ") { arg ->
-        if (arg.contains(' ') || arg.contains('"') || arg.contains('\'')) {
-            "\"${arg.replace("\"", "\\\"")}\""
-        } else {
-            arg
+    val command =
+        gitArgs.joinToString(" ") { arg ->
+            if (arg.contains(' ') || arg.contains('"') || arg.contains('\'')) {
+                "\"${arg.replace("\"", "\\\"")}\""
+            } else {
+                arg
+            }
         }
-    }
 
     // Save current directory
     val buffer = ByteArray(1024)
@@ -96,13 +97,14 @@ internal actual fun platformExecuteGit(
  */
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun platformExecuteCommand(args: List<String>): Int {
-    val command = args.joinToString(" ") { arg ->
-        if (arg.contains(' ') || arg.contains('"') || arg.contains('\'')) {
-            "\"${arg.replace("\"", "\\\"")}\""
-        } else {
-            arg
+    val command =
+        args.joinToString(" ") { arg ->
+            if (arg.contains(' ') || arg.contains('"') || arg.contains('\'')) {
+                "\"${arg.replace("\"", "\\\"")}\""
+            } else {
+                arg
+            }
         }
-    }
 
     val status = platform.posix.system(command)
     return extractExitCode(status)

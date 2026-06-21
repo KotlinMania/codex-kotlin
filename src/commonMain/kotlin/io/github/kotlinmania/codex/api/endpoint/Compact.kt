@@ -4,7 +4,6 @@ package io.github.kotlinmania.codex.api.endpoint
 import io.github.kotlinmania.codex.api.AuthProvider
 import io.github.kotlinmania.codex.api.addAuthHeaders
 import io.github.kotlinmania.codex.api.common.CompactionInput
-import io.github.kotlinmania.codex.api.error.ApiError
 import io.github.kotlinmania.codex.api.provider.Provider
 import io.github.kotlinmania.codex.api.provider.WireApi
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
@@ -29,14 +28,14 @@ class CompactClient<A : AuthProvider>(
         return this
     }
 
-    private fun path(): Result<String> {
-        return when (provider.wire) {
+    private fun path(): Result<String> =
+        when (provider.wire) {
             WireApi.Compact, WireApi.Responses -> Result.success("responses/compact")
-            WireApi.Chat -> Result.failure(
-                Exception("compact endpoint requires responses wire api")
-            )
+            WireApi.Chat ->
+                Result.failure(
+                    Exception("compact endpoint requires responses wire api"),
+                )
         }
-    }
 
     /**
      * Compact the given JSON body.
@@ -50,31 +49,33 @@ class CompactClient<A : AuthProvider>(
         val url = provider.urlForPath(pathResult.getOrElse { return Result.failure(it) })
 
         return try {
-            val response: HttpResponse = httpClient.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(body.toString())
+            val response: HttpResponse =
+                httpClient.post(url) {
+                    contentType(ContentType.Application.Json)
+                    setBody(body.toString())
 
-                // Add provider default headers
-                provider.defaultHeaders.forEach { (key, value) ->
-                    headers.append(key, value)
+                    // Add provider default headers
+                    provider.defaultHeaders.forEach { (key, value) ->
+                        headers.append(key, value)
+                    }
+
+                    // Apply extra headers
+                    configureExtraHeaders()
+
+                    // Add auth headers
+                    addAuthHeaders(auth)
+
+                    // TODO: Apply retry policy and telemetry
                 }
-
-                // Apply extra headers
-                configureExtraHeaders()
-
-                // Add auth headers
-                addAuthHeaders(auth)
-
-                // TODO: Apply retry policy and telemetry
-            }
 
             if (response.status.isSuccess()) {
                 val responseText = response.bodyAsText()
                 // Parse CompactHistoryResponse
                 val json = Json.parseToJsonElement(responseText).jsonObject
-                val output = json["output"]?.jsonArray ?: return Result.failure(
-                    Exception("Missing 'output' field in compact response")
-                )
+                val output =
+                    json["output"]?.jsonArray ?: return Result.failure(
+                        Exception("Missing 'output' field in compact response"),
+                    )
 
                 // TODO: Properly deserialize ResponseItem list using kotlinx.serialization
                 // For now, return empty list as placeholder
@@ -94,32 +95,37 @@ class CompactClient<A : AuthProvider>(
     suspend fun compactInput(
         input: CompactionInput,
         configureExtraHeaders: HttpRequestBuilder.() -> Unit = {},
-    ): Result<List<ResponseItem>> {
-        return try {
+    ): Result<List<ResponseItem>> =
+        try {
             // Build JSON payload from CompactionInput
-            val payload = buildJsonObject {
-                put("model", input.model)
-                put("instructions", input.instructions)
-                put("input", JsonArray(input.input.map { item ->
-                    // TODO: Serialize ResponseItem properly using kotlinx.serialization
-                    buildJsonObject {
-                        when (item) {
-                            is ResponseItem.Message -> {
-                                put("type", "message")
-                                put("role", item.role)
-                                put("content", JsonArray(emptyList())) // TODO: serialize content
-                            }
-                            else -> put("type", "other")
-                        }
-                    }
-                }))
-            }
+            val payload =
+                buildJsonObject {
+                    put("model", input.model)
+                    put("instructions", input.instructions)
+                    put(
+                        "input",
+                        JsonArray(
+                            input.input.map { item ->
+                                // TODO: Serialize ResponseItem properly using kotlinx.serialization
+                                buildJsonObject {
+                                    when (item) {
+                                        is ResponseItem.Message -> {
+                                            put("type", "message")
+                                            put("role", item.role)
+                                            put("content", JsonArray(emptyList())) // TODO: serialize content
+                                        }
+                                        else -> put("type", "other")
+                                    }
+                                }
+                            },
+                        ),
+                    )
+                }
 
             compact(payload, configureExtraHeaders)
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 }
 
 /**
@@ -128,6 +134,5 @@ class CompactClient<A : AuthProvider>(
  */
 @Serializable
 private data class CompactHistoryResponse(
-    val output: List<ResponseItem>
+    val output: List<ResponseItem>,
 )
-

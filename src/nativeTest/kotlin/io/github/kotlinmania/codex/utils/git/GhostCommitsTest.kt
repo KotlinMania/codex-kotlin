@@ -2,25 +2,25 @@ package io.github.kotlinmania.codex.utils.git
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.test.assertIs
 
 /**
  * Tests for GhostCommits data structures and GitOperations interface.
  * Note: Integration tests requiring actual git repos are marked separately.
  */
 class GhostCommitTest {
-
     @Test
     fun testGhostCommitCreation() {
-        val commit = GhostCommit(
-            id = "abc123",
-            parent = "def456",
-            preexistingUntrackedFiles = listOf("file1.txt", "file2.txt"),
-            preexistingUntrackedDirs = listOf("dir1", "dir2")
-        )
+        val commit =
+            GhostCommit(
+                id = "abc123",
+                parent = "def456",
+                preexistingUntrackedFiles = listOf("file1.txt", "file2.txt"),
+                preexistingUntrackedDirs = listOf("dir1", "dir2"),
+            )
 
         assertEquals("abc123", commit.id)
         assertEquals("def456", commit.parent)
@@ -30,12 +30,13 @@ class GhostCommitTest {
 
     @Test
     fun testGhostCommitWithNullParent() {
-        val commit = GhostCommit(
-            id = "first-commit",
-            parent = null,
-            preexistingUntrackedFiles = emptyList(),
-            preexistingUntrackedDirs = emptyList()
-        )
+        val commit =
+            GhostCommit(
+                id = "first-commit",
+                parent = null,
+                preexistingUntrackedFiles = emptyList(),
+                preexistingUntrackedDirs = emptyList(),
+            )
 
         assertEquals("first-commit", commit.id)
         assertNull(commit.parent)
@@ -45,7 +46,6 @@ class GhostCommitTest {
 }
 
 class GhostSnapshotReportTest {
-
     @Test
     fun testEmptyReport() {
         val report = GhostSnapshotReport()
@@ -54,12 +54,14 @@ class GhostSnapshotReportTest {
 
     @Test
     fun testReportWithLargeDirs() {
-        val report = GhostSnapshotReport(
-            largeUntrackedDirs = listOf(
-                LargeUntrackedDir(path = "node_modules", fileCount = 5000),
-                LargeUntrackedDir(path = "build", fileCount = 250)
+        val report =
+            GhostSnapshotReport(
+                largeUntrackedDirs =
+                    listOf(
+                        LargeUntrackedDir(path = "node_modules", fileCount = 5000),
+                        LargeUntrackedDir(path = "build", fileCount = 250),
+                    ),
             )
-        )
 
         assertEquals(2, report.largeUntrackedDirs.size)
         assertEquals("node_modules", report.largeUntrackedDirs[0].path)
@@ -68,13 +70,13 @@ class GhostSnapshotReportTest {
 }
 
 class LargeUntrackedDirTest {
-
     @Test
     fun testLargeUntrackedDir() {
-        val dir = LargeUntrackedDir(
-            path = "vendor/cache",
-            fileCount = 300
-        )
+        val dir =
+            LargeUntrackedDir(
+                path = "vendor/cache",
+                fileCount = 300,
+            )
 
         assertEquals("vendor/cache", dir.path)
         assertEquals(300, dir.fileCount)
@@ -82,7 +84,6 @@ class LargeUntrackedDirTest {
 }
 
 class CreateGhostCommitOptionsTest {
-
     @Test
     fun testDefaultOptions() {
         val options = CreateGhostCommitOptions.new("/repo/path")
@@ -94,16 +95,20 @@ class CreateGhostCommitOptionsTest {
 
     @Test
     fun testOptionsWithMessage() {
-        val options = CreateGhostCommitOptions.new("/repo/path")
-            .withMessage("custom snapshot message")
+        val options =
+            CreateGhostCommitOptions
+                .new("/repo/path")
+                .withMessage("custom snapshot message")
 
         assertEquals("custom snapshot message", options.message)
     }
 
     @Test
     fun testOptionsWithForceInclude() {
-        val options = CreateGhostCommitOptions.new("/repo/path")
-            .withForceInclude(listOf(".env", "secrets.json"))
+        val options =
+            CreateGhostCommitOptions
+                .new("/repo/path")
+                .withForceInclude(listOf(".env", "secrets.json"))
 
         assertEquals(2, options.forceInclude.size)
         assertTrue(options.forceInclude.contains(".env"))
@@ -112,9 +117,11 @@ class CreateGhostCommitOptionsTest {
 
     @Test
     fun testOptionsChaining() {
-        val options = CreateGhostCommitOptions.new("/repo/path")
-            .withMessage("my snapshot")
-            .withForceInclude(listOf("ignored.txt"))
+        val options =
+            CreateGhostCommitOptions
+                .new("/repo/path")
+                .withMessage("my snapshot")
+                .withForceInclude(listOf("ignored.txt"))
 
         assertEquals("/repo/path", options.repoPath)
         assertEquals("my snapshot", options.message)
@@ -123,7 +130,6 @@ class CreateGhostCommitOptionsTest {
 }
 
 class GitToolingErrorTest {
-
     @Test
     fun testNotAGitRepositoryError() {
         val error = GitToolingError.NotAGitRepository("/some/path")
@@ -155,7 +161,6 @@ class GitToolingErrorTest {
 }
 
 class ShellGitOperationsTest {
-
     @Test
     fun testShellGitOperationsCanBeInstantiated() {
         val ops = ShellGitOperations()

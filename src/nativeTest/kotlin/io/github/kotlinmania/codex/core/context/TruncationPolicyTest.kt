@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TruncationPolicyTest {
-
     @Test
     fun testBytePolicyBudget() {
         val policy = TruncationPolicy.Bytes(1000)

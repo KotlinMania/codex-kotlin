@@ -12,46 +12,51 @@ import kotlin.test.assertTrue
 
 class AsyncUtilsTest {
     @Test
-    fun returnsOkWhenFutureCompletesFirst() = runTest {
-        val token = Job()
-        val value: suspend () -> Int = { 42 }
+    fun returnsOkWhenFutureCompletesFirst() =
+        runTest {
+            val token = Job()
+            val value: suspend () -> Int = { 42 }
 
-        val result = orCancel(token) { value() }
+            val result = orCancel(token) { value() }
 
-        assertEquals(Result.success(42), result)
-    }
+            assertEquals(Result.success(42), result)
+        }
 
     @Test
-    fun returnsErrWhenTokenCancelledFirst() = runTest {
-        val token = Job()
+    fun returnsErrWhenTokenCancelledFirst() =
+        runTest {
+            val token = Job()
 
-        launch {
-            delay(10)
+            launch {
+                delay(10)
+                token.cancel()
+            }
+
+            val result =
+                orCancel(token) {
+                    delay(100)
+                    7
+                }
+
+            assertTrue(result.isFailure)
+            val err = result.exceptionOrNull() as CancelErrException
+            assertEquals(CancelErr.Cancelled, err.err)
+        }
+
+    @Test
+    fun returnsErrWhenTokenAlreadyCancelled() =
+        runTest {
+            val token = Job()
             token.cancel()
+
+            val result =
+                orCancel(token) {
+                    delay(50)
+                    5
+                }
+
+            assertTrue(result.isFailure)
+            val err = result.exceptionOrNull() as CancelErrException
+            assertEquals(CancelErr.Cancelled, err.err)
         }
-
-        val result = orCancel(token) {
-            delay(100)
-            7
-        }
-
-        assertTrue(result.isFailure)
-        val err = result.exceptionOrNull() as CancelErrException
-        assertEquals(CancelErr.Cancelled, err.err)
-    }
-
-    @Test
-    fun returnsErrWhenTokenAlreadyCancelled() = runTest {
-        val token = Job()
-        token.cancel()
-
-        val result = orCancel(token) {
-            delay(50)
-            5
-        }
-
-        assertTrue(result.isFailure)
-        val err = result.exceptionOrNull() as CancelErrException
-        assertEquals(CancelErr.Cancelled, err.err)
-    }
 }

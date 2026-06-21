@@ -10,13 +10,13 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class UserInstructionsTest {
-
     @Test
     fun testUserInstructions() {
-        val userInstructions = UserInstructions(
-            directory = "test_directory",
-            text = "test_text",
-        )
+        val userInstructions =
+            UserInstructions(
+                directory = "test_directory",
+                text = "test_text",
+            )
         val responseItem: ResponseItem = userInstructions.toResponseItem()
 
         if (responseItem !is ResponseItem.Message) {

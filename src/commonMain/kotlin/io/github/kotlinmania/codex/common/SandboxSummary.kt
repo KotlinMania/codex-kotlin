@@ -3,8 +3,8 @@ package io.github.kotlinmania.codex.common
 
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 
-fun summarizeSandboxPolicy(sandboxPolicy: SandboxPolicy): String {
-    return when (sandboxPolicy) {
+fun summarizeSandboxPolicy(sandboxPolicy: SandboxPolicy): String =
+    when (sandboxPolicy) {
         is SandboxPolicy.DangerFullAccess -> "danger-full-access"
         is SandboxPolicy.ReadOnly -> "read-only"
         is SandboxPolicy.WorkspaceWrite -> {
@@ -26,4 +26,3 @@ fun summarizeSandboxPolicy(sandboxPolicy: SandboxPolicy): String {
             summary.toString()
         }
     }
-}

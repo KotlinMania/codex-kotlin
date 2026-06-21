@@ -18,7 +18,7 @@ class UtilTest {
         val message = tryParseErrorMessage(text)
         assertEquals(
             "Your refresh token has already been used to generate a new access token. Please try signing in again.",
-            message
+            message,
         )
     }
 

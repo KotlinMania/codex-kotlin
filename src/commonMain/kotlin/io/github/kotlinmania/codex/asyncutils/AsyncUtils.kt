@@ -15,15 +15,18 @@ enum class CancelErr {
 /**
  * Awaits the given block, returning [CancelErr.Cancelled] if [token] is cancelled first.
  */
-suspend fun <T> orCancel(token: Job, block: suspend () -> T): Result<T> = coroutineScope {
-    val res: Deferred<T> = async { block() }
-    select<Result<T>> {
-        token.onJoin {
-            res.cancel()
-            Result.failure(CancelErrException(CancelErr.Cancelled))
+suspend fun <T> orCancel(token: Job, block: suspend () -> T): Result<T> =
+    coroutineScope {
+        val res: Deferred<T> = async { block() }
+        select<Result<T>> {
+            token.onJoin {
+                res.cancel()
+                Result.failure(CancelErrException(CancelErr.Cancelled))
+            }
+            res.onAwait { value -> Result.success(value) }
         }
-        res.onAwait { value -> Result.success(value) }
     }
-}
 
-class CancelErrException(val err: CancelErr) : RuntimeException(err.name)
+class CancelErrException(
+    val err: CancelErr,
+) : RuntimeException(err.name)

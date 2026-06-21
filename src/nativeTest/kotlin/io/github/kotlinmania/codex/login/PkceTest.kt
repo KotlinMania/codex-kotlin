@@ -20,9 +20,10 @@ class PkceTest {
     @Test
     fun challengeIsSha256OfVerifier() {
         val codes = generatePkce()
-        val expected = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(
-            Sha256MessageDigest().digest(codes.codeVerifier.encodeToByteArray())
-        )
+        val expected =
+            Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(
+                Sha256MessageDigest().digest(codes.codeVerifier.encodeToByteArray()),
+            )
         assertEquals(expected, codes.codeChallenge)
     }
 

@@ -5,9 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class BashParserTest {
-    private fun parseSeq(src: String): List<List<String>>? {
-        return parseShellLcPlainCommands(listOf("bash", "-lc", src))
-    }
+    private fun parseSeq(src: String): List<List<String>>? = parseShellLcPlainCommands(listOf("bash", "-lc", src))
 
     @Test
     fun acceptsSingleSimpleCommand() {
@@ -19,12 +17,13 @@ class BashParserTest {
     fun acceptsMultipleCommandsWithAllowedOperators() {
         val src = "ls && pwd; echo 'hi there' | wc -l"
         val cmds = parseSeq(src)
-        val expected = listOf(
-            listOf("ls"),
-            listOf("pwd"),
-            listOf("echo", "hi there"),
-            listOf("wc", "-l")
-        )
+        val expected =
+            listOf(
+                listOf("ls"),
+                listOf("pwd"),
+                listOf("echo", "hi there"),
+                listOf("wc", "-l"),
+            )
         assertEquals(expected, cmds)
     }
 
@@ -76,4 +75,3 @@ class BashParserTest {
         assertEquals(listOf(listOf("ls")), parsed)
     }
 }
-

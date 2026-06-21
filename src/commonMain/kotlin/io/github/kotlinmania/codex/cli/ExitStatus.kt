@@ -3,8 +3,8 @@
 
 package io.github.kotlinmania.codex.cli
 
-import kotlin.native.Platform
 import kotlin.native.OsFamily
+import kotlin.native.Platform
 import kotlin.system.exitProcess
 
 /**
@@ -14,7 +14,10 @@ import kotlin.system.exitProcess
  * original, which exposes the raw exit code on all platforms and, on Unix,
  * also the terminating signal.
  */
-data class ProcessExitStatus(val code: Int?, val signal: Int? = null)
+data class ProcessExitStatus(
+    val code: Int?,
+    val signal: Int? = null,
+)
 
 /**
  * Translate a child process exit status into a process exit, matching the

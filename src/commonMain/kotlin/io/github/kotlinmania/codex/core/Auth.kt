@@ -18,9 +18,9 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
-import kotlin.time.TimeSource
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
+import kotlin.time.TimeSource
 
 // ============================================================================
 // Constants
@@ -57,7 +57,7 @@ const val CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY"
  */
 enum class AuthMode {
     ApiKey,
-    ChatGPT
+    ChatGPT,
 }
 
 @ConsistentCopyVisibility
@@ -67,9 +67,8 @@ data class CodexAuth internal constructor(
     private val authDotJsonMutex: Mutex,
     private var cachedAuthDotJson: AuthDotJson?,
     private val storage: AuthStorageBackend,
-    internal val client: HttpClient
+    internal val client: HttpClient,
 ) {
-
     /**
      * Refresh the access token using the refresh token.
      * Returns the new access token on success.
@@ -77,25 +76,29 @@ data class CodexAuth internal constructor(
     suspend fun refreshToken(): Result<String> {
         println("Refreshing token")
 
-        val tokenData = getCurrentTokenData()
-            ?: return Result.failure(RefreshTokenError.Transient("Token data is not available."))
+        val tokenData =
+            getCurrentTokenData()
+                ?: return Result.failure(RefreshTokenError.Transient("Token data is not available."))
 
-        val refreshResponse = tryRefreshToken(tokenData.refreshToken, client)
-            .getOrElse { return Result.failure(it) }
+        val refreshResponse =
+            tryRefreshToken(tokenData.refreshToken, client)
+                .getOrElse { return Result.failure(it) }
 
-        val updated = updateTokens(
-            storage,
-            refreshResponse.idToken,
-            refreshResponse.accessToken,
-            refreshResponse.refreshToken
-        ).getOrElse { return Result.failure(it) }
+        val updated =
+            updateTokens(
+                storage,
+                refreshResponse.idToken,
+                refreshResponse.accessToken,
+                refreshResponse.refreshToken,
+            ).getOrElse { return Result.failure(it) }
 
         authDotJsonMutex.withLock {
             cachedAuthDotJson = updated
         }
 
-        val access = updated.tokens?.accessToken
-            ?: return Result.failure(RefreshTokenError.Transient("Token data is not available after refresh."))
+        val access =
+            updated.tokens?.accessToken
+                ?: return Result.failure(RefreshTokenError.Transient("Token data is not available after refresh."))
 
         return Result.success(access)
     }
@@ -105,11 +108,13 @@ data class CodexAuth internal constructor(
      */
     @OptIn(ExperimentalTime::class)
     suspend fun getTokenData(): Result<TokenData> {
-        val authJson = getCurrentAuthJson()
-            ?: return Result.failure(Exception("Token data is not available."))
+        val authJson =
+            getCurrentAuthJson()
+                ?: return Result.failure(Exception("Token data is not available."))
 
-        var tokens = authJson.tokens
-            ?: return Result.failure(Exception("Token data is not available."))
+        var tokens =
+            authJson.tokens
+                ?: return Result.failure(Exception("Token data is not available."))
 
         val lastRefresh = authJson.lastRefresh
 
@@ -120,16 +125,18 @@ data class CodexAuth internal constructor(
 
             if (refreshAgeMillis > TOKEN_REFRESH_INTERVAL.days.inWholeMilliseconds) {
                 val refreshResult = tryRefreshToken(tokens.refreshToken, client)
-                val refreshResponse = refreshResult.getOrElse {
-                    return Result.failure(it)
-                }
+                val refreshResponse =
+                    refreshResult.getOrElse {
+                        return Result.failure(it)
+                    }
 
-                val updatedAuthJson = updateTokens(
-                    storage,
-                    refreshResponse.idToken,
-                    refreshResponse.accessToken,
-                    refreshResponse.refreshToken
-                ).getOrElse { return Result.failure(it) }
+                val updatedAuthJson =
+                    updateTokens(
+                        storage,
+                        refreshResponse.idToken,
+                        refreshResponse.accessToken,
+                        refreshResponse.refreshToken,
+                    ).getOrElse { return Result.failure(it) }
 
                 tokens = updatedAuthJson.tokens
                     ?: return Result.failure(Exception("Token data is not available after refresh."))
@@ -150,9 +157,10 @@ data class CodexAuth internal constructor(
         return when (mode) {
             AuthMode.ApiKey -> Result.success(apiKey ?: "")
             AuthMode.ChatGPT -> {
-                val tokenData = getTokenData().getOrElse {
-                    return Result.failure(it)
-                }
+                val tokenData =
+                    getTokenData().getOrElse {
+                        return Result.failure(it)
+                    }
                 Result.success(tokenData.accessToken)
             }
         }
@@ -161,16 +169,12 @@ data class CodexAuth internal constructor(
     /**
      * Get the ChatGPT account ID from the token data.
      */
-    fun getAccountId(): String? {
-        return getCurrentTokenData()?.accountId
-    }
+    fun getAccountId(): String? = getCurrentTokenData()?.accountId
 
     /**
      * Get the email from the ID token.
      */
-    fun getAccountEmail(): String? {
-        return getCurrentTokenData()?.idToken?.email
-    }
+    fun getAccountEmail(): String? = getCurrentTokenData()?.idToken?.email
 
     /**
      * Account-facing plan classification derived from the current token.
@@ -178,15 +182,16 @@ data class CodexAuth internal constructor(
     fun accountPlanType(): AccountPlanType? {
         val tokenData = getCurrentTokenData() ?: return null
         return when (val planType = tokenData.idToken.chatgptPlanType) {
-            is PlanType.Known -> when (planType.plan) {
-                KnownPlan.Free -> AccountPlanType.Free
-                KnownPlan.Plus -> AccountPlanType.Plus
-                KnownPlan.Pro -> AccountPlanType.Pro
-                KnownPlan.Team -> AccountPlanType.Team
-                KnownPlan.Business -> AccountPlanType.Business
-                KnownPlan.Enterprise -> AccountPlanType.Enterprise
-                KnownPlan.Edu -> AccountPlanType.Edu
-            }
+            is PlanType.Known ->
+                when (planType.plan) {
+                    KnownPlan.Free -> AccountPlanType.Free
+                    KnownPlan.Plus -> AccountPlanType.Plus
+                    KnownPlan.Pro -> AccountPlanType.Pro
+                    KnownPlan.Team -> AccountPlanType.Team
+                    KnownPlan.Business -> AccountPlanType.Business
+                    KnownPlan.Enterprise -> AccountPlanType.Enterprise
+                    KnownPlan.Edu -> AccountPlanType.Edu
+                }
             is PlanType.Unknown -> AccountPlanType.Unknown
             null -> null
         }
@@ -195,29 +200,22 @@ data class CodexAuth internal constructor(
     /**
      * Raw plan string from the ID token (including unknown/new plan types).
      */
-    fun rawPlanType(): String? {
-        return getPlanType()?.let { planType ->
+    fun rawPlanType(): String? =
+        getPlanType()?.let { planType ->
             when (planType) {
                 is PlanType.Known -> planType.plan.name
                 is PlanType.Unknown -> planType.value
             }
         }
-    }
 
     /**
      * Raw internal plan value from the ID token.
      */
-    internal fun getPlanType(): PlanType? {
-        return getCurrentTokenData()?.idToken?.chatgptPlanType
-    }
+    internal fun getPlanType(): PlanType? = getCurrentTokenData()?.idToken?.chatgptPlanType
 
-    private suspend fun getCurrentAuthJson(): AuthDotJson? {
-        return authDotJsonMutex.withLock { cachedAuthDotJson }
-    }
+    private suspend fun getCurrentAuthJson(): AuthDotJson? = authDotJsonMutex.withLock { cachedAuthDotJson }
 
-    private fun getCurrentTokenData(): TokenData? {
-        return cachedAuthDotJson?.tokens
-    }
+    private fun getCurrentTokenData(): TokenData? = cachedAuthDotJson?.tokens
 }
 
 /**
@@ -225,16 +223,18 @@ data class CodexAuth internal constructor(
  */
 @OptIn(ExperimentalTime::class)
 fun createDummyChatGptAuthForTesting(): CodexAuth {
-    val authDotJson = AuthDotJson(
-        openaiApiKey = null,
-        tokens = TokenData(
-            idToken = IdTokenInfo(),
-            accessToken = "Access Token",
-            refreshToken = "test",
-            accountId = "account_id"
-        ),
-        lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
-    )
+    val authDotJson =
+        AuthDotJson(
+            openaiApiKey = null,
+            tokens =
+                TokenData(
+                    idToken = IdTokenInfo(),
+                    accessToken = "Access Token",
+                    refreshToken = "test",
+                    accountId = "account_id",
+                ),
+            lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds,
+        )
 
     return CodexAuth(
         mode = AuthMode.ChatGPT,
@@ -242,33 +242,30 @@ fun createDummyChatGptAuthForTesting(): CodexAuth {
         authDotJsonMutex = Mutex(),
         cachedAuthDotJson = authDotJson,
         storage = FileAuthStorage(Path("")),
-        client = HttpClient()
+        client = HttpClient(),
     )
 }
 
 /**
  * Create an auth from an API key.
  */
-fun codexAuthFromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth {
-    return CodexAuth(
+fun codexAuthFromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth =
+    CodexAuth(
         mode = AuthMode.ApiKey,
         apiKey = apiKey,
         authDotJsonMutex = Mutex(),
         cachedAuthDotJson = null,
         storage = FileAuthStorage(Path("")),
-        client = client
+        client = client,
     )
-}
 
 /**
  * Loads the available auth information from auth storage.
  */
 fun codexAuthFromAuthStorage(
     codexHome: Path,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
-): Result<CodexAuth?> {
-    return loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
-}
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
+): Result<CodexAuth?> = loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
 
 // ============================================================================
 // Error Types
@@ -278,16 +275,23 @@ fun codexAuthFromAuthStorage(
  * Error types for refresh token operations.
  * Mirrors the upstream RefreshTokenError enum.
  */
-sealed class RefreshTokenError(message: String) : Exception(message) {
-    class Permanent(val reason: RefreshTokenFailedReason, message: String) : RefreshTokenError(message)
-    class Transient(message: String) : RefreshTokenError(message)
+sealed class RefreshTokenError(
+    message: String,
+) : Exception(message) {
+    class Permanent(
+        val reason: RefreshTokenFailedReason,
+        message: String,
+    ) : RefreshTokenError(message)
 
-    fun failedReason(): RefreshTokenFailedReason? {
-        return when (this) {
+    class Transient(
+        message: String,
+    ) : RefreshTokenError(message)
+
+    fun failedReason(): RefreshTokenFailedReason? =
+        when (this) {
             is Permanent -> reason
             is Transient -> null
         }
-    }
 }
 
 // ============================================================================
@@ -298,25 +302,37 @@ sealed class RefreshTokenError(message: String) : Exception(message) {
  * Plan type classification from ID token.
  */
 sealed class PlanType {
-    data class Known(val plan: KnownPlan) : PlanType()
-    data class Unknown(val value: String) : PlanType()
+    data class Known(
+        val plan: KnownPlan,
+    ) : PlanType()
+
+    data class Unknown(
+        val value: String,
+    ) : PlanType()
 }
 
 enum class KnownPlan {
-    Free, Plus, Pro, Team, Business, Enterprise, Edu
+    Free,
+    Plus,
+    Pro,
+    Team,
+    Business,
+    Enterprise,
+    Edu,
 }
 
 private fun planTypeFromString(value: String): PlanType {
-    val knownPlan = when (value.lowercase()) {
-        "free" -> KnownPlan.Free
-        "plus" -> KnownPlan.Plus
-        "pro" -> KnownPlan.Pro
-        "team" -> KnownPlan.Team
-        "business" -> KnownPlan.Business
-        "enterprise" -> KnownPlan.Enterprise
-        "edu" -> KnownPlan.Edu
-        else -> null
-    }
+    val knownPlan =
+        when (value.lowercase()) {
+            "free" -> KnownPlan.Free
+            "plus" -> KnownPlan.Plus
+            "pro" -> KnownPlan.Pro
+            "team" -> KnownPlan.Team
+            "business" -> KnownPlan.Business
+            "enterprise" -> KnownPlan.Enterprise
+            "edu" -> KnownPlan.Edu
+            else -> null
+        }
     return if (knownPlan != null) {
         PlanType.Known(knownPlan)
     } else {
@@ -329,7 +345,14 @@ private fun planTypeFromString(value: String): PlanType {
  * Maps to codexProtocol::account::PlanType
  */
 enum class AccountPlanType {
-    Free, Plus, Pro, Team, Business, Enterprise, Edu, Unknown
+    Free,
+    Plus,
+    Pro,
+    Team,
+    Business,
+    Enterprise,
+    Edu,
+    Unknown,
 }
 
 /**
@@ -341,7 +364,7 @@ data class IdTokenInfo(
     @Contextual
     val chatgptPlanType: PlanType? = null,
     val chatgptAccountId: String? = null,
-    val rawJwt: String = ""
+    val rawJwt: String = "",
 )
 
 /**
@@ -352,7 +375,7 @@ data class TokenData(
     var idToken: IdTokenInfo = IdTokenInfo(),
     var accessToken: String = "",
     var refreshToken: String = "",
-    val accountId: String? = null
+    val accountId: String? = null,
 )
 
 /**
@@ -364,7 +387,7 @@ data class AuthDotJson(
     val openaiApiKey: String? = null,
     val tokens: TokenData? = null,
     @SerialName("last_refresh")
-    val lastRefresh: Long? = null  // Store as epoch milliseconds
+    val lastRefresh: Long? = null, // Store as epoch milliseconds
 )
 
 /**
@@ -372,7 +395,7 @@ data class AuthDotJson(
  */
 enum class ForcedLoginMethod {
     Api,
-    Chatgpt
+    Chatgpt,
 }
 
 // ============================================================================
@@ -383,27 +406,25 @@ enum class ForcedLoginMethod {
 /**
  * Read OpenAI API key from environment.
  */
-fun readOpenaiApiKeyFromEnv(): String? {
-    return getEnvironmentVariable(OPENAI_API_KEY_ENV_VAR)
+fun readOpenaiApiKeyFromEnv(): String? =
+    getEnvironmentVariable(OPENAI_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
-}
 
 /**
  * Read Codex API key from environment.
  */
-fun readCodexApiKeyFromEnv(): String? {
-    return getEnvironmentVariable(CODEX_API_KEY_ENV_VAR)
+fun readCodexApiKeyFromEnv(): String? =
+    getEnvironmentVariable(CODEX_API_KEY_ENV_VAR)
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
-}
 
 /**
  * Delete the auth.json file. Returns true if a file was removed.
  */
 fun logout(
     codexHome: Path,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<Boolean> {
     val storage = createAuthStorage(codexHome, authCredentialsStoreMode)
     return storage.delete()
@@ -416,13 +437,14 @@ fun logout(
 fun loginWithApiKey(
     codexHome: Path,
     apiKey: String,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<Unit> {
-    val authDotJson = AuthDotJson(
-        openaiApiKey = apiKey,
-        tokens = null,
-        lastRefresh = null
-    )
+    val authDotJson =
+        AuthDotJson(
+            openaiApiKey = apiKey,
+            tokens = null,
+            lastRefresh = null,
+        )
     return saveAuth(codexHome, authDotJson, authCredentialsStoreMode)
 }
 
@@ -432,7 +454,7 @@ fun loginWithApiKey(
 fun saveAuth(
     codexHome: Path,
     auth: AuthDotJson,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<Unit> {
     val storage = createAuthStorage(codexHome, authCredentialsStoreMode)
     return storage.save(auth)
@@ -443,7 +465,7 @@ fun saveAuth(
  */
 fun loadAuthDotJson(
     codexHome: Path,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<AuthDotJson?> {
     val storage = createAuthStorage(codexHome, authCredentialsStoreMode)
     return storage.load()
@@ -453,11 +475,12 @@ fun loadAuthDotJson(
  * Enforce login restrictions from config.
  */
 suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
-    val auth = loadAuth(
-        config.codexHome,
-        enableCodexApiKeyEnv = true,
-        config.cliAuthCredentialsStoreMode
-    ).getOrElse { return Result.failure(it) }
+    val auth =
+        loadAuth(
+            config.codexHome,
+            enableCodexApiKeyEnv = true,
+            config.cliAuthCredentialsStoreMode,
+        ).getOrElse { return Result.failure(it) }
 
     if (auth == null) {
         return Result.success(Unit)
@@ -466,22 +489,25 @@ suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
     // Check forced login method
     val requiredMethod = config.forcedLoginMethod
     if (requiredMethod != null) {
-        val violation = when (requiredMethod) {
-            ForcedLoginMethod.Api -> when (auth.mode) {
-                AuthMode.ApiKey -> null
-                AuthMode.ChatGPT -> "API key login is required, but ChatGPT is currently being used. Logging out."
+        val violation =
+            when (requiredMethod) {
+                ForcedLoginMethod.Api ->
+                    when (auth.mode) {
+                        AuthMode.ApiKey -> null
+                        AuthMode.ChatGPT -> "API key login is required, but ChatGPT is currently being used. Logging out."
+                    }
+                ForcedLoginMethod.Chatgpt ->
+                    when (auth.mode) {
+                        AuthMode.ChatGPT -> null
+                        AuthMode.ApiKey -> "ChatGPT login is required, but an API key is currently being used. Logging out."
+                    }
             }
-            ForcedLoginMethod.Chatgpt -> when (auth.mode) {
-                AuthMode.ChatGPT -> null
-                AuthMode.ApiKey -> "ChatGPT login is required, but an API key is currently being used. Logging out."
-            }
-        }
 
         if (violation != null) {
             return logoutWithMessage(
                 config.codexHome,
                 violation,
-                config.cliAuthCredentialsStoreMode
+                config.cliAuthCredentialsStoreMode,
             )
         }
     }
@@ -489,25 +515,27 @@ suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
     // Check forced workspace ID (ChatGPT only)
     val expectedAccountId = config.forcedChatgptWorkspaceId
     if (expectedAccountId != null && auth.mode == AuthMode.ChatGPT) {
-        val tokenData = auth.getTokenData().getOrElse { err ->
-            return logoutWithMessage(
-                config.codexHome,
-                "Failed to load ChatGPT credentials while enforcing workspace restrictions: ${err.message}. Logging out.",
-                config.cliAuthCredentialsStoreMode
-            )
-        }
+        val tokenData =
+            auth.getTokenData().getOrElse { err ->
+                return logoutWithMessage(
+                    config.codexHome,
+                    "Failed to load ChatGPT credentials while enforcing workspace restrictions: ${err.message}. Logging out.",
+                    config.cliAuthCredentialsStoreMode,
+                )
+            }
 
         val chatgptAccountId = tokenData.idToken.chatgptAccountId
         if (chatgptAccountId != expectedAccountId) {
-            val message = if (chatgptAccountId != null) {
-                "Login is restricted to workspace $expectedAccountId, but current credentials belong to $chatgptAccountId. Logging out."
-            } else {
-                "Login is restricted to workspace $expectedAccountId, but current credentials lack a workspace identifier. Logging out."
-            }
+            val message =
+                if (chatgptAccountId != null) {
+                    "Login is restricted to workspace $expectedAccountId, but current credentials belong to $chatgptAccountId. Logging out."
+                } else {
+                    "Login is restricted to workspace $expectedAccountId, but current credentials lack a workspace identifier. Logging out."
+                }
             return logoutWithMessage(
                 config.codexHome,
                 message,
-                config.cliAuthCredentialsStoreMode
+                config.cliAuthCredentialsStoreMode,
             )
         }
     }
@@ -522,15 +550,15 @@ suspend fun enforceLoginRestrictions(config: Config): Result<Unit> {
 private fun logoutWithMessage(
     codexHome: Path,
     message: String,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
-): Result<Unit> {
-    return when (logout(codexHome, authCredentialsStoreMode).isSuccess) {
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
+): Result<Unit> =
+    when (logout(codexHome, authCredentialsStoreMode).isSuccess) {
         true -> Result.failure(Exception(message))
-        false -> Result.failure(
-            Exception("$message. Failed to remove auth.json")
-        )
+        false ->
+            Result.failure(
+                Exception("$message. Failed to remove auth.json"),
+            )
     }
-}
 
 /**
  * Load auth from storage, with optional environment variable fallback.
@@ -538,7 +566,7 @@ private fun logoutWithMessage(
 internal fun loadAuth(
     codexHome: Path,
     enableCodexApiKeyEnv: Boolean,
-    authCredentialsStoreMode: AuthCredentialsStoreMode
+    authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<CodexAuth?> {
     // Check environment variable first if enabled
     if (enableCodexApiKeyEnv) {
@@ -551,9 +579,10 @@ internal fun loadAuth(
     val storage = createAuthStorage(codexHome, authCredentialsStoreMode)
     val client = HttpClient()
 
-    val authDotJson = storage.load().getOrElse {
-        return Result.failure(it)
-    } ?: return Result.success(null)
+    val authDotJson =
+        storage.load().getOrElse {
+            return Result.failure(it)
+        } ?: return Result.success(null)
 
     // Prefer API key if set in auth.json
     if (authDotJson.openaiApiKey != null) {
@@ -568,8 +597,8 @@ internal fun loadAuth(
             authDotJsonMutex = Mutex(),
             cachedAuthDotJson = authDotJson,
             storage = storage,
-            client = client
-        )
+            client = client,
+        ),
     )
 }
 
@@ -581,18 +610,20 @@ private fun updateTokens(
     storage: AuthStorageBackend,
     idToken: String?,
     accessToken: String?,
-    refreshToken: String?
+    refreshToken: String?,
 ): Result<AuthDotJson> {
-    val authDotJson = storage.load().getOrElse {
-        return Result.failure(it)
-    } ?: return Result.failure(Exception("Token data is not available."))
+    val authDotJson =
+        storage.load().getOrElse {
+            return Result.failure(it)
+        } ?: return Result.failure(Exception("Token data is not available."))
 
     val tokens = authDotJson.tokens?.copy() ?: TokenData()
 
     if (idToken != null) {
-        val parsed = parseIdToken(idToken).getOrElse {
-            return Result.failure(it)
-        }
+        val parsed =
+            parseIdToken(idToken).getOrElse {
+                return Result.failure(it)
+            }
         tokens.idToken = parsed
     }
     if (accessToken != null) {
@@ -602,10 +633,11 @@ private fun updateTokens(
         tokens.refreshToken = refreshToken
     }
 
-    val updated = authDotJson.copy(
-        tokens = tokens,
-        lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds
-    )
+    val updated =
+        authDotJson.copy(
+            tokens = tokens,
+            lastRefresh = systemClock.markNow().elapsedNow().inWholeMilliseconds,
+        )
 
     storage.save(updated).getOrElse { return Result.failure(it) }
     return Result.success(updated)
@@ -616,28 +648,32 @@ private fun updateTokens(
  */
 private suspend fun tryRefreshToken(
     refreshToken: String,
-    client: HttpClient
+    client: HttpClient,
 ): Result<RefreshResponse> {
-    val request = RefreshRequest(
-        clientId = CLIENT_ID,
-        grantType = "refresh_token",
-        refreshToken = refreshToken,
-        scope = "openid profile email"
-    )
+    val request =
+        RefreshRequest(
+            clientId = CLIENT_ID,
+            grantType = "refresh_token",
+            refreshToken = refreshToken,
+            scope = "openid profile email",
+        )
 
-    val endpoint = getEnvironmentVariable(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
-        ?: REFRESH_TOKEN_URL
+    val endpoint =
+        getEnvironmentVariable(REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR)
+            ?: REFRESH_TOKEN_URL
 
     return try {
-        val response = client.post(endpoint) {
-            contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(RefreshRequest.serializer(), request))
-        }
+        val response =
+            client.post(endpoint) {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(RefreshRequest.serializer(), request))
+            }
 
         if (response.status.isSuccess()) {
-            val refreshResponse = Json.decodeFromString<RefreshResponse>(
-                response.bodyAsText()
-            )
+            val refreshResponse =
+                Json.decodeFromString<RefreshResponse>(
+                    response.bodyAsText(),
+                )
             Result.success(refreshResponse)
         } else {
             val body = response.bodyAsText()
@@ -647,7 +683,7 @@ private suspend fun tryRefreshToken(
             } else {
                 val message = parseAuthRefreshErrorMessage(body)
                 Result.failure(
-                    RefreshTokenError.Transient("Failed to refresh token: ${response.status}: $message")
+                    RefreshTokenError.Transient("Failed to refresh token: ${response.status}: $message"),
                 )
             }
         }
@@ -663,23 +699,25 @@ private fun classifyRefreshTokenFailure(body: String): RefreshTokenFailedError {
     val code = extractRefreshTokenErrorCode(body)
 
     val normalizedCode = code?.lowercase()
-    val reason = when (normalizedCode) {
-        "refresh_token_expired" -> RefreshTokenFailedReason.Expired
-        "refresh_token_reused" -> RefreshTokenFailedReason.Exhausted
-        "refresh_token_invalidated" -> RefreshTokenFailedReason.Revoked
-        else -> RefreshTokenFailedReason.Other
-    }
+    val reason =
+        when (normalizedCode) {
+            "refresh_token_expired" -> RefreshTokenFailedReason.Expired
+            "refresh_token_reused" -> RefreshTokenFailedReason.Exhausted
+            "refresh_token_invalidated" -> RefreshTokenFailedReason.Revoked
+            else -> RefreshTokenFailedReason.Other
+        }
 
     if (reason == RefreshTokenFailedReason.Other && code != null) {
         println("Warning: Encountered unknown 401 response while refreshing token: $code")
     }
 
-    val message = when (reason) {
-        RefreshTokenFailedReason.Expired -> REFRESH_TOKEN_EXPIRED_MESSAGE
-        RefreshTokenFailedReason.Exhausted -> REFRESH_TOKEN_REUSED_MESSAGE
-        RefreshTokenFailedReason.Revoked -> REFRESH_TOKEN_INVALIDATED_MESSAGE
-        RefreshTokenFailedReason.Other -> REFRESH_TOKEN_UNKNOWN_MESSAGE
-    }
+    val message =
+        when (reason) {
+            RefreshTokenFailedReason.Expired -> REFRESH_TOKEN_EXPIRED_MESSAGE
+            RefreshTokenFailedReason.Exhausted -> REFRESH_TOKEN_REUSED_MESSAGE
+            RefreshTokenFailedReason.Revoked -> REFRESH_TOKEN_INVALIDATED_MESSAGE
+            RefreshTokenFailedReason.Other -> REFRESH_TOKEN_UNKNOWN_MESSAGE
+        }
 
     return RefreshTokenFailedError(reason, message)
 }
@@ -690,15 +728,21 @@ private fun classifyRefreshTokenFailure(body: String): RefreshTokenFailedError {
 private fun extractRefreshTokenErrorCode(body: String): String? {
     if (body.trim().isEmpty()) return null
 
-    val json = try {
-        Json.parseToJsonElement(body).jsonObject
-    } catch (_: Exception) {
-        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
-        JsonObject(emptyMap())
-    }
+    val json =
+        try {
+            Json.parseToJsonElement(body).jsonObject
+        } catch (_: Exception) {
+            // Return empty object on parse failure (matches the upstream unwrapOrDefault)
+            JsonObject(emptyMap())
+        }
 
     // Try error.code first
-    val errorCode = json["error"]?.jsonObject?.get("code")?.jsonPrimitive?.content
+    val errorCode =
+        json["error"]
+            ?.jsonObject
+            ?.get("code")
+            ?.jsonPrimitive
+            ?.content
     if (errorCode != null) return errorCode
 
     // Try error as string
@@ -717,16 +761,18 @@ private fun extractRefreshTokenErrorCode(body: String): String? {
  * `{"error": {"message": "..."}}`.
  */
 private fun parseAuthRefreshErrorMessage(body: String): String {
-    val json = try {
-        Json.parseToJsonElement(body).jsonObject
-    } catch (_: Exception) {
-        // Return empty object on parse failure (matches the upstream unwrapOrDefault)
-        JsonObject(emptyMap())
-    }
+    val json =
+        try {
+            Json.parseToJsonElement(body).jsonObject
+        } catch (_: Exception) {
+            // Return empty object on parse failure (matches the upstream unwrapOrDefault)
+            JsonObject(emptyMap())
+        }
 
     // Try to get error message from various locations
-    val errorMessage = json["error"]?.jsonPrimitive?.content
-        ?: json["message"]?.jsonPrimitive?.content
+    val errorMessage =
+        json["error"]?.jsonPrimitive?.content
+            ?: json["message"]?.jsonPrimitive?.content
 
     if (errorMessage != null) return errorMessage
 
@@ -751,10 +797,12 @@ private fun parseAuthRefreshErrorMessage(body: String): String {
  *
  * Reference: codex-rs/core/src/tokenData.rs - parseIdToken()
  */
-private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
-    return try {
+private fun parseIdToken(jwt: String): Result<IdTokenInfo> =
+    try {
         // Decode JWT without verification
-        val decoded = io.github.kotlinmania.jwt.JWT.decode(jwt)
+        val decoded =
+            io.github.kotlinmania.jwt.JWT
+                .decode(jwt)
 
         // Extract email
         val email = decoded.getClaim("email").asString()
@@ -773,20 +821,18 @@ private fun parseIdToken(jwt: String): Result<IdTokenInfo> {
                 email = email,
                 chatgptPlanType = planType,
                 chatgptAccountId = accountId,
-                rawJwt = jwt
-            )
+                rawJwt = jwt,
+            ),
         )
     } catch (e: io.github.kotlinmania.jwt.exceptions.JWTDecodeException) {
         Result.failure(Exception("Failed to decode JWT: ${e.message}", e))
     } catch (e: Exception) {
         Result.failure(Exception("JWT parsing failed: ${e.message}", e))
     }
-}
 
 /**
  * Create auth storage backend.
  */
-
 
 @Serializable
 private data class RefreshRequest(
@@ -796,7 +842,7 @@ private data class RefreshRequest(
     val grantType: String,
     @SerialName("refresh_token")
     val refreshToken: String,
-    val scope: String
+    val scope: String,
 )
 
 @Serializable
@@ -806,7 +852,7 @@ private data class RefreshResponse(
     @SerialName("access_token")
     val accessToken: String? = null,
     @SerialName("refresh_token")
-    val refreshToken: String? = null
+    val refreshToken: String? = null,
 )
 
 // ============================================================================
@@ -829,24 +875,24 @@ class AuthManager private constructor(
     private val codexHome: Path,
     private val enableCodexApiKeyEnv: Boolean,
     private val authCredentialsStoreMode: AuthCredentialsStoreMode,
-    initialAuth: CodexAuth?
+    initialAuth: CodexAuth?,
 ) {
     constructor(
         codexHome: Path,
         enableCodexApiKeyEnv: Boolean,
-        authCredentialsStoreMode: AuthCredentialsStoreMode
+        authCredentialsStoreMode: AuthCredentialsStoreMode,
     ) : this(
         codexHome,
         enableCodexApiKeyEnv,
         authCredentialsStoreMode,
-        loadAuth(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode).getOrNull()
+        loadAuth(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode).getOrNull(),
     )
 
     internal constructor(auth: CodexAuth) : this(
         codexHome = Path(""),
         enableCodexApiKeyEnv = false,
         authCredentialsStoreMode = AuthCredentialsStoreMode.File,
-        initialAuth = auth
+        initialAuth = auth,
     )
 
     private val mutex = Mutex()
@@ -855,20 +901,19 @@ class AuthManager private constructor(
     /**
      * Current cached auth (clone). May be null if not logged in or load failed.
      */
-    suspend fun auth(): CodexAuth? {
-        return mutex.withLock { cachedAuth }
-    }
+    suspend fun auth(): CodexAuth? = mutex.withLock { cachedAuth }
 
     /**
      * Force a reload of the auth information from auth.json.
      * Returns whether the auth value changed.
      */
     suspend fun reload(): Boolean {
-        val newAuth = loadAuth(
-            codexHome,
-            enableCodexApiKeyEnv,
-            authCredentialsStoreMode
-        ).getOrNull()
+        val newAuth =
+            loadAuth(
+                codexHome,
+                enableCodexApiKeyEnv,
+                authCredentialsStoreMode,
+            ).getOrNull()
 
         return mutex.withLock {
             val changed = !authsEqual(cachedAuth, newAuth)
@@ -915,13 +960,12 @@ class AuthManager private constructor(
         return result
     }
 
-    private fun authsEqual(a: CodexAuth?, b: CodexAuth?): Boolean {
-        return when {
+    private fun authsEqual(a: CodexAuth?, b: CodexAuth?): Boolean =
+        when {
             a == null && b == null -> true
             a != null && b != null -> a.mode == b.mode
             else -> false
         }
-    }
 }
 
 // ============================================================================
@@ -935,6 +979,4 @@ class AuthManager private constructor(
  * For more complex multiplatform scenarios, consider creating expect/actual.
  */
 @OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-private fun getEnvironmentVariable(name: String): String? {
-    return platform.posix.getenv(name)?.toKString()
-}
+private fun getEnvironmentVariable(name: String): String? = platform.posix.getenv(name)?.toKString()

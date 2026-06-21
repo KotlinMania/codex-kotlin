@@ -6,9 +6,7 @@ import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /** Returns a string representing the elapsed time since `startTime` like "1m 15s" or "1.50s". */
-fun formatElapsed(startTime: TimeSource.Monotonic.ValueTimeMark): String {
-    return formatDuration(startTime.elapsedNow())
-}
+fun formatElapsed(startTime: TimeSource.Monotonic.ValueTimeMark): String = formatDuration(startTime.elapsedNow())
 
 /**
  * Convert a [Duration] into a human-readable, compact string.
@@ -23,8 +21,8 @@ fun formatDuration(duration: Duration): String {
     return formatElapsedMillis(millis)
 }
 
-private fun formatElapsedMillis(millis: Long): String {
-    return if (millis < 1000) {
+private fun formatElapsedMillis(millis: Long): String =
+    if (millis < 1000) {
         "${millis}ms"
     } else if (millis < 60_000) {
         "${twoDecimal(millis.toDouble() / 1000.0)}s"
@@ -33,7 +31,6 @@ private fun formatElapsedMillis(millis: Long): String {
         val seconds = (millis % 60_000) / 1000
         "${minutes}m ${seconds.toString().padStart(2, '0')}s"
     }
-}
 
 private fun twoDecimal(value: Double): String {
     val scaled = round(value * 100.0).toLong()

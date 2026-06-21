@@ -3,13 +3,13 @@ package io.github.kotlinmania.codex.core.auth
 
 import io.github.kotlinmania.codex.core.AuthDotJson
 import io.github.kotlinmania.codex.core.platformSetOwnerReadWritePermissions
+import io.github.kotlinmania.codex.utils.canonicalizePath
+import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.buffered
 import kotlinx.io.readString
 import kotlinx.io.writeString
 import kotlinx.serialization.json.Json
-import io.github.kotlinmania.codex.utils.canonicalizePath
 
 /**
  * Determine where Codex should store CLI auth credentials.
@@ -23,15 +23,13 @@ enum class AuthCredentialsStoreMode {
     Keychain,
 
     /** Use keyring when available; otherwise, fall back to a file in CODEX_HOME */
-    Auto
+    Auto,
 }
 
 /**
  * Get the auth.json file path within codexHome.
  */
-internal fun getAuthFile(codexHome: Path): Path {
-    return Path(codexHome.toString(), "auth.json")
-}
+internal fun getAuthFile(codexHome: Path): Path = Path(codexHome.toString(), "auth.json")
 
 /**
  * Delete the auth.json file if it exists.
@@ -56,7 +54,9 @@ internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
  */
 interface AuthStorageBackend {
     fun load(): Result<AuthDotJson?>
+
     fun save(auth: AuthDotJson): Result<Unit>
+
     fun delete(): Result<Boolean>
 }
 
@@ -64,22 +64,23 @@ interface AuthStorageBackend {
  * File-based auth storage implementation.
  * Stores credentials in CODEX_HOME/auth.json with 0600 permissions on Unix.
  */
-class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
-
+class FileAuthStorage(
+    private val codexHome: Path,
+) : AuthStorageBackend {
     /**
      * Attempt to read and parse the auth.json file.
      */
-    fun tryReadAuthJson(authFile: Path): Result<AuthDotJson> {
-        return try {
-            val contents = SystemFileSystem.source(authFile).buffered().use { buffered ->
-                buffered.readString()
-            }
+    fun tryReadAuthJson(authFile: Path): Result<AuthDotJson> =
+        try {
+            val contents =
+                SystemFileSystem.source(authFile).buffered().use { buffered ->
+                    buffered.readString()
+                }
             val authDotJson = Json.decodeFromString<AuthDotJson>(contents)
             Result.success(authDotJson)
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 
     override fun load(): Result<AuthDotJson?> {
         val authFile = getAuthFile(codexHome)
@@ -122,14 +123,10 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
         }
     }
 
-    override fun delete(): Result<Boolean> {
-        return deleteFileIfExists(codexHome)
-    }
+    override fun delete(): Result<Boolean> = deleteFileIfExists(codexHome)
 
     companion object {
-        fun new(codexHome: Path): FileAuthStorage {
-            return FileAuthStorage(codexHome)
-        }
+        fun new(codexHome: Path): FileAuthStorage = FileAuthStorage(codexHome)
     }
 }
 
@@ -139,44 +136,44 @@ class FileAuthStorage(private val codexHome: Path) : AuthStorageBackend {
  */
 class KeychainAuthStorage(
     private val codexHome: Path,
-    private val keychainStore: KeychainStore
+    private val keychainStore: KeychainStore,
 ) : AuthStorageBackend {
-
     /**
      * Load auth from keychain using computed key.
      */
-    private fun loadFromKeychain(key: String): Result<AuthDotJson?> {
-        return keychainStore.load(KEYCHAIN_SERVICE, key).mapCatching { serialized ->
+    private fun loadFromKeychain(key: String): Result<AuthDotJson?> =
+        keychainStore.load(KEYCHAIN_SERVICE, key).mapCatching { serialized ->
             serialized?.let { Json.decodeFromString(AuthDotJson.serializer(), it) }
         }
-    }
 
     /**
      * Save auth to keychain using computed key.
      */
-    private fun saveToKeychain(key: String, value: String): Result<Unit> {
-        return keychainStore.save(KEYCHAIN_SERVICE, key, value).onFailure { error ->
+    private fun saveToKeychain(key: String, value: String): Result<Unit> =
+        keychainStore.save(KEYCHAIN_SERVICE, key, value).onFailure { error ->
             println("Warning: failed to write OAuth tokens to keychain: ${error.message}")
         }
-    }
 
     override fun load(): Result<AuthDotJson?> {
-        val key = computeStoreKey(codexHome).getOrElse {
-            return Result.failure(it)
-        }
+        val key =
+            computeStoreKey(codexHome).getOrElse {
+                return Result.failure(it)
+            }
         return loadFromKeychain(key)
     }
 
     override fun save(auth: AuthDotJson): Result<Unit> {
-        val key = computeStoreKey(codexHome).getOrElse {
-            return Result.failure(it)
-        }
+        val key =
+            computeStoreKey(codexHome).getOrElse {
+                return Result.failure(it)
+            }
 
-        val serialized = try {
-            Json.encodeToString(AuthDotJson.serializer(), auth)
-        } catch (e: Exception) {
-            return Result.failure(e)
-        }
+        val serialized =
+            try {
+                Json.encodeToString(AuthDotJson.serializer(), auth)
+            } catch (e: Exception) {
+                return Result.failure(e)
+            }
 
         saveToKeychain(key, serialized).getOrElse {
             return Result.failure(it)
@@ -191,23 +188,25 @@ class KeychainAuthStorage(
     }
 
     override fun delete(): Result<Boolean> {
-        val key = computeStoreKey(codexHome).getOrElse {
-            return Result.failure(it)
-        }
+        val key =
+            computeStoreKey(codexHome).getOrElse {
+                return Result.failure(it)
+            }
 
-        val keychainRemoved = keychainStore.delete(KEYCHAIN_SERVICE, key)
-            .getOrElse { return Result.failure(it) }
+        val keychainRemoved =
+            keychainStore
+                .delete(KEYCHAIN_SERVICE, key)
+                .getOrElse { return Result.failure(it) }
 
-        val fileRemoved = deleteFileIfExists(codexHome)
-            .getOrElse { return Result.failure(it) }
+        val fileRemoved =
+            deleteFileIfExists(codexHome)
+                .getOrElse { return Result.failure(it) }
 
         return Result.success(keychainRemoved || fileRemoved)
     }
 
     companion object {
-        fun new(codexHome: Path, keychainStore: KeychainStore): KeychainAuthStorage {
-            return KeychainAuthStorage(codexHome, keychainStore)
-        }
+        fun new(codexHome: Path, keychainStore: KeychainStore): KeychainAuthStorage = KeychainAuthStorage(codexHome, keychainStore)
     }
 }
 
@@ -217,9 +216,8 @@ class KeychainAuthStorage(
  */
 class AutoAuthStorage(
     private val keychainStorage: KeychainAuthStorage,
-    private val fileStorage: FileAuthStorage
+    private val fileStorage: FileAuthStorage,
 ) : AuthStorageBackend {
-
     override fun load(): Result<AuthDotJson?> {
         // Try keychain first
         val result = keychainStorage.load()
@@ -250,12 +248,11 @@ class AutoAuthStorage(
     }
 
     companion object {
-        fun new(codexHome: Path, keychainStore: KeychainStore): AutoAuthStorage {
-            return AutoAuthStorage(
+        fun new(codexHome: Path, keychainStore: KeychainStore): AutoAuthStorage =
+            AutoAuthStorage(
                 KeychainAuthStorage.new(codexHome, keychainStore),
-                FileAuthStorage.new(codexHome)
+                FileAuthStorage.new(codexHome),
             )
-        }
     }
 }
 
@@ -272,8 +269,8 @@ private const val KEYCHAIN_SERVICE = "Codex Auth"
  * Resolves symlinks via `realpath` and prefixes the truncated hex digest
  * with `cli|`.
  */
-internal fun computeStoreKey(codexHome: Path): Result<String> {
-    return try {
+internal fun computeStoreKey(codexHome: Path): Result<String> =
+    try {
         // Implement proper path canonicalization (resolve symlinks, make absolute)
         val pathStr = codexHome.toString()
         val canonical = canonicalizePath(pathStr)
@@ -283,13 +280,14 @@ internal fun computeStoreKey(codexHome: Path): Result<String> {
         val digest = sha256.digest(canonical)
 
         // Convert digest bytes to hex string (lowercase)
-        val hex = buildString(digest.size * 2) {
-            digest.forEach { byte ->
-                val value = byte.toInt() and 0xFF
-                append(HEX_CHARS[value shr 4])
-                append(HEX_CHARS[value and 0x0F])
+        val hex =
+            buildString(digest.size * 2) {
+                digest.forEach { byte ->
+                    val value = byte.toInt() and 0xFF
+                    append(HEX_CHARS[value shr 4])
+                    append(HEX_CHARS[value and 0x0F])
+                }
             }
-        }
 
         // Truncate to first 16 characters and prefix with "cli|"
         val truncated = hex.take(16)
@@ -297,7 +295,6 @@ internal fun computeStoreKey(codexHome: Path): Result<String> {
     } catch (e: Exception) {
         Result.failure(e)
     }
-}
 
 private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
@@ -306,7 +303,7 @@ private val HEX_CHARS = "0123456789abcdef".toCharArray()
  */
 internal fun createAuthStorage(
     codexHome: Path,
-    mode: AuthCredentialsStoreMode
+    mode: AuthCredentialsStoreMode,
 ): AuthStorageBackend {
     val keychainStore = DefaultKeychainStore()
     return createAuthStorageWithKeychainStore(codexHome, mode, keychainStore)
@@ -318,14 +315,13 @@ internal fun createAuthStorage(
 internal fun createAuthStorageWithKeychainStore(
     codexHome: Path,
     mode: AuthCredentialsStoreMode,
-    keychainStore: KeychainStore
-): AuthStorageBackend {
-    return when (mode) {
+    keychainStore: KeychainStore,
+): AuthStorageBackend =
+    when (mode) {
         AuthCredentialsStoreMode.File -> FileAuthStorage.new(codexHome)
         AuthCredentialsStoreMode.Keychain -> KeychainAuthStorage.new(codexHome, keychainStore)
         AuthCredentialsStoreMode.Auto -> AutoAuthStorage.new(codexHome, keychainStore)
     }
-}
 
 // ============================================================================
 // Keychain Store Interface
@@ -361,17 +357,11 @@ interface KeychainStore {
  * failure for the same reason, and delete reports nothing removed.
  */
 class DefaultKeychainStore : KeychainStore {
-    override fun load(service: String, key: String): Result<String?> {
-        return Result.success(null)
-    }
+    override fun load(service: String, key: String): Result<String?> = Result.success(null)
 
-    override fun save(service: String, key: String, value: String): Result<Unit> {
-        return Result.failure(Exception("Keychain storage not implemented"))
-    }
+    override fun save(service: String, key: String, value: String): Result<Unit> = Result.failure(Exception("Keychain storage not implemented"))
 
-    override fun delete(service: String, key: String): Result<Boolean> {
-        return Result.success(false)
-    }
+    override fun delete(service: String, key: String): Result<Boolean> = Result.success(false)
 }
 
 // ============================================================================
@@ -405,14 +395,15 @@ class MockKeychainStore : KeychainStore {
 
     // Test helpers
     fun contains(key: String): Boolean = storage.containsKey(key)
+
     fun savedValue(key: String): String? = storage[key]
+
     fun setError(key: String, error: Exception) {
         errors[key] = error
     }
+
     fun clear() {
         storage.clear()
         errors.clear()
     }
 }
-
-

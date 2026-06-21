@@ -21,8 +21,9 @@ suspend fun initChatgptTokenFromAuth(
     codexHome: Path,
     authCredentialsStoreMode: AuthCredentialsStoreMode,
 ) {
-    val auth: CodexAuth = codexAuthFromAuthStorage(codexHome, authCredentialsStoreMode).getOrThrow()
-        ?: return
+    val auth: CodexAuth =
+        codexAuthFromAuthStorage(codexHome, authCredentialsStoreMode).getOrThrow()
+            ?: return
     val tokenData = auth.getTokenData().getOrThrow()
     setChatgptTokenData(tokenData)
 }

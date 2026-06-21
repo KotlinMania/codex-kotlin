@@ -4,10 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.test.assertNull
 
 class FeaturesTest {
-
     @Test
     fun testDefaultFeatures() {
         val features = Features.withDefaults()
@@ -64,10 +62,11 @@ class FeaturesTest {
     fun testApplyMap() {
         val features = Features.withDefaults()
 
-        val map = mapOf(
-            "unified_exec" to true,
-            "undo" to false
-        )
+        val map =
+            mapOf(
+                "unified_exec" to true,
+                "undo" to false,
+            )
         features.applyMap(map)
 
         assertTrue(features.enabled(Feature.UnifiedExec))
@@ -112,7 +111,7 @@ class FeaturesTest {
         assertEquals("Background terminal", stage.betaMenuName())
         assertEquals(
             "Run long-running terminal commands in the background.",
-            stage.betaMenuDescription()
+            stage.betaMenuDescription(),
         )
     }
 
@@ -122,10 +121,11 @@ class FeaturesTest {
         assertFalse(features.enabled(Feature.ApplyPatchFreeform))
         assertFalse(features.enabled(Feature.WebSearchRequest))
 
-        val overrides = FeatureOverrides(
-            includeApplyPatchTool = true,
-            webSearchRequest = true
-        )
+        val overrides =
+            FeatureOverrides(
+                includeApplyPatchTool = true,
+                webSearchRequest = true,
+            )
         overrides.apply(features)
 
         assertTrue(features.enabled(Feature.ApplyPatchFreeform))

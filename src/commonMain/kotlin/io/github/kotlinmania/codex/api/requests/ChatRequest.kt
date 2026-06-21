@@ -31,28 +31,34 @@ class ChatRequestBuilder(
         return this
     }
 
-    fun build(provider: Provider): Result<ChatRequest> {
-        return try {
+    fun build(provider: Provider): Result<ChatRequest> =
+        try {
             val messages = mutableListOf<JsonElement>()
 
             // System message
-            messages.add(buildJsonObject {
-                put("role", "system")
-                put("content", instructions)
-            })
+            messages.add(
+                buildJsonObject {
+                    put("role", "system")
+                    put("content", instructions)
+                },
+            )
 
             // TODO: Full message processing logic from Rust (reasoning anchoring, deduplication, etc.)
             // For now, basic message conversion from protocol ResponseItem
             for (item in input) {
                 when (item) {
                     is io.github.kotlinmania.codex.protocol.ResponseItem.Message -> {
-                        val textContent = item.content.filterIsInstance<io.github.kotlinmania.codex.protocol.ContentItem.OutputText>()
-                            .joinToString("") { it.text }
+                        val textContent =
+                            item.content
+                                .filterIsInstance<io.github.kotlinmania.codex.protocol.ContentItem.OutputText>()
+                                .joinToString("") { it.text }
 
-                        messages.add(buildJsonObject {
-                            put("role", item.role)
-                            put("content", textContent)
-                        })
+                        messages.add(
+                            buildJsonObject {
+                                put("role", item.role)
+                                put("content", textContent)
+                            },
+                        )
                     }
                     else -> {
                         // TODO: Handle other ResponseItem types (Reasoning, FunctionCall, etc.)
@@ -60,12 +66,13 @@ class ChatRequestBuilder(
                 }
             }
 
-            val payload = buildJsonObject {
-                put("model", model)
-                put("messages", JsonArray(messages))
-                put("stream", true)
-                put("tools", JsonArray(tools))
-            }
+            val payload =
+                buildJsonObject {
+                    put("model", model)
+                    put("messages", JsonArray(messages))
+                    put("stream", true)
+                    put("tools", JsonArray(tools))
+                }
 
             val configureHeaders: HttpRequestBuilder.() -> Unit = {
                 buildConversationHeaders(conversationId, this)
@@ -78,6 +85,4 @@ class ChatRequestBuilder(
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 }
-

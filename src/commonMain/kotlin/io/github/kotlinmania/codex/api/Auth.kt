@@ -13,6 +13,7 @@ import io.ktor.http.*
  */
 interface AuthProvider {
     fun bearerToken(): String?
+
     fun accountId(): String? = null
 }
 

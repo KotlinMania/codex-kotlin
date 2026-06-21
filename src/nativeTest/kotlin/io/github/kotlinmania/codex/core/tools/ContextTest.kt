@@ -12,11 +12,13 @@ class ContextTest {
     @Test
     fun customToolCallsShouldRoundtripAsCustomOutputs() {
         val payload = ToolPayload.Custom(input = "patch")
-        val response = ToolOutput.Function(
-            content = "patched",
-            contentItems = null,
-            success = true,
-        ).intoResponse("call-42", payload)
+        val response =
+            ToolOutput
+                .Function(
+                    content = "patched",
+                    contentItems = null,
+                    success = true,
+                ).intoResponse("call-42", payload)
 
         when (response) {
             is ResponseInputItem.CustomToolCallOutput -> {
@@ -30,11 +32,13 @@ class ContextTest {
     @Test
     fun functionPayloadsRemainFunctionOutputs() {
         val payload = ToolPayload.Function(arguments = "{}")
-        val response = ToolOutput.Function(
-            content = "ok",
-            contentItems = null,
-            success = true,
-        ).intoResponse("fn-1", payload)
+        val response =
+            ToolOutput
+                .Function(
+                    content = "ok",
+                    contentItems = null,
+                    success = true,
+                ).intoResponse("fn-1", payload)
 
         when (response) {
             is ResponseInputItem.FunctionCallOutput -> {
@@ -67,8 +71,9 @@ class ContextTest {
 
     @Test
     fun telemetryPreviewTruncatesByLines() {
-        val content = (0 until (TELEMETRY_PREVIEW_MAX_LINES + 5))
-            .joinToString("\n") { idx -> "line $idx" }
+        val content =
+            (0 until (TELEMETRY_PREVIEW_MAX_LINES + 5))
+                .joinToString("\n") { idx -> "line $idx" }
 
         val preview = telemetryPreview(content)
         val lines = preview.split('\n')

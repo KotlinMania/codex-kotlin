@@ -14,7 +14,7 @@ class UpdateActionTest {
                 currentExe = "/any/path",
                 managedByNpm = false,
                 managedByBun = false,
-            )
+            ),
         )
         assertEquals(
             UpdateAction.NpmGlobalLatest,
@@ -23,7 +23,7 @@ class UpdateActionTest {
                 currentExe = "/any/path",
                 managedByNpm = true,
                 managedByBun = false,
-            )
+            ),
         )
         assertEquals(
             UpdateAction.BunGlobalLatest,
@@ -32,7 +32,7 @@ class UpdateActionTest {
                 currentExe = "/any/path",
                 managedByNpm = false,
                 managedByBun = true,
-            )
+            ),
         )
         assertEquals(
             UpdateAction.BrewUpgrade,
@@ -41,7 +41,7 @@ class UpdateActionTest {
                 currentExe = "/opt/homebrew/bin/codex",
                 managedByNpm = false,
                 managedByBun = false,
-            )
+            ),
         )
         assertEquals(
             UpdateAction.BrewUpgrade,
@@ -50,7 +50,7 @@ class UpdateActionTest {
                 currentExe = "/usr/local/bin/codex",
                 managedByNpm = false,
                 managedByBun = false,
-            )
+            ),
         )
     }
 

@@ -10,30 +10,30 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SandboxManagerTest {
-
     @Test
     fun testSelectInitialSandboxForbid() {
         val manager = SandboxManager()
-        val sandbox = manager.selectInitialSandbox(
-            SandboxPolicy.ReadOnly,
-            SandboxPreference.Forbid
-        )
+        val sandbox =
+            manager.selectInitialSandbox(
+                SandboxPolicy.ReadOnly,
+                SandboxPreference.Forbid,
+            )
         assertEquals(SandboxType.None, sandbox)
     }
 
     @Test
     fun testSelectInitialSandboxDangerFullAccess() {
         val manager = SandboxManager()
-        val sandbox = manager.selectInitialSandbox(
-            SandboxPolicy.DangerFullAccess,
-            SandboxPreference.Auto
-        )
+        val sandbox =
+            manager.selectInitialSandbox(
+                SandboxPolicy.DangerFullAccess,
+                SandboxPreference.Auto,
+            )
         assertEquals(SandboxType.None, sandbox)
     }
 }
 
 class ApprovalStoreTest {
-
     @Test
     fun testGetPutApproval() {
         val store = ApprovalStore()
@@ -60,7 +60,6 @@ class ApprovalStoreTest {
 }
 
 class ApprovalRequirementTest {
-
     @Test
     fun testSkipRequirement() {
         val req = ApprovalRequirement.Skip(bypassSandbox = true)
@@ -84,7 +83,6 @@ class ApprovalRequirementTest {
 }
 
 class SandboxCommandAssessmentTest {
-
     @Test
     fun testSafeAssessment() {
         val assessment = SandboxCommandAssessment(safe = true, reason = null)
@@ -101,7 +99,6 @@ class SandboxCommandAssessmentTest {
 }
 
 class ToolErrorTest {
-
     @Test
     fun testRejectedError() {
         val error = ToolError.Rejected("Not permitted")
@@ -111,13 +108,13 @@ class ToolErrorTest {
 }
 
 class SandboxRetryDataTest {
-
     @Test
     fun testSandboxRetryData() {
-        val data = SandboxRetryData(
-            command = listOf("ls", "-la"),
-            cwd = "/home/user"
-        )
+        val data =
+            SandboxRetryData(
+                command = listOf("ls", "-la"),
+                cwd = "/home/user",
+            )
         assertEquals(listOf("ls", "-la"), data.command)
         assertEquals("/home/user", data.cwd)
     }

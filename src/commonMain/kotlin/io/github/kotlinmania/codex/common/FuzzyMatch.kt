@@ -50,13 +50,14 @@ fun fuzzyMatch(haystack: String, needle: String): Pair<List<Int>, Int>? {
         lastLowerPos = pos
     }
 
-    val firstLowerPos = if (resultOrigIndices.isEmpty()) {
-        0
-    } else {
-        val targetOrig = resultOrigIndices[0]
-        val idx = loweredToOrigCharIdx.indexOfFirst { it == targetOrig }
-        if (idx < 0) 0 else idx
-    }
+    val firstLowerPos =
+        if (resultOrigIndices.isEmpty()) {
+            0
+        } else {
+            val targetOrig = resultOrigIndices[0]
+            val idx = loweredToOrigCharIdx.indexOfFirst { it == targetOrig }
+            if (idx < 0) 0 else idx
+        }
     // last defaults to first for single-hit; score = extra span between first/last hit
     // minus needle len (>=0).
     // Strongly reward prefix matches by subtracting 100 when the first hit is at index 0.

@@ -1,8 +1,8 @@
 // port-lint: source core/src/bash.rs
 package io.github.kotlinmania.codex.core.bash
 
-import io.github.kotlinmania.codex.exec.shell.ShellType
 import io.github.kotlinmania.codex.exec.shell.ShellDetector
+import io.github.kotlinmania.codex.exec.shell.ShellType
 import io.github.treesitter.ktreesitter.Language
 import io.github.treesitter.ktreesitter.Node
 import io.github.treesitter.ktreesitter.Parser
@@ -13,15 +13,14 @@ import io.github.treesitter.ktreesitter.bash.TreeSitterBash
  * Parse the provided bash source using tree-sitter-bash, returning a Tree on
  * success or null if parsing failed.
  */
-fun tryParseShell(shellLcArg: String): Tree? {
-    return try {
+fun tryParseShell(shellLcArg: String): Tree? =
+    try {
         val language = Language(TreeSitterBash.language())
         val parser = Parser(language)
         parser.parse(shellLcArg)
     } catch (_: Exception) {
         null
     }
-}
 
 /**
  * Parse a script which may contain multiple simple commands joined only by
@@ -39,20 +38,21 @@ fun tryParseWordOnlyCommandsSequence(tree: Tree, src: String): List<List<String>
 
     // List of allowed (named) node kinds for a "word only commands sequence".
     // If we encounter a named node that is not in this list we reject.
-    val allowedKinds = setOf(
-        // top level containers
-        "program",
-        "list",
-        "pipeline",
-        // commands & words
-        "command",
-        "command_name",
-        "word",
-        "string",
-        "string_content",
-        "raw_string",
-        "number"
-    )
+    val allowedKinds =
+        setOf(
+            // top level containers
+            "program",
+            "list",
+            "pipeline",
+            // commands & words
+            "command",
+            "command_name",
+            "word",
+            "string",
+            "string_content",
+            "raw_string",
+            "number",
+        )
     // Allow only safe punctuation / operator tokens; anything else causes reject.
     val allowedPunctTokens = setOf("&&", "||", ";", "|", "\"", "'")
 
@@ -177,11 +177,12 @@ private fun parsePlainCommandFromNode(cmd: Node, src: String): List<String>? {
             }
             "raw_string" -> {
                 val rawString = extractNodeText(child, src) ?: return null
-                val stripped = if (rawString.startsWith('\'') && rawString.endsWith('\'')) {
-                    rawString.drop(1).dropLast(1)
-                } else {
-                    return null
-                }
+                val stripped =
+                    if (rawString.startsWith('\'') && rawString.endsWith('\'')) {
+                        rawString.drop(1).dropLast(1)
+                    } else {
+                        return null
+                    }
                 words.add(stripped)
             }
             else -> return null
@@ -190,8 +191,8 @@ private fun parsePlainCommandFromNode(cmd: Node, src: String): List<String>? {
     return words
 }
 
-private fun extractNodeText(node: Node, src: String): String? {
-    return try {
+private fun extractNodeText(node: Node, src: String): String? =
+    try {
         val start = node.startByte.toInt()
         val end = node.endByte.toInt()
         if (start >= 0 && end <= src.length && start <= end) {
@@ -202,4 +203,3 @@ private fun extractNodeText(node: Node, src: String): String? {
     } catch (_: Exception) {
         null
     }
-}

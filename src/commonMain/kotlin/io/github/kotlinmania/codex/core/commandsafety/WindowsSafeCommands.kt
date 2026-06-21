@@ -129,8 +129,12 @@ private fun splitIntoCommands(tokens: List<String>): List<List<String>>? {
             }
             // Reject if any token embeds separators, redirection, or call operator characters.
             else -> {
-                if (token.contains('|') || token.contains(';') || token.contains('>') ||
-                    token.contains('<') || token.contains('&') || token.contains("\$(")
+                if (token.contains('|') ||
+                    token.contains(';') ||
+                    token.contains('>') ||
+                    token.contains('<') ||
+                    token.contains('&') ||
+                    token.contains("\$(")
                 ) {
                     // Examples rejected here: "pwsh -Command 'dir|select'" and "pwsh -Command 'echo hi > out.txt'".
                     return null
@@ -168,11 +172,13 @@ private fun isSafePowershellCommand(words: List<String>): Boolean {
 
     // Reject nested unsafe cmdlets inside parentheses or arguments
     for (w in words) {
-        val inner = w
-            .trim('(', ')')
-            .trimStart('-')
-            .lowercase()
-        if (inner in listOf(
+        val inner =
+            w
+                .trim('(', ')')
+                .trimStart('-')
+                .lowercase()
+        if (inner in
+            listOf(
                 "set-content",
                 "add-content",
                 "out-file",
@@ -182,7 +188,7 @@ private fun isSafePowershellCommand(words: List<String>): Boolean {
                 "copy-item",
                 "rename-item",
                 "start-process",
-                "stop-process"
+                "stop-process",
             )
         ) {
             // Examples rejected here: "Write-Output (Set-Content foo6.txt 'abc')" and "Get-Content (New-Item bar.txt)".
@@ -193,15 +199,17 @@ private fun isSafePowershellCommand(words: List<String>): Boolean {
     // Block PowerShell call operator or any redirection explicitly.
     if (words.any { w ->
             w in listOf("&", ">", ">>", "1>", "2>", "2>&1", "*>", "<", "<<")
-        }) {
+        }
+    ) {
         // Examples rejected here: "pwsh -Command '& Remove-Item foo'" and "pwsh -Command 'Get-Content foo > bar'".
         return false
     }
 
-    val command = words[0]
-        .trim('(', ')')
-        .trimStart('-')
-        .lowercase()
+    val command =
+        words[0]
+            .trim('(', ')')
+            .trimStart('-')
+            .lowercase()
 
     return when (command) {
         "echo", "write-output", "write-host" -> true // (no redirection allowed)
@@ -221,7 +229,8 @@ private fun isSafePowershellCommand(words: List<String>): Boolean {
 
         // Extra safety: explicitly prohibit common side-effecting cmdlets regardless of args.
         "set-content", "add-content", "out-file", "new-item", "remove-item", "move-item",
-        "copy-item", "rename-item", "start-process", "stop-process" -> {
+        "copy-item", "rename-item", "start-process", "stop-process",
+        -> {
             // Examples rejected here: "pwsh -Command 'Set-Content notes.txt data'" and "pwsh -Command 'Remove-Item temp.log'".
             false
         }

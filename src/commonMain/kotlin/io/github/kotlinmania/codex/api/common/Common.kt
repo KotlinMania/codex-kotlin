@@ -1,13 +1,11 @@
 // port-lint: source common.rs
 package io.github.kotlinmania.codex.api.common
 
-import io.github.kotlinmania.codex.protocol.ResponseItem
-import io.github.kotlinmania.codex.protocol.TokenUsage
-import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.ReasoningEffort
 import io.github.kotlinmania.codex.protocol.ReasoningSummary
-import io.github.kotlinmania.codex.protocol.Verbosity
 import io.github.kotlinmania.codex.protocol.ResponseEvent
+import io.github.kotlinmania.codex.protocol.ResponseItem
+import io.github.kotlinmania.codex.protocol.Verbosity
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -18,7 +16,7 @@ data class Prompt(
     val input: List<ResponseItem>,
     val tools: List<JsonElement>,
     val parallelToolCalls: Boolean,
-    val outputSchema: JsonElement?
+    val outputSchema: JsonElement?,
 )
 
 /** Canonical input payload for the compaction endpoint. */
@@ -38,7 +36,7 @@ data class Reasoning(
 )
 
 /** Text formatting types used by OpenAI text controls. */
-enum class TextFormatType { JsonSchema }
+enum class TextFormatType { JsonSchema, }
 
 /** Controls JSON formatted output. */
 data class TextFormat(
@@ -57,11 +55,12 @@ data class TextControls(
 /** Verbosity mapping for OpenAI. */
 enum class OpenAiVerbosity { Low, Medium, High }
 
-fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity = when (v) {
-    Verbosity.Low -> OpenAiVerbosity.Low
-    Verbosity.Medium -> OpenAiVerbosity.Medium
-    Verbosity.High -> OpenAiVerbosity.High
-}
+fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity =
+    when (v) {
+        Verbosity.Low -> OpenAiVerbosity.Low
+        Verbosity.Medium -> OpenAiVerbosity.Medium
+        Verbosity.High -> OpenAiVerbosity.High
+    }
 
 /** Responses API request payload. */
 data class ResponsesApiRequest(
@@ -85,14 +84,15 @@ fun createTextParamForRequest(
     outputSchema: JsonElement?,
 ): TextControls? {
     if (verbosity == null && outputSchema == null) return null
-    val format = outputSchema?.let { schema ->
-        TextFormat(
-            type = TextFormatType.JsonSchema,
-            strict = true,
-            schema = schema,
-            name = "codex_output_schema",
-        )
-    }
+    val format =
+        outputSchema?.let { schema ->
+            TextFormat(
+                type = TextFormatType.JsonSchema,
+                strict = true,
+                schema = schema,
+                name = "codex_output_schema",
+            )
+        }
     return TextControls(
         verbosity = verbosity?.let { openAiVerbosityConfig(it) },
         format = format,

@@ -10,7 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TurnContextTest {
-
     private fun createTestContext(cwd: String = "/test/path"): TurnContext {
         // Note: model/modelFamily are now computed properties that delegate to client.
         // Without a client, they return defaults ("unknown" / ModelFamily.default())
@@ -18,7 +17,7 @@ class TurnContextTest {
             subId = "test_turn_1",
             cwd = cwd,
             approvalPolicy = AskForApproval.OnFailure,
-            sandboxPolicy = SandboxPolicy.ReadOnly
+            sandboxPolicy = SandboxPolicy.ReadOnly,
         )
     }
 
@@ -57,19 +56,19 @@ class TurnContextTest {
     @Test
     fun testGetCompactPromptCustom() {
         val customPrompt = "Custom summarization prompt"
-        val ctx = TurnContext(
-            subId = "test",
-            cwd = "/test",
-            compactPrompt = customPrompt,
-            approvalPolicy = AskForApproval.OnFailure,
-            sandboxPolicy = SandboxPolicy.ReadOnly
-        )
+        val ctx =
+            TurnContext(
+                subId = "test",
+                cwd = "/test",
+                compactPrompt = customPrompt,
+                approvalPolicy = AskForApproval.OnFailure,
+                sandboxPolicy = SandboxPolicy.ReadOnly,
+            )
         assertEquals(customPrompt, ctx.getCompactPrompt())
     }
 }
 
 class ShellEnvironmentPolicyTest {
-
     @Test
     fun testInheritAllDefault() {
         val policy = ShellEnvironmentPolicy.Inherit()
@@ -93,16 +92,16 @@ class ShellEnvironmentPolicyTest {
 }
 
 class ToolsConfigTest {
-
     @Test
     fun testDefaultToolsConfig() {
-        val config = ToolsConfig(
-            shellType = ConfigShellToolType.Default,
-            applyPatchToolType = null,
-            webSearchRequest = false,
-            includeViewImageTool = true,
-            experimentalSupportedTools = emptyList()
-        )
+        val config =
+            ToolsConfig(
+                shellType = ConfigShellToolType.Default,
+                applyPatchToolType = null,
+                webSearchRequest = false,
+                includeViewImageTool = true,
+                experimentalSupportedTools = emptyList(),
+            )
         assertEquals(ConfigShellToolType.Default, config.shellType)
         assertEquals(null, config.applyPatchToolType)
         assertEquals(false, config.webSearchRequest)
@@ -112,13 +111,14 @@ class ToolsConfigTest {
 
     @Test
     fun testCustomToolsConfig() {
-        val config = ToolsConfig(
-            shellType = ConfigShellToolType.UnifiedExec,
-            applyPatchToolType = ApplyPatchToolType.Freeform,
-            webSearchRequest = true,
-            includeViewImageTool = false,
-            experimentalSupportedTools = listOf("custom_tool")
-        )
+        val config =
+            ToolsConfig(
+                shellType = ConfigShellToolType.UnifiedExec,
+                applyPatchToolType = ApplyPatchToolType.Freeform,
+                webSearchRequest = true,
+                includeViewImageTool = false,
+                experimentalSupportedTools = listOf("custom_tool"),
+            )
         assertEquals(ConfigShellToolType.UnifiedExec, config.shellType)
         assertEquals(ApplyPatchToolType.Freeform, config.applyPatchToolType)
         assertTrue(config.webSearchRequest)
@@ -128,7 +128,6 @@ class ToolsConfigTest {
 }
 
 class ExecPolicyTest {
-
     @Test
     fun testDefaultExecPolicy() {
         val policy = ExecPolicy()

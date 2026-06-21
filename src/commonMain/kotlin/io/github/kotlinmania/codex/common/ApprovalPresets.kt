@@ -25,8 +25,8 @@ data class ApprovalPreset(
  *
  * Keep this UI-agnostic so it can be reused by both TUI and MCP server.
  */
-fun builtinApprovalPresets(): List<ApprovalPreset> {
-    return listOf(
+fun builtinApprovalPresets(): List<ApprovalPreset> =
+    listOf(
         ApprovalPreset(
             id = "read-only",
             label = "Read Only",
@@ -49,4 +49,3 @@ fun builtinApprovalPresets(): List<ApprovalPreset> {
             sandbox = SandboxPolicy.DangerFullAccess,
         ),
     )
-}

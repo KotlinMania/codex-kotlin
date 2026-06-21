@@ -2,13 +2,10 @@
 package io.github.kotlinmania.codex.api.requests
 
 import io.github.kotlinmania.codex.api.common.Reasoning
-import io.github.kotlinmania.codex.api.common.ResponsesApiRequest
 import io.github.kotlinmania.codex.api.common.TextControls
-import io.github.kotlinmania.codex.api.error.ApiError
 import io.github.kotlinmania.codex.api.provider.Provider
 import io.ktor.client.request.*
 import kotlinx.serialization.json.*
-import kotlinx.serialization.encodeToString
 
 /** Assembled request body plus header configuration for a Responses stream request. */
 data class ResponsesRequest(
@@ -91,51 +88,60 @@ class ResponsesRequestBuilder(
 
     fun build(provider: Provider): Result<ResponsesRequest> {
         return try {
-            val modelVal = model ?: return Result.failure(
-                IllegalArgumentException("missing model for responses request")
-            )
-            val instructionsVal = instructions ?: return Result.failure(
-                IllegalArgumentException("missing instructions for responses request")
-            )
-            val inputVal = input ?: return Result.failure(
-                IllegalArgumentException("missing input for responses request")
-            )
+            val modelVal =
+                model ?: return Result.failure(
+                    IllegalArgumentException("missing model for responses request"),
+                )
+            val instructionsVal =
+                instructions ?: return Result.failure(
+                    IllegalArgumentException("missing instructions for responses request"),
+                )
+            val inputVal =
+                input ?: return Result.failure(
+                    IllegalArgumentException("missing input for responses request"),
+                )
             val toolsVal = tools ?: emptyList()
 
             val store = storeOverride ?: provider.isAzureResponsesEndpoint()
 
             // TODO: Build proper ResponsesApiRequest using kotlinx.serialization
             // For now, build JSON manually
-            val bodyJson = buildJsonObject {
-                put("model", modelVal)
-                put("instructions", instructionsVal)
-                put("input", JsonArray(inputVal.map { item ->
-                    // TODO: Use proper kotlinx.serialization once ResponseItem has @Serializable
-                    buildJsonObject {
-                        when (item) {
-                            is io.github.kotlinmania.codex.protocol.ResponseItem.Message -> {
-                                put("type", "message")
-                                put("role", item.role)
-                                put("content", JsonArray(emptyList())) // TODO: serialize content items
-                                item.id?.let { put("id", it) }
-                            }
-                            else -> {
-                                // TODO: Handle other ResponseItem types
-                                put("type", "other")
-                            }
-                        }
-                    }
-                }))
-                put("tools", JsonArray(toolsVal))
-                put("tool_choice", "auto")
-                put("parallel_tool_calls", parallelToolCalls)
-                reasoning?.let { put("reasoning", it.toJson()) }
-                put("store", store)
-                put("stream", true)
-                put("include", JsonArray(include.map { JsonPrimitive(it) }))
-                promptCacheKey?.let { put("prompt_cache_key", it) }
-                text?.let { put("text", it.toJson()) }
-            }
+            val bodyJson =
+                buildJsonObject {
+                    put("model", modelVal)
+                    put("instructions", instructionsVal)
+                    put(
+                        "input",
+                        JsonArray(
+                            inputVal.map { item ->
+                                // TODO: Use proper kotlinx.serialization once ResponseItem has @Serializable
+                                buildJsonObject {
+                                    when (item) {
+                                        is io.github.kotlinmania.codex.protocol.ResponseItem.Message -> {
+                                            put("type", "message")
+                                            put("role", item.role)
+                                            put("content", JsonArray(emptyList())) // TODO: serialize content items
+                                            item.id?.let { put("id", it) }
+                                        }
+                                        else -> {
+                                            // TODO: Handle other ResponseItem types
+                                            put("type", "other")
+                                        }
+                                    }
+                                }
+                            },
+                        ),
+                    )
+                    put("tools", JsonArray(toolsVal))
+                    put("tool_choice", "auto")
+                    put("parallel_tool_calls", parallelToolCalls)
+                    reasoning?.let { put("reasoning", it.toJson()) }
+                    put("store", store)
+                    put("stream", true)
+                    put("include", JsonArray(include.map { JsonPrimitive(it) }))
+                    promptCacheKey?.let { put("prompt_cache_key", it) }
+                    text?.let { put("text", it.toJson()) }
+                }
 
             var body: JsonElement = bodyJson
             if (store && provider.isAzureResponsesEndpoint()) {
@@ -165,22 +171,25 @@ class ResponsesRequestBuilder(
     }
 }
 
-
 // Extension helpers for serialization (temporary until proper types exist)
-private fun Reasoning.toJson(): JsonElement = buildJsonObject {
-    effort?.let { put("effort", JsonPrimitive(it.toString())) }
-    summary?.let { put("summary", JsonPrimitive(it.toString())) }
-}
-
-private fun TextControls.toJson(): JsonElement = buildJsonObject {
-    verbosity?.let { put("verbosity", JsonPrimitive(it.name.lowercase())) }
-    format?.let { fmt ->
-        put("format", buildJsonObject {
-            put("type", JsonPrimitive("json_schema"))
-            put("strict", fmt.strict)
-            put("schema", JsonPrimitive(fmt.schema.toString()))
-            put("name", fmt.name)
-        })
+private fun Reasoning.toJson(): JsonElement =
+    buildJsonObject {
+        effort?.let { put("effort", JsonPrimitive(it.toString())) }
+        summary?.let { put("summary", JsonPrimitive(it.toString())) }
     }
-}
 
+private fun TextControls.toJson(): JsonElement =
+    buildJsonObject {
+        verbosity?.let { put("verbosity", JsonPrimitive(it.name.lowercase())) }
+        format?.let { fmt ->
+            put(
+                "format",
+                buildJsonObject {
+                    put("type", JsonPrimitive("json_schema"))
+                    put("strict", fmt.strict)
+                    put("schema", JsonPrimitive(fmt.schema.toString()))
+                    put("name", fmt.name)
+                },
+            )
+        }
+    }

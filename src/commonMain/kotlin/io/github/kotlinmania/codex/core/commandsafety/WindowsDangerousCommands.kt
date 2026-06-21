@@ -35,22 +35,31 @@ private fun isDangerousPowershell(command: List<String>): Boolean {
     // best-effort shlex split of the script text, not a full PS parser.
     val parsed = parsePowershellInvocation(rest) ?: return false
 
-    val tokensLc: List<String> = parsed.tokens.map { t ->
-        t.trim('\'', '"').lowercase()
-    }
+    val tokensLc: List<String> =
+        parsed.tokens.map { t ->
+            t.trim('\'', '"').lowercase()
+        }
     val hasUrl = argsHaveUrl(parsed.tokens)
 
-    if (hasUrl && tokensLc.any { t ->
-            t == "start-process" || t == "start" || t == "saps" ||
-                t == "invoke-item" || t == "ii" ||
-                t.contains("start-process") || t.contains("invoke-item")
-        }) {
+    if (hasUrl &&
+        tokensLc.any { t ->
+            t == "start-process" ||
+                t == "start" ||
+                t == "saps" ||
+                t == "invoke-item" ||
+                t == "ii" ||
+                t.contains("start-process") ||
+                t.contains("invoke-item")
+        }
+    ) {
         return true
     }
 
-    if (hasUrl && tokensLc.any { t ->
+    if (hasUrl &&
+        tokensLc.any { t ->
             t.contains("shellexecute") || t.contains("shell.application")
-        }) {
+        }
+    ) {
         return true
     }
 
@@ -141,9 +150,7 @@ private fun isDirectGuiLaunch(command: List<String>): Boolean {
     return false
 }
 
-private fun argsHaveUrl(args: List<String>): Boolean {
-    return args.any { arg -> looksLikeUrl(arg) }
-}
+private fun argsHaveUrl(args: List<String>): Boolean = args.any { arg -> looksLikeUrl(arg) }
 
 private fun looksLikeUrl(token: String): Boolean {
     // Strip common PowerShell punctuation around inline URLs (quotes, parens, trailing semicolons).
@@ -151,19 +158,21 @@ private fun looksLikeUrl(token: String): Boolean {
     // as a single shlex token, grab the substring starting at the first URL prefix.
     val httpsIdx = token.indexOf("https://")
     val httpIdx = token.indexOf("http://")
-    val urlIdx = when {
-        httpsIdx >= 0 && httpIdx >= 0 -> minOf(httpsIdx, httpIdx)
-        httpsIdx >= 0 -> httpsIdx
-        httpIdx >= 0 -> httpIdx
-        else -> -1
-    }
+    val urlIdx =
+        when {
+            httpsIdx >= 0 && httpIdx >= 0 -> minOf(httpsIdx, httpIdx)
+            httpsIdx >= 0 -> httpsIdx
+            httpIdx >= 0 -> httpIdx
+            else -> -1
+        }
     val urlish = if (urlIdx >= 0) token.substring(urlIdx) else token
 
     // Simple regex-like cleanup: trim leading quotes/parens/whitespace and trailing semicolons/closing parens
-    val candidate = urlish
-        .trimStart(' ', '"', '\'', '(')
-        .trimEnd(' ', ';', ')')
-        .takeWhile { it != '"' && it != '\'' && it != ')' && it != ';' && !it.isWhitespace() }
+    val candidate =
+        urlish
+            .trimStart(' ', '"', '\'', '(')
+            .trimEnd(' ', ';', ')')
+            .takeWhile { it != '"' && it != '\'' && it != ')' && it != ';' && !it.isWhitespace() }
 
     // Check if it a valid http/https URL
     return try {
@@ -184,17 +193,21 @@ private fun isPowershellExecutable(exe: String): Boolean {
     return base == "powershell" || base == "powershell.exe" || base == "pwsh" || base == "pwsh.exe"
 }
 
-private fun isBrowserExecutable(name: String): Boolean {
-    return name in listOf(
-        "chrome", "chrome.exe",
-        "msedge", "msedge.exe",
-        "firefox", "firefox.exe",
-        "iexplore", "iexplore.exe"
-    )
-}
+private fun isBrowserExecutable(name: String): Boolean =
+    name in
+        listOf(
+            "chrome",
+            "chrome.exe",
+            "msedge",
+            "msedge.exe",
+            "firefox",
+            "firefox.exe",
+            "iexplore",
+            "iexplore.exe",
+        )
 
 private data class ParsedPowershell(
-    val tokens: List<String>
+    val tokens: List<String>,
 )
 
 private fun parsePowershellInvocation(args: List<String>): ParsedPowershell? {

@@ -8,10 +8,16 @@ package io.github.kotlinmania.codex.core
  * expressed without using `typealias` (forbidden in this project).
  */
 sealed class CodexResult<out T> {
-    data class Success<T>(val value: T) : CodexResult<T>()
-    data class Failure(val error: CodexErr) : CodexResult<Nothing>()
+    data class Success<T>(
+        val value: T,
+    ) : CodexResult<T>()
+
+    data class Failure(
+        val error: CodexErr,
+    ) : CodexResult<Nothing>()
 
     fun isSuccess(): Boolean = this is Success
+
     fun isFailure(): Boolean = this is Failure
 
     fun getOrNull(): T? =
@@ -62,6 +68,7 @@ sealed class CodexResult<out T> {
 
     companion object {
         fun <T> success(value: T): CodexResult<T> = Success(value)
+
         fun <T> failure(error: CodexErr): CodexResult<T> = Failure(error)
 
         inline fun <T> runCatching(block: () -> T): CodexResult<T> =
@@ -74,4 +81,6 @@ sealed class CodexResult<out T> {
 }
 
 /** Exception wrapper for CodexErr. */
-class CodexException(val error: CodexErr) : Exception(error.toString())
+class CodexException(
+    val error: CodexErr,
+) : Exception(error.toString())

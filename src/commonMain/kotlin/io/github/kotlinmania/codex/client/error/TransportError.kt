@@ -15,7 +15,7 @@ sealed class TransportError : Exception() {
     data class Http(
         val status: HttpStatusCode,
         val headers: Headers? = null,
-        val body: String? = null
+        val body: String? = null,
     ) : TransportError() {
         override val message: String
             get() = "http ${status.value}: ${body ?: "no body"}"
@@ -38,12 +38,16 @@ sealed class TransportError : Exception() {
     /**
      * Network-level error (connection failed, DNS resolution, etc.).
      */
-    data class Network(override val message: String) : TransportError()
+    data class Network(
+        override val message: String,
+    ) : TransportError()
 
     /**
      * Error building the HTTP request.
      */
-    data class Build(override val message: String) : TransportError()
+    data class Build(
+        override val message: String,
+    ) : TransportError()
 }
 
 /**
@@ -55,7 +59,9 @@ sealed class StreamError : Exception() {
     /**
      * Stream failed during processing.
      */
-    data class Stream(override val message: String) : StreamError()
+    data class Stream(
+        override val message: String,
+    ) : StreamError()
 
     /**
      * Stream timed out.
@@ -64,4 +70,3 @@ sealed class StreamError : Exception() {
         override val message: String = "timeout"
     }
 }
-

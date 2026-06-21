@@ -12,10 +12,11 @@ class PolicyTest {
         program: String,
         rest: List<PatternToken> = emptyList(),
         decision: Decision = Decision.Allow,
-    ): PrefixRule = PrefixRule(
-        pattern = PrefixPattern(first = program, rest = rest),
-        decision = decision,
-    )
+    ): PrefixRule =
+        PrefixRule(
+            pattern = PrefixPattern(first = program, rest = rest),
+            decision = decision,
+        )
 
     @Test
     fun decisionParse_roundTripsValues() {
@@ -33,12 +34,13 @@ class PolicyTest {
         assertEquals(
             Evaluation.Match(
                 decision = Decision.Allow,
-                matchedRules = listOf(
-                    RuleMatch.PrefixRuleMatch(
-                        matchedPrefix = tokens("git", "status"),
-                        decision = Decision.Allow,
+                matchedRules =
+                    listOf(
+                        RuleMatch.PrefixRuleMatch(
+                            matchedPrefix = tokens("git", "status"),
+                            decision = Decision.Allow,
+                        ),
                     ),
-                ),
             ),
             evaluation,
         )
@@ -47,26 +49,28 @@ class PolicyTest {
     @Test
     fun strictestDecisionWinsAcrossMatches() {
         val ruleGit = prefixRule("git", decision = Decision.Prompt)
-        val ruleGitCommit = prefixRule(
-            "git",
-            rest = listOf(PatternToken.Single("commit")),
-            decision = Decision.Forbidden,
-        )
+        val ruleGitCommit =
+            prefixRule(
+                "git",
+                rest = listOf(PatternToken.Single("commit")),
+                decision = Decision.Forbidden,
+            )
         val policy = Policy(mapOf("git" to listOf(ruleGit, ruleGitCommit)))
         val commit = policy.check(tokens("git", "commit", "-m", "hi"))
         assertEquals(
             Evaluation.Match(
                 decision = Decision.Forbidden,
-                matchedRules = listOf(
-                    RuleMatch.PrefixRuleMatch(
-                        matchedPrefix = tokens("git"),
-                        decision = Decision.Prompt,
+                matchedRules =
+                    listOf(
+                        RuleMatch.PrefixRuleMatch(
+                            matchedPrefix = tokens("git"),
+                            decision = Decision.Prompt,
+                        ),
+                        RuleMatch.PrefixRuleMatch(
+                            matchedPrefix = tokens("git", "commit"),
+                            decision = Decision.Forbidden,
+                        ),
                     ),
-                    RuleMatch.PrefixRuleMatch(
-                        matchedPrefix = tokens("git", "commit"),
-                        decision = Decision.Forbidden,
-                    ),
-                ),
             ),
             commit,
         )
@@ -74,21 +78,23 @@ class PolicyTest {
 
     @Test
     fun altsPatternMatchesAnyAlternative() {
-        val rule = prefixRule(
-            "bash",
-            rest = listOf(PatternToken.Alts(listOf("-c", "-l"))),
-        )
+        val rule =
+            prefixRule(
+                "bash",
+                rest = listOf(PatternToken.Alts(listOf("-c", "-l"))),
+            )
         val policy = Policy(mapOf("bash" to listOf(rule)))
         val bashEval = policy.check(tokens("bash", "-c", "echo", "hi"))
         assertEquals(
             Evaluation.Match(
                 decision = Decision.Allow,
-                matchedRules = listOf(
-                    RuleMatch.PrefixRuleMatch(
-                        matchedPrefix = tokens("bash", "-c"),
-                        decision = Decision.Allow,
+                matchedRules =
+                    listOf(
+                        RuleMatch.PrefixRuleMatch(
+                            matchedPrefix = tokens("bash", "-c"),
+                            decision = Decision.Allow,
+                        ),
                     ),
-                ),
             ),
             bashEval,
         )
@@ -105,18 +111,20 @@ class PolicyTest {
     @Test
     fun checkMultipleAggregatesAcrossCommands() {
         val ruleGit = prefixRule("git", decision = Decision.Prompt)
-        val ruleGitCommit = prefixRule(
-            "git",
-            rest = listOf(PatternToken.Single("commit")),
-            decision = Decision.Forbidden,
-        )
+        val ruleGitCommit =
+            prefixRule(
+                "git",
+                rest = listOf(PatternToken.Single("commit")),
+                decision = Decision.Forbidden,
+            )
         val policy = Policy(mapOf("git" to listOf(ruleGit, ruleGitCommit)))
-        val evaluation = policy.checkMultiple(
-            listOf(
-                tokens("git", "status"),
-                tokens("git", "commit", "-m", "hi"),
-            ),
-        )
+        val evaluation =
+            policy.checkMultiple(
+                listOf(
+                    tokens("git", "status"),
+                    tokens("git", "commit", "-m", "hi"),
+                ),
+            )
         assertTrue(evaluation.isMatch())
         evaluation as Evaluation.Match
         assertEquals(Decision.Forbidden, evaluation.decision)

@@ -27,35 +27,37 @@ private fun assistantMsg(text: String): ResponseItem =
 class ConversationManagerTest {
     @Test
     fun dropsFromLastUserOnly() {
-        val items = listOf(
-            userMsg("u1"),
-            assistantMsg("a1"),
-            assistantMsg("a2"),
-            userMsg("u2"),
-            assistantMsg("a3"),
-            ResponseItem.Reasoning(
-                id = "r1",
-                summary = listOf(ReasoningItemReasoningSummary.SummaryText(text = "s")),
-                content = null,
-                encryptedContent = null,
-            ),
-            ResponseItem.FunctionCall(
-                id = null,
-                name = "tool",
-                arguments = "{}",
-                callId = "c1",
-            ),
-            assistantMsg("a4"),
-        )
+        val items =
+            listOf(
+                userMsg("u1"),
+                assistantMsg("a1"),
+                assistantMsg("a2"),
+                userMsg("u2"),
+                assistantMsg("a3"),
+                ResponseItem.Reasoning(
+                    id = "r1",
+                    summary = listOf(ReasoningItemReasoningSummary.SummaryText(text = "s")),
+                    content = null,
+                    encryptedContent = null,
+                ),
+                ResponseItem.FunctionCall(
+                    id = null,
+                    name = "tool",
+                    arguments = "{}",
+                    callId = "c1",
+                ),
+                assistantMsg("a4"),
+            )
 
         val initial: List<RolloutItem> = items.map { RolloutItem.ResponseItemHolder(it) }
         val truncated = truncateBeforeNthUserMessage(InitialHistory.Forked(initial), 1)
         val gotItems = truncated.getRolloutItems()
-        val expectedItems = listOf(
-            RolloutItem.ResponseItemHolder(items[0]),
-            RolloutItem.ResponseItemHolder(items[1]),
-            RolloutItem.ResponseItemHolder(items[2]),
-        )
+        val expectedItems =
+            listOf(
+                RolloutItem.ResponseItemHolder(items[0]),
+                RolloutItem.ResponseItemHolder(items[1]),
+                RolloutItem.ResponseItemHolder(items[2]),
+            )
         assertEquals(expectedItems, gotItems)
 
         val initial2: List<RolloutItem> = items.map { RolloutItem.ResponseItemHolder(it) }

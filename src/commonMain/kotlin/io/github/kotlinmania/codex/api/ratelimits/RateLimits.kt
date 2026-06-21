@@ -1,28 +1,32 @@
 // port-lint: source rate_limits.rs
 package io.github.kotlinmania.codex.api.ratelimits
 
+import io.github.kotlinmania.codex.protocol.CreditsSnapshot
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.RateLimitWindow
-import io.github.kotlinmania.codex.protocol.CreditsSnapshot
 import io.ktor.http.*
 
 /** Rate limit error. */
-data class RateLimitError(val message: String)
+data class RateLimitError(
+    val message: String,
+)
 
 /** Parse Codex-specific rate limit headers into a snapshot. */
 fun parseRateLimit(headers: Headers): RateLimitSnapshot? {
-    val primary = parseRateLimitWindow(
-        headers,
-        "x-codex-primary-used-percent",
-        "x-codex-primary-window-minutes",
-        "x-codex-primary-reset-at"
-    )
-    val secondary = parseRateLimitWindow(
-        headers,
-        "x-codex-secondary-used-percent",
-        "x-codex-secondary-window-minutes",
-        "x-codex-secondary-reset-at"
-    )
+    val primary =
+        parseRateLimitWindow(
+            headers,
+            "x-codex-primary-used-percent",
+            "x-codex-primary-window-minutes",
+            "x-codex-primary-reset-at",
+        )
+    val secondary =
+        parseRateLimitWindow(
+            headers,
+            "x-codex-secondary-used-percent",
+            "x-codex-secondary-window-minutes",
+            "x-codex-secondary-reset-at",
+        )
     val credits = parseCreditsSnapshot(headers)
 
     return RateLimitSnapshot(primary, secondary, credits)
@@ -53,13 +57,9 @@ private fun parseCreditsSnapshot(headers: Headers): CreditsSnapshot? {
     return CreditsSnapshot(hasCredits, unlimited, balance)
 }
 
-private fun parseHeaderF64(headers: Headers, name: String): Double? {
-    return headers[name]?.toDoubleOrNull()?.takeIf { it.isFinite() }
-}
+private fun parseHeaderF64(headers: Headers, name: String): Double? = headers[name]?.toDoubleOrNull()?.takeIf { it.isFinite() }
 
-private fun parseHeaderI64(headers: Headers, name: String): Long? {
-    return headers[name]?.toLongOrNull()
-}
+private fun parseHeaderI64(headers: Headers, name: String): Long? = headers[name]?.toLongOrNull()
 
 private fun parseHeaderBool(headers: Headers, name: String): Boolean? {
     val raw = headers[name] ?: return null
@@ -72,4 +72,3 @@ private fun parseHeaderBool(headers: Headers, name: String): Boolean? {
 
 // RateLimitSnapshot, RateLimitWindow, and CreditsSnapshot are imported from
 // io.github.kotlinmania.codex.protocol - see Protocol.kt for definitions
-

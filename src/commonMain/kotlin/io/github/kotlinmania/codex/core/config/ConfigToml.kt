@@ -10,10 +10,8 @@ import kotlinx.serialization.Serializable
 data class ConfigToml(
     @SerialName("profile") val profile: String? = null,
     @SerialName("profiles") val profiles: Map<String, ConfigProfile>? = null,
-
     @SerialName("model") val model: String? = null,
     @SerialName("model_provider") val modelProvider: String? = null,
-
     // MCP servers keyed by name; Raw form will be normalized later.
     @SerialName("mcp_servers") val mcpServers: Map<String, RawMcpServerConfig>? = null,
 )

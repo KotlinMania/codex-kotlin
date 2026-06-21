@@ -10,7 +10,6 @@ import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
-
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -41,129 +40,133 @@ import kotlinx.serialization.json.Json
 class CodexHttpClient(
     private val baseUrl: String,
     private val authManager: AuthManager,
-    private val maxRetries: Int = 3
+    private val maxRetries: Int = 3,
 ) {
     // Engine-less constructor: each target source set provides its own
     // platform engine (Darwin on Apple, OkHttp on JVM/Android, CIO on
     // Linux/mingw, etc.). Dropping the Curl engine unblocks the iOS /
     // androidNative variants that the Curl artifact never published.
-    private val httpClient = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                prettyPrint = false
-                isLenient = true
-            })
+    private val httpClient =
+        HttpClient {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        prettyPrint = false
+                        isLenient = true
+                    },
+                )
+            }
+
+            engine {
+                // Configure timeout
+            }
         }
-        
-        engine {
-            // Configure timeout
-        }
-    }
-    
+
     /**
      * Stream a prompt to the /responses endpoint and receive SSE events.
      */
     fun streamPrompt(
         model: String,
         prompt: ResponsesPrompt,
-        options: ResponsesOptions = ResponsesOptions()
-    ): Flow<CodexResult<ResponseEvent>> = flow {
-        var retries = 0
-        var lastError: CodexErr? = null
-        
-        while (retries < maxRetries) {
-            try {
-                val response = makeStreamingRequest(model, prompt, options)
-                
-                if (response.status.isSuccess()) {
-                    // Parse SSE stream
-                    val parser = SseParser()
-                    val bodyText = response.bodyAsText()
-                    
-                    for (event in parser.parse(bodyText)) {
-                        emit(CodexResult.success(event))
-                    }
-                    
-                    // Successfully completed
-                    return@flow
-                } else {
-                    lastError =
-                        CodexErr.UnexpectedStatus(
-                            UnexpectedResponseError(
-                                status = response.status.value,
-                                body = response.bodyAsText(),
-                                requestId = null,
-                            )
-                        )
-                    
-                    // Check if we should retry
-                    if (shouldRetry(response.status.value)) {
-                        retries++
-                        if (retries < maxRetries) {
-                            // Exponential backoff
-                            kotlinx.coroutines.delay(calculateBackoff(retries))
-                            continue
+        options: ResponsesOptions = ResponsesOptions(),
+    ): Flow<CodexResult<ResponseEvent>> =
+        flow {
+            var retries = 0
+            var lastError: CodexErr? = null
+
+            while (retries < maxRetries) {
+                try {
+                    val response = makeStreamingRequest(model, prompt, options)
+
+                    if (response.status.isSuccess()) {
+                        // Parse SSE stream
+                        val parser = SseParser()
+                        val bodyText = response.bodyAsText()
+
+                        for (event in parser.parse(bodyText)) {
+                            emit(CodexResult.success(event))
                         }
+
+                        // Successfully completed
+                        return@flow
+                    } else {
+                        lastError =
+                            CodexErr.UnexpectedStatus(
+                                UnexpectedResponseError(
+                                    status = response.status.value,
+                                    body = response.bodyAsText(),
+                                    requestId = null,
+                                ),
+                            )
+
+                        // Check if we should retry
+                        if (shouldRetry(response.status.value)) {
+                            retries++
+                            if (retries < maxRetries) {
+                                // Exponential backoff
+                                kotlinx.coroutines.delay(calculateBackoff(retries))
+                                continue
+                            }
+                        }
+
+                        // Non-retryable error or max retries reached
+                        emit(CodexResult.failure(lastError))
+                        return@flow
                     }
-                    
-                    // Non-retryable error or max retries reached
+                } catch (e: Exception) {
+                    lastError = CodexErr.Io(e.message ?: "Unknown error")
+                    retries++
+
+                    if (retries < maxRetries) {
+                        kotlinx.coroutines.delay(calculateBackoff(retries))
+                        continue
+                    }
+
                     emit(CodexResult.failure(lastError))
                     return@flow
                 }
-            } catch (e: Exception) {
-                lastError = CodexErr.Io(e.message ?: "Unknown error")
-                retries++
-                
-                if (retries < maxRetries) {
-                    kotlinx.coroutines.delay(calculateBackoff(retries))
-                    continue
-                }
-                
-                emit(CodexResult.failure(lastError))
-                return@flow
             }
+
+            // Max retries exceeded
+            emit(
+                CodexResult.failure(
+                    lastError ?: CodexErr.Io("Max retries exceeded"),
+                ),
+            )
         }
-        
-        // Max retries exceeded
-        emit(CodexResult.failure(
-            lastError ?: CodexErr.Io("Max retries exceeded")
-        ))
-    }
-    
+
     /**
      * Make a streaming request to the API.
      */
     private suspend fun makeStreamingRequest(
         model: String,
         prompt: ResponsesPrompt,
-        options: ResponsesOptions
+        options: ResponsesOptions,
     ): HttpResponse {
         val authHeader = authManager.getAuthorizationHeader()
-        
+
         return httpClient.post("$baseUrl/responses") {
             header(HttpHeaders.ContentType, ContentType.Application.Json)
-            
+
             if (authHeader != null) {
                 header(HttpHeaders.Authorization, authHeader)
             }
-            
+
             // Add custom headers
             header("x-model", model)
             options.conversationId?.let { header("x-conversation-id", it) }
             options.sessionSource?.let { header("x-session-source", it) }
-            
+
             setBody(prompt)
         }
     }
-    
+
     /**
      * Determine if an HTTP status code should trigger a retry.
      */
-    private fun shouldRetry(statusCode: Int): Boolean {
-        return statusCode in setOf(429, 500, 502, 503, 504)
-    }
-    
+    private fun shouldRetry(statusCode: Int): Boolean = statusCode in setOf(429, 500, 502, 503, 504)
+
     /**
      * Calculate exponential backoff delay for retries.
      */
@@ -173,7 +176,7 @@ class CodexHttpClient(
         val delay = baseDelay * (1L shl (retryCount - 1))
         return minOf(delay, maxDelay)
     }
-    
+
     /**
      * Close the HTTP client.
      */
@@ -190,7 +193,7 @@ data class ResponsesPrompt(
     val input: List<ResponseItem>,
     val tools: List<Any> = emptyList(),
     val parallelToolCalls: Boolean = false,
-    val outputSchema: kotlinx.serialization.json.JsonElement? = null
+    val outputSchema: kotlinx.serialization.json.JsonElement? = null,
 )
 
 /**
@@ -202,7 +205,7 @@ data class ResponsesOptions(
     val promptCacheKey: String? = null,
     val text: TextOptions? = null,
     val conversationId: String? = null,
-    val sessionSource: String? = null
+    val sessionSource: String? = null,
 )
 
 /**
@@ -211,14 +214,14 @@ data class ResponsesOptions(
  */
 data class ReasoningConfig(
     val effort: String? = null,
-    val summary: Boolean = true
+    val summary: Boolean = true,
 )
 
 /**
  * Text output options.
  */
 data class TextOptions(
-    val verbosity: String? = null
+    val verbosity: String? = null,
 )
 
 // ResponseEvent is now imported from io.github.kotlinmania.codex.protocol.models
@@ -235,7 +238,7 @@ class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
     private val provider: Provider,
     private val auth: A,
     private val requestTelemetry: RequestTelemetry? = null,
-    private val sseTelemetry: SseTelemetry? = null
+    private val sseTelemetry: SseTelemetry? = null,
 ) {
     companion object {
         /**
@@ -245,7 +248,7 @@ class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
          */
         fun <A : io.github.kotlinmania.codex.client.auth.AuthProvider> new(
             provider: Provider,
-            auth: A
+            auth: A,
         ): StreamingClient<A> = StreamingClient(provider, auth, null, null)
     }
 
@@ -256,10 +259,8 @@ class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
      */
     fun withTelemetry(
         request: RequestTelemetry?,
-        sse: SseTelemetry?
-    ): StreamingClient<A> {
-        return StreamingClient(provider, auth, request, sse)
-    }
+        sse: SseTelemetry?,
+    ): StreamingClient<A> = StreamingClient(provider, auth, request, sse)
 
     /**
      * Get the provider configuration.
@@ -277,7 +278,7 @@ class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
 data class Provider(
     val baseUrl: String,
     val streamIdleTimeout: Long = 30_000L, // 30 seconds default
-    val retry: RetryPolicy = RetryPolicy()
+    val retry: RetryPolicy = RetryPolicy(),
 )
 
 /**
@@ -286,7 +287,7 @@ data class Provider(
 data class RetryPolicy(
     val maxRetries: Int = 3,
     val initialBackoffMs: Long = 1000L,
-    val maxBackoffMs: Long = 16000L
+    val maxBackoffMs: Long = 16000L,
 )
 
 /**
@@ -296,7 +297,9 @@ data class RetryPolicy(
  */
 interface RequestTelemetry {
     fun onRequestStart(method: String, path: String)
+
     fun onRequestEnd(statusCode: Int, durationMs: Long)
+
     fun onRequestError(error: String)
 }
 
@@ -307,7 +310,10 @@ interface RequestTelemetry {
  */
 interface SseTelemetry {
     fun onEventReceived(eventType: String)
+
     fun onStreamStart()
+
     fun onStreamEnd(totalEvents: Int)
+
     fun onStreamError(error: String)
 }

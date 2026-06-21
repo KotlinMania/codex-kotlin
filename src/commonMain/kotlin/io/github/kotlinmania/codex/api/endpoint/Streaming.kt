@@ -10,8 +10,8 @@ import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlin.time.Duration
 import kotlinx.serialization.json.JsonElement
+import kotlin.time.Duration
 
 /**
  * Spawner closure invoked by [StreamingClient.stream] once the request has been
@@ -20,6 +20,7 @@ import kotlinx.serialization.json.JsonElement
  * adapted for Kotlin: the request is delivered as a configured
  * [HttpRequestBuilder] block and an [HttpClient].
  */
+
 /**
  * Internal streaming client that handles HTTP streaming with auth and telemetry.
  *
@@ -58,18 +59,19 @@ internal class StreamingClient<A : AuthProvider>(
                 idleTimeout: Duration,
                 telemetry: SseTelemetry?,
             ) -> ResponseStream,
-    ): Result<ResponseStream> {
-        return try {
+    ): Result<ResponseStream> =
+        try {
             // Build the request configuration block. Mirrors the upstream `builder` closure
             // in runWithRequestTelemetry: each retry attempt re-applies the same
             // headers/body, so we capture the configuration as a lambda the spawner
             // can pass to ktor `prepareGet`/`prepareRequest`.
-            val builtBuilder = provider.buildRequest(HttpMethod.Post, path) {
-                configureExtraHeaders()
-                headers.append(HttpHeaders.Accept, "text/event-stream")
-                setBody(body.toString())
-                addAuthHeaders(auth)
-            }
+            val builtBuilder =
+                provider.buildRequest(HttpMethod.Post, path) {
+                    configureExtraHeaders()
+                    headers.append(HttpHeaders.Accept, "text/event-stream")
+                    setBody(body.toString())
+                    addAuthHeaders(auth)
+                }
 
             val configure: HttpRequestBuilder.() -> Unit = {
                 takeFrom(builtBuilder)
@@ -80,5 +82,4 @@ internal class StreamingClient<A : AuthProvider>(
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 }

@@ -3,19 +3,17 @@ package io.github.kotlinmania.codex.core.tools
 import io.github.kotlinmania.codex.core.ProcessItemsResult
 import io.github.kotlinmania.codex.core.ProcessedResponseItem
 import io.github.kotlinmania.codex.core.ToolCallProcessorConfig
+import io.github.kotlinmania.codex.protocol.CallToolResult
 import io.github.kotlinmania.codex.protocol.ContentBlock
 import io.github.kotlinmania.codex.protocol.ContentItem
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ResponseItem
-import io.github.kotlinmania.codex.protocol.CallToolResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class ToolCallProcessorTest {
-
     @Test
     fun testDefaultConfig() {
         val config = ToolCallProcessorConfig()
@@ -26,11 +24,12 @@ class ToolCallProcessorTest {
 
     @Test
     fun testCustomConfig() {
-        val config = ToolCallProcessorConfig(
-            enableParallelExecution = true,
-            maxConcurrentCalls = 4,
-            defaultTimeoutMs = 120000L
-        )
+        val config =
+            ToolCallProcessorConfig(
+                enableParallelExecution = true,
+                maxConcurrentCalls = 4,
+                defaultTimeoutMs = 120000L,
+            )
         assertEquals(true, config.enableParallelExecution)
         assertEquals(4, config.maxConcurrentCalls)
         assertEquals(120000L, config.defaultTimeoutMs)
@@ -38,17 +37,18 @@ class ToolCallProcessorTest {
 }
 
 class ProcessedResponseItemTest {
-
     @Test
     fun testProcessedResponseItemWithResponse() {
-        val item = ResponseItem.Message(
-            role = "assistant",
-            content = listOf(ContentItem.OutputText(text = "Result"))
-        )
-        val response = ResponseInputItem.FunctionCallOutput(
-            callId = "call_1",
-            output = FunctionCallOutputPayload(content = "done")
-        )
+        val item =
+            ResponseItem.Message(
+                role = "assistant",
+                content = listOf(ContentItem.OutputText(text = "Result")),
+            )
+        val response =
+            ResponseInputItem.FunctionCallOutput(
+                callId = "call_1",
+                output = FunctionCallOutputPayload(content = "done"),
+            )
 
         val processed = ProcessedResponseItem(item = item, response = response)
         assertEquals(item, processed.item)
@@ -57,10 +57,11 @@ class ProcessedResponseItemTest {
 
     @Test
     fun testProcessedResponseItemWithoutResponse() {
-        val item = ResponseItem.Message(
-            role = "assistant",
-            content = listOf(ContentItem.OutputText(text = "Hello"))
-        )
+        val item =
+            ResponseItem.Message(
+                role = "assistant",
+                content = listOf(ContentItem.OutputText(text = "Hello")),
+            )
 
         val processed = ProcessedResponseItem(item = item, response = null)
         assertEquals(item, processed.item)
@@ -69,13 +70,13 @@ class ProcessedResponseItemTest {
 }
 
 class FunctionCallOutputPayloadFromCallToolResultTest {
-
     @Test
     fun testFromCallToolResultWithError() {
-        val result = CallToolResult(
-            content = listOf(ContentBlock.TextContent(text = "Error occurred")),
-            isError = true
-        )
+        val result =
+            CallToolResult(
+                content = listOf(ContentBlock.TextContent(text = "Error occurred")),
+                isError = true,
+            )
 
         val payload = FunctionCallOutputPayload.from(result)
         // isError=true should result in success=false
@@ -84,10 +85,11 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
 
     @Test
     fun testFromCallToolResultIsErrorNull() {
-        val result = CallToolResult(
-            content = emptyList(),
-            isError = null
-        )
+        val result =
+            CallToolResult(
+                content = emptyList(),
+                isError = null,
+            )
 
         val payload = FunctionCallOutputPayload.from(result)
         // isError=null (not true) should result in success=true
@@ -96,10 +98,11 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
 
     @Test
     fun testFromCallToolResultEmptyContent() {
-        val result = CallToolResult(
-            content = emptyList(),
-            isError = false
-        )
+        val result =
+            CallToolResult(
+                content = emptyList(),
+                isError = false,
+            )
 
         val payload = FunctionCallOutputPayload.from(result)
         // Empty content list should still succeed
@@ -109,26 +112,28 @@ class FunctionCallOutputPayloadFromCallToolResultTest {
 }
 
 class ProcessItemsResultTest {
-
     @Test
     fun testProcessItemsResultCreation() {
-        val responses = listOf(
-            ResponseInputItem.FunctionCallOutput(
-                callId = "call_1",
-                output = FunctionCallOutputPayload(content = "output1")
+        val responses =
+            listOf(
+                ResponseInputItem.FunctionCallOutput(
+                    callId = "call_1",
+                    output = FunctionCallOutputPayload(content = "output1"),
+                ),
             )
-        )
-        val items = listOf<ResponseItem>(
-            ResponseItem.FunctionCallOutput(
-                callId = "call_1",
-                output = FunctionCallOutputPayload(content = "output1")
+        val items =
+            listOf<ResponseItem>(
+                ResponseItem.FunctionCallOutput(
+                    callId = "call_1",
+                    output = FunctionCallOutputPayload(content = "output1"),
+                ),
             )
-        )
 
-        val result = ProcessItemsResult(
-            responses = responses,
-            itemsToRecord = items
-        )
+        val result =
+            ProcessItemsResult(
+                responses = responses,
+                itemsToRecord = items,
+            )
 
         assertEquals(1, result.responses.size)
         assertEquals(1, result.itemsToRecord.size)

@@ -1,9 +1,9 @@
 package io.github.kotlinmania.codex.tui.render
 
+import ratatui.layout.Rect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import ratatui.layout.Rect
 
 class InsetsTest {
     @Test

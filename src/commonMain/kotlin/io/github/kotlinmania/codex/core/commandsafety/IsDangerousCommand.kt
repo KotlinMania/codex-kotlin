@@ -1,10 +1,10 @@
 // port-lint: source core/src/commandSafety/isDangerousCommand.rs
 package io.github.kotlinmania.codex.core.commandsafety
 
+import io.github.kotlinmania.codex.core.bash.parseShellLcPlainCommands
+import io.github.kotlinmania.codex.exec.sandbox.SandboxPermissions
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import io.github.kotlinmania.codex.exec.sandbox.SandboxPermissions
-import io.github.kotlinmania.codex.core.bash.parseShellLcPlainCommands
 
 /**
  * Determines if initial approval is required for a command.
@@ -13,7 +13,7 @@ fun requiresInitialApproval(
     policy: AskForApproval,
     sandboxPolicy: SandboxPolicy,
     command: List<String>,
-    sandboxPermissions: SandboxPermissions
+    sandboxPermissions: SandboxPermissions,
 ): Boolean {
     if (isKnownSafeCommand(command)) {
         return false

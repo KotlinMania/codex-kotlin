@@ -1,6 +1,5 @@
 package io.github.kotlinmania.codex.core.session
 
-import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import io.github.kotlinmania.codex.core.context.ContextManager
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.features.Features
@@ -8,19 +7,20 @@ import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.core.model.ModelProviderInfo
 import io.github.kotlinmania.codex.core.model.deriveDefaultModelFamily
 import io.github.kotlinmania.codex.protocol.AskForApproval
+import io.github.kotlinmania.codex.protocol.CallToolResult
 import io.github.kotlinmania.codex.protocol.CompactedItem
+import io.github.kotlinmania.codex.protocol.ContentBlock
+import io.github.kotlinmania.codex.protocol.ContentItem
+import io.github.kotlinmania.codex.protocol.ConversationId
+import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
+import io.github.kotlinmania.codex.protocol.InitialHistory
+import io.github.kotlinmania.codex.protocol.ResponseItem
+import io.github.kotlinmania.codex.protocol.ResumedHistory
 import io.github.kotlinmania.codex.protocol.RolloutItem
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.protocol.SessionSource
-import io.github.kotlinmania.codex.protocol.InitialHistory
-import io.github.kotlinmania.codex.protocol.ResumedHistory
 import io.github.kotlinmania.codex.protocol.TurnAbortReason
-import io.github.kotlinmania.codex.protocol.CallToolResult
-import io.github.kotlinmania.codex.protocol.ConversationId
-import io.github.kotlinmania.codex.protocol.ContentBlock
-import io.github.kotlinmania.codex.protocol.ContentItem
-import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
-import io.github.kotlinmania.codex.protocol.ResponseItem
+import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -35,18 +35,19 @@ import kotlin.test.assertTrue
  */
 
 class FunctionCallOutputPayloadConversionTest {
-
     @Test
     fun testPrefersStructuredContentWhenPresent() {
-        val ctr = CallToolResult(
-            // Content present but should be ignored because structuredContent is set.
-            content = listOf(ContentBlock.TextContent(text = "ignored")),
-            isError =null,
-            structuredContent =buildJsonObject {
-                put("ok", true)
-                put("value", 42)
-            }
-        )
+        val ctr =
+            CallToolResult(
+                // Content present but should be ignored because structuredContent is set.
+                content = listOf(ContentBlock.TextContent(text = "ignored")),
+                isError = null,
+                structuredContent =
+                    buildJsonObject {
+                        put("ok", true)
+                        put("value", 42)
+                    },
+            )
 
         val got = FunctionCallOutputPayload.from(ctr)
 
@@ -60,11 +61,12 @@ class FunctionCallOutputPayloadConversionTest {
     fun testFallsBackToContentWhenStructuredIsJsonNull() {
         // When structuredContent is JsonNull, it should fall back to content.
         // Use empty content list to avoid serialization complexity
-        val ctr = CallToolResult(
-            content = emptyList(),
-            isError =null,
-            structuredContent =JsonNull
-        )
+        val ctr =
+            CallToolResult(
+                content = emptyList(),
+                isError = null,
+                structuredContent = JsonNull,
+            )
 
         val got = FunctionCallOutputPayload.from(ctr)
 
@@ -76,13 +78,15 @@ class FunctionCallOutputPayloadConversionTest {
 
     @Test
     fun testSuccessFlagReflectsIsErrorTrue() {
-        val ctr = CallToolResult(
-            content = listOf(ContentBlock.TextContent(text = "unused")),
-            isError =true,
-            structuredContent =buildJsonObject {
-                put("message", "bad")
-            }
-        )
+        val ctr =
+            CallToolResult(
+                content = listOf(ContentBlock.TextContent(text = "unused")),
+                isError = true,
+                structuredContent =
+                    buildJsonObject {
+                        put("message", "bad")
+                    },
+            )
 
         val got = FunctionCallOutputPayload.from(ctr)
 
@@ -95,11 +99,12 @@ class FunctionCallOutputPayloadConversionTest {
     fun testSuccessFlagTrueWithNoErrorAndContentUsed() {
         // Use same pattern as the passing tests in ToolCallProcessorTest
         // Use empty content list which serializes reliably
-        val ctr = CallToolResult(
-            content = emptyList(),
-            isError =false
-            // Don't pass structuredContent - let it default
-        )
+        val ctr =
+            CallToolResult(
+                content = emptyList(),
+                isError = false,
+                // Don't pass structuredContent - let it default
+            )
 
         val got = FunctionCallOutputPayload.from(ctr)
 
@@ -109,19 +114,19 @@ class FunctionCallOutputPayloadConversionTest {
 }
 
 class SessionConfigurationTest {
-
     @Test
     fun testDefaultSessionConfiguration() {
-        val config = SessionConfiguration(
-            provider = ModelProviderInfo(name = "openai"),
-            model = "gpt-4",
-            cwd = "/test/path",
-            approvalPolicy = AskForApproval.OnFailure,
-            sandboxPolicy = SandboxPolicy.ReadOnly,
-            features = Features(),
-            execPolicy = ExecPolicy(),
-            sessionSource = SessionSource.Cli
-        )
+        val config =
+            SessionConfiguration(
+                provider = ModelProviderInfo(name = "openai"),
+                model = "gpt-4",
+                cwd = "/test/path",
+                approvalPolicy = AskForApproval.OnFailure,
+                sandboxPolicy = SandboxPolicy.ReadOnly,
+                features = Features(),
+                execPolicy = ExecPolicy(),
+                sessionSource = SessionSource.Cli,
+            )
 
         assertEquals("openai", config.provider.name)
         assertEquals("gpt-4", config.model)
@@ -133,16 +138,17 @@ class SessionConfigurationTest {
 
     @Test
     fun testSessionConfigurationWithReasoningConfig() {
-        val config = SessionConfiguration(
-            provider = ModelProviderInfo(name = "anthropic"),
-            model = "claude-3",
-            cwd = "/home/user",
-            approvalPolicy = AskForApproval.OnRequest,
-            sandboxPolicy = SandboxPolicy.DangerFullAccess,
-            features = Features(),
-            execPolicy = ExecPolicy(),
-            sessionSource = SessionSource.Exec
-        )
+        val config =
+            SessionConfiguration(
+                provider = ModelProviderInfo(name = "anthropic"),
+                model = "claude-3",
+                cwd = "/home/user",
+                approvalPolicy = AskForApproval.OnRequest,
+                sandboxPolicy = SandboxPolicy.DangerFullAccess,
+                features = Features(),
+                execPolicy = ExecPolicy(),
+                sessionSource = SessionSource.Exec,
+            )
 
         assertEquals("anthropic", config.provider.name)
         assertEquals("claude-3", config.model)
@@ -153,7 +159,6 @@ class SessionConfigurationTest {
 }
 
 class SessionSourceTest {
-
     @Test
     fun testSessionSourceCli() {
         val source = SessionSource.Cli
@@ -180,7 +185,6 @@ class SessionSourceTest {
 }
 
 class InitialHistoryTest {
-
     @Test
     fun testNewHistory() {
         val history = InitialHistory.New
@@ -189,22 +193,25 @@ class InitialHistoryTest {
 
     @Test
     fun testResumedHistory() {
-        val rolloutItems = listOf(
-            RolloutItem.ResponseItemHolder(
-                ResponseItem.Message(
-                    role = "user",
-                    content = listOf(ContentItem.InputText(text = "hello"))
-                )
+        val rolloutItems =
+            listOf(
+                RolloutItem.ResponseItemHolder(
+                    ResponseItem.Message(
+                        role = "user",
+                        content = listOf(ContentItem.InputText(text = "hello")),
+                    ),
+                ),
             )
-        )
         val conversationId = ConversationId.fromString("00000000-0000-0000-0000-000000000123").getOrThrow()
-        val history = InitialHistory.Resumed(
-            payload = ResumedHistory(
-                conversationId = conversationId,
-                history = rolloutItems,
-                rolloutPath = "/tmp/rollout.jsonl"
+        val history =
+            InitialHistory.Resumed(
+                payload =
+                    ResumedHistory(
+                        conversationId = conversationId,
+                        history = rolloutItems,
+                        rolloutPath = "/tmp/rollout.jsonl",
+                    ),
             )
-        )
 
         assertTrue(history is InitialHistory.Resumed)
         assertEquals(conversationId, history.payload.conversationId)
@@ -214,14 +221,15 @@ class InitialHistoryTest {
 
     @Test
     fun testForkedHistory() {
-        val rolloutItems = listOf(
-            RolloutItem.ResponseItemHolder(
-                ResponseItem.Message(
-                    role = "assistant",
-                    content = listOf(ContentItem.OutputText(text = "Hi there!"))
-                )
+        val rolloutItems =
+            listOf(
+                RolloutItem.ResponseItemHolder(
+                    ResponseItem.Message(
+                        role = "assistant",
+                        content = listOf(ContentItem.OutputText(text = "Hi there!")),
+                    ),
+                ),
             )
-        )
         val history = InitialHistory.Forked(rolloutItems)
 
         assertTrue(history is InitialHistory.Forked)
@@ -230,7 +238,6 @@ class InitialHistoryTest {
 }
 
 class TurnAbortReasonTest {
-
     @Test
     fun testInterruptedReason() {
         val reason = TurnAbortReason.Interrupted
@@ -251,12 +258,12 @@ class TurnAbortReasonTest {
 }
 
 class CompactedItemTest {
-
     @Test
     fun testCompactedItem() {
-        val item = CompactedItem(
-            message = "Summary of conversation so far"
-        )
+        val item =
+            CompactedItem(
+                message = "Summary of conversation so far",
+            )
 
         assertEquals("Summary of conversation so far", item.message)
         assertNull(item.replacementHistory)
@@ -264,16 +271,18 @@ class CompactedItemTest {
 
     @Test
     fun testCompactedItemWithReplacementHistory() {
-        val replacementHistory = listOf(
-            ResponseItem.Message(
-                role = "system",
-                content = listOf(ContentItem.InputText(text = "compacted context"))
+        val replacementHistory =
+            listOf(
+                ResponseItem.Message(
+                    role = "system",
+                    content = listOf(ContentItem.InputText(text = "compacted context")),
+                ),
             )
-        )
-        val item = CompactedItem(
-            message = "Summary",
-            replacementHistory = replacementHistory
-        )
+        val item =
+            CompactedItem(
+                message = "Summary",
+                replacementHistory = replacementHistory,
+            )
 
         assertEquals("Summary", item.message)
         assertNotNull(item.replacementHistory)
@@ -282,13 +291,13 @@ class CompactedItemTest {
 }
 
 class RolloutItemTest {
-
     @Test
     fun testRolloutItemResponseItem() {
-        val responseItem = ResponseItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = "test message"))
-        )
+        val responseItem =
+            ResponseItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "test message")),
+            )
         val rolloutItem = RolloutItem.ResponseItemHolder(responseItem)
 
         assertTrue(rolloutItem is RolloutItem.ResponseItemHolder)
@@ -305,7 +314,6 @@ class RolloutItemTest {
 }
 
 class CancellationTokenTest {
-
     @Test
     fun testInitialStateNotCancelled() {
         val token = CancellationToken()
@@ -422,19 +430,19 @@ class CancellationTokenTest {
 }
 
 class SessionStateTest {
-
     @Test
     fun testDefaultState() {
-        val config = SessionConfiguration(
-            provider = ModelProviderInfo(name = "openai"),
-            model = "gpt-4",
-            cwd = "/test",
-            approvalPolicy = AskForApproval.OnFailure,
-            sandboxPolicy = SandboxPolicy.ReadOnly,
-            features = Features(),
-            execPolicy = ExecPolicy(),
-            sessionSource = SessionSource.Cli
-        )
+        val config =
+            SessionConfiguration(
+                provider = ModelProviderInfo(name = "openai"),
+                model = "gpt-4",
+                cwd = "/test",
+                approvalPolicy = AskForApproval.OnFailure,
+                sandboxPolicy = SandboxPolicy.ReadOnly,
+                features = Features(),
+                execPolicy = ExecPolicy(),
+                sessionSource = SessionSource.Cli,
+            )
         val state = SessionState(config)
 
         assertEquals(config, state.sessionConfiguration)
@@ -443,7 +451,6 @@ class SessionStateTest {
 }
 
 class ContentBlockTest {
-
     @Test
     fun testTextContentBlock() {
         val block = ContentBlock.TextContent(text = "Hello world")
@@ -453,10 +460,11 @@ class ContentBlockTest {
 
     @Test
     fun testImageContentBlock() {
-        val block = ContentBlock.ImageContent(
-            data = "base64encodeddata",
-            mimeType = "image/png"
-        )
+        val block =
+            ContentBlock.ImageContent(
+                data = "base64encodeddata",
+                mimeType = "image/png",
+            )
         assertTrue(block is ContentBlock.ImageContent)
         assertEquals("base64encodeddata", block.data)
         assertEquals("image/png", block.mimeType)
@@ -464,13 +472,13 @@ class ContentBlockTest {
 }
 
 class ResponseItemTest {
-
     @Test
     fun testMessageResponseItem() {
-        val item = ResponseItem.Message(
-            role = "assistant",
-            content = listOf(ContentItem.OutputText(text = "Response text"))
-        )
+        val item =
+            ResponseItem.Message(
+                role = "assistant",
+                content = listOf(ContentItem.OutputText(text = "Response text")),
+            )
 
         assertTrue(item is ResponseItem.Message)
         assertEquals("assistant", item.role)
@@ -479,11 +487,12 @@ class ResponseItemTest {
 
     @Test
     fun testFunctionCallResponseItem() {
-        val item = ResponseItem.FunctionCall(
-            name = "shell",
-            arguments = "{\"command\": \"ls\"}",
-            callId = "call-123"
-        )
+        val item =
+            ResponseItem.FunctionCall(
+                name = "shell",
+                arguments = "{\"command\": \"ls\"}",
+                callId = "call-123",
+            )
 
         assertTrue(item is ResponseItem.FunctionCall)
         assertEquals("shell", item.name)
@@ -492,14 +501,16 @@ class ResponseItemTest {
 
     @Test
     fun testFunctionCallOutputResponseItem() {
-        val output = FunctionCallOutputPayload(
-            content = "command output",
-            success = true
-        )
-        val item = ResponseItem.FunctionCallOutput(
-            callId = "call-123",
-            output = output
-        )
+        val output =
+            FunctionCallOutputPayload(
+                content = "command output",
+                success = true,
+            )
+        val item =
+            ResponseItem.FunctionCallOutput(
+                callId = "call-123",
+                output = output,
+            )
 
         assertTrue(item is ResponseItem.FunctionCallOutput)
         assertEquals("call-123", item.callId)
@@ -508,13 +519,13 @@ class ResponseItemTest {
 }
 
 class CallToolResultTest {
-
     @Test
     fun testCallToolResultWithTextContent() {
-        val result = CallToolResult(
-            content = listOf(ContentBlock.TextContent(text = "Result text")),
-            isError =false
-        )
+        val result =
+            CallToolResult(
+                content = listOf(ContentBlock.TextContent(text = "Result text")),
+                isError = false,
+            )
 
         assertEquals(1, result.content.size)
         assertEquals(false, result.isError)
@@ -523,13 +534,15 @@ class CallToolResultTest {
 
     @Test
     fun testCallToolResultWithStructuredContent() {
-        val result = CallToolResult(
-            content = emptyList(),
-            isError =null,
-            structuredContent =buildJsonObject {
-                put("status", "success")
-            }
-        )
+        val result =
+            CallToolResult(
+                content = emptyList(),
+                isError = null,
+                structuredContent =
+                    buildJsonObject {
+                        put("status", "success")
+                    },
+            )
 
         assertTrue(result.content.isEmpty())
         assertNull(result.isError)
@@ -538,16 +551,16 @@ class CallToolResultTest {
 }
 
 class ContextManagerTest {
-
     @Test
     fun testRecordAndGetHistory() {
         val manager = ContextManager()
         val policy = TruncationPolicy.Bytes(10000)
 
-        val item = ResponseItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = "Hello"))
-        )
+        val item =
+            ResponseItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "Hello")),
+            )
 
         manager.recordItems(listOf(item), policy)
         val history = manager.getHistory()
@@ -561,19 +574,21 @@ class ContextManagerTest {
         val manager = ContextManager()
         val policy = TruncationPolicy.Bytes(10000)
 
-        val item1 = ResponseItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = "First"))
-        )
+        val item1 =
+            ResponseItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "First")),
+            )
 
         manager.recordItems(listOf(item1), policy)
         assertEquals(1, manager.getHistory().size)
 
         // Replace with new items
-        val item2 = ResponseItem.Message(
-            role = "assistant",
-            content = listOf(ContentItem.OutputText(text = "Second"))
-        )
+        val item2 =
+            ResponseItem.Message(
+                role = "assistant",
+                content = listOf(ContentItem.OutputText(text = "Second")),
+            )
         manager.replace(listOf(item2))
         assertEquals(1, manager.getHistory().size)
 
@@ -584,7 +599,6 @@ class ContextManagerTest {
 }
 
 class ModelProviderInfoTest {
-
     @Test
     fun testDefaultModelProviderInfo() {
         val info = ModelProviderInfo(name = "openai")
@@ -594,17 +608,17 @@ class ModelProviderInfoTest {
 
     @Test
     fun testCustomModelProviderInfo() {
-        val info = ModelProviderInfo(
-            name = "anthropic",
-            baseUrl = "https://api.anthropic.com"
-        )
+        val info =
+            ModelProviderInfo(
+                name = "anthropic",
+                baseUrl = "https://api.anthropic.com",
+            )
         assertEquals("anthropic", info.name)
         assertEquals("https://api.anthropic.com", info.baseUrl)
     }
 }
 
 class ModelFamilyTest {
-
     @Test
     fun testDeriveDefaultModelFamily() {
         val family = deriveDefaultModelFamily("gpt-4")
@@ -615,13 +629,14 @@ class ModelFamilyTest {
 
     @Test
     fun testCustomModelFamily() {
-        val family = ModelFamily(
-            slug = "claude-3",
-            family = "claude-3",
-            baseInstructions = "Custom instructions",
-            contextWindow = 200_000L,
-            supportsParallelToolCalls = false
-        )
+        val family =
+            ModelFamily(
+                slug = "claude-3",
+                family = "claude-3",
+                baseInstructions = "Custom instructions",
+                contextWindow = 200_000L,
+                supportsParallelToolCalls = false,
+            )
         assertEquals("claude-3", family.slug)
         assertEquals("Custom instructions", family.baseInstructions)
         assertEquals(200_000L, family.contextWindow)

@@ -5,13 +5,8 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlin.random.Random
 import kotlin.test.*
-import platform.posix.chmod
-import platform.posix.S_IRUSR
-import platform.posix.S_IWUSR
-import kotlinx.cinterop.ExperimentalForeignApi
 
 class StorageTest {
-
     @Test
     fun testGetAuthFile() {
         val codexHome = Path("/tmp/codex")
@@ -25,11 +20,12 @@ class StorageTest {
         SystemFileSystem.createDirectories(tempDir)
         try {
             val storage = FileAuthStorage(tempDir)
-            val auth = AuthDotJson(
-                openaiApiKey = "test-key",
-                tokens = null,
-                lastRefresh = null
-            )
+            val auth =
+                AuthDotJson(
+                    openaiApiKey = "test-key",
+                    tokens = null,
+                    lastRefresh = null,
+                )
 
             val saveResult = storage.save(auth)
             assertTrue(saveResult.isSuccess, "Save should be successful")
@@ -51,10 +47,10 @@ class StorageTest {
         // Based on Rust test: "~/.codex" -> "cli|940db7b1d0e4eb40"
         // Since we cannot easily canonicalize "~" in a unit test without OS help,
         // we test the core hashing logic with a fixed string.
-        val path = Path("/tmp/.codex") 
+        val path = Path("/tmp/.codex")
         // We know from our manual python check that hashlib.sha256(b'/tmp/.codex').hexdigest()[:16]
         // is what we expect. Let verify our implementation produces a stable key.
-        
+
         val keyResult = computeStoreKey(path)
         assertTrue(keyResult.isSuccess)
         val key = keyResult.getOrThrow()
@@ -76,18 +72,18 @@ class StorageTest {
 
             // Setup: Keychain fails on save
             mockKeychain.setError("cli|", Exception("Keychain failure")) // Key prefix match is enough for mock if we do not know exact key
-            
-            // This is tricky because computeStoreKey produces a real key. 
+
+            // This is tricky because computeStoreKey produces a real key.
             // Let just import the real key.
             val key = computeStoreKey(tempDir).getOrThrow()
             mockKeychain.setError(key, Exception("Keychain failure"))
 
             val saveResult = autoStorage.save(auth)
             assertTrue(saveResult.isSuccess, "Should fallback to file storage")
-            
+
             val authFile = getAuthFile(tempDir)
             assertTrue(SystemFileSystem.exists(authFile), "Auth file should exist after fallback")
-            
+
             val loadedAuth = autoStorage.load().getOrNull()
             assertEquals(auth, loadedAuth)
         } finally {

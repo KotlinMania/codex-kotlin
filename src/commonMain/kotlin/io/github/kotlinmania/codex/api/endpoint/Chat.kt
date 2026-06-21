@@ -4,13 +4,13 @@ package io.github.kotlinmania.codex.api.endpoint
 import io.github.kotlinmania.codex.api.AuthProvider
 import io.github.kotlinmania.codex.api.common.Prompt
 import io.github.kotlinmania.codex.api.common.ResponseStream
-import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.api.provider.Provider
 import io.github.kotlinmania.codex.api.provider.WireApi
 import io.github.kotlinmania.codex.api.requests.ChatRequest
 import io.github.kotlinmania.codex.api.requests.ChatRequestBuilder
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
+import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.ktor.client.*
 import kotlinx.serialization.json.JsonElement
 
@@ -30,9 +30,7 @@ class ChatClient<A : AuthProvider>(
         return this
     }
 
-    suspend fun streamRequest(request: ChatRequest): Result<ResponseStream> {
-        return stream(request.body, request.configureHeaders)
-    }
+    suspend fun streamRequest(request: ChatRequest): Result<ResponseStream> = stream(request.body, request.configureHeaders)
 
     suspend fun streamPrompt(
         model: String,
@@ -40,29 +38,29 @@ class ChatClient<A : AuthProvider>(
         conversationId: String?,
         sessionSource: io.github.kotlinmania.codex.protocol.SessionSource?,
     ): Result<ResponseStream> {
-        val request = ChatRequestBuilder(model, prompt.instructions, prompt.input, prompt.tools)
-            .conversationId(conversationId)
-            .sessionSource(sessionSource)
-            .build(streaming.provider())
-            .getOrElse { return Result.failure(it) }
+        val request =
+            ChatRequestBuilder(model, prompt.instructions, prompt.input, prompt.tools)
+                .conversationId(conversationId)
+                .sessionSource(sessionSource)
+                .build(streaming.provider())
+                .getOrElse { return Result.failure(it) }
         return streamRequest(request)
     }
 
-    private fun path(): String {
-        return when (streaming.provider().wire) {
+    private fun path(): String =
+        when (streaming.provider().wire) {
             WireApi.Chat -> "chat/completions"
             else -> "responses"
         }
-    }
 
     suspend fun stream(
         body: JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
-    ): Result<ResponseStream> {
-        return streaming.stream(path(), body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
-            io.github.kotlinmania.codex.api.sse.spawnChatStream(client, requestConfig, idleTimeout, telemetry)
+    ): Result<ResponseStream> =
+        streaming.stream(path(), body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            io.github.kotlinmania.codex.api.sse
+                .spawnChatStream(client, requestConfig, idleTimeout, telemetry)
         }
-    }
 }
 
 /** Aggregation mode for stream processing. */
@@ -115,7 +113,8 @@ class AggregatedStream private constructor(
                             AggregateMode.AggregatedOnly -> {
                                 // Accumulate text from first message with OutputText content
                                 if (cumulative.isEmpty()) {
-                                    item.content.firstOrNull { it is io.github.kotlinmania.codex.protocol.ContentItem.OutputText }
+                                    item.content
+                                        .firstOrNull { it is io.github.kotlinmania.codex.protocol.ContentItem.OutputText }
                                         ?.let { contentItem ->
                                             if (contentItem is io.github.kotlinmania.codex.protocol.ContentItem.OutputText) {
                                                 cumulative.append(contentItem.text)
@@ -148,14 +147,18 @@ class AggregatedStream private constructor(
 
                     // Emit aggregated reasoning if we accumulated any
                     if (cumulativeReasoning.isNotEmpty()) {
-                        val aggregatedReasoning = io.github.kotlinmania.codex.protocol.ResponseItem.Reasoning(
-                            id = "",
-                            summary = emptyList(),
-                            content = listOf(io.github.kotlinmania.codex.protocol.ReasoningItemContent.ReasoningText(
-                                text = cumulativeReasoning.toString()
-                            )),
-                            encryptedContent = null
-                        )
+                        val aggregatedReasoning =
+                            io.github.kotlinmania.codex.protocol.ResponseItem.Reasoning(
+                                id = "",
+                                summary = emptyList(),
+                                content =
+                                    listOf(
+                                        io.github.kotlinmania.codex.protocol.ReasoningItemContent.ReasoningText(
+                                            text = cumulativeReasoning.toString(),
+                                        ),
+                                    ),
+                                encryptedContent = null,
+                            )
                         pending.add(ResponseEvent.OutputItemDone(aggregatedReasoning))
                         cumulativeReasoning.clear()
                         emittedAny = true
@@ -163,11 +166,16 @@ class AggregatedStream private constructor(
 
                     // Emit aggregated message if we accumulated any
                     if (cumulative.isNotEmpty()) {
-                        val aggregatedMessage = io.github.kotlinmania.codex.protocol.ResponseItem.Message(
-                            role = "assistant",
-                            content = listOf(io.github.kotlinmania.codex.protocol.ContentItem.OutputText(text = cumulative.toString())),
-                            id = null
-                        )
+                        val aggregatedMessage =
+                            io.github.kotlinmania.codex.protocol.ResponseItem.Message(
+                                role = "assistant",
+                                content =
+                                    listOf(
+                                        io.github.kotlinmania.codex.protocol.ContentItem
+                                            .OutputText(text = cumulative.toString()),
+                                    ),
+                                id = null,
+                            )
                         pending.add(ResponseEvent.OutputItemDone(aggregatedMessage))
                         cumulative.clear()
                         emittedAny = true
@@ -221,9 +229,7 @@ class AggregatedStream private constructor(
     }
 
     companion object {
-        fun new(inner: ResponseStream, mode: AggregateMode): AggregatedStream {
-            return AggregatedStream(inner, mode)
-        }
+        fun new(inner: ResponseStream, mode: AggregateMode): AggregatedStream = AggregatedStream(inner, mode)
     }
 }
 
@@ -231,10 +237,6 @@ class AggregatedStream private constructor(
  * Extension functions for ResponseStream aggregation.
  * Mirrors the upstream AggregateStreamExt trait.
  */
-fun ResponseStream.aggregate(): AggregatedStream {
-    return AggregatedStream.new(this, AggregateMode.AggregatedOnly)
-}
+fun ResponseStream.aggregate(): AggregatedStream = AggregatedStream.new(this, AggregateMode.AggregatedOnly)
 
-fun ResponseStream.streamingMode(): ResponseStream {
-    return this
-}
+fun ResponseStream.streamingMode(): ResponseStream = this

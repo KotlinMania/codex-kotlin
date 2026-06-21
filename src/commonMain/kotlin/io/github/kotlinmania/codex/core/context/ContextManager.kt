@@ -2,10 +2,10 @@
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.context
 
-import io.github.kotlinmania.codex.protocol.TokenUsage
-import io.github.kotlinmania.codex.protocol.TokenUsageInfo
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseItem
+import io.github.kotlinmania.codex.protocol.TokenUsage
+import io.github.kotlinmania.codex.protocol.TokenUsageInfo
 
 /**
  * Transcript of conversation history with token tracking.
@@ -134,18 +134,19 @@ class ContextManager {
                 val truncated = truncateText(item.output.content, policyWithSerializationBudget)
                 ResponseItem.FunctionCallOutput(
                     callId = item.callId,
-                    output = FunctionCallOutputPayload(
-                        content = truncated,
-                        contentItems = item.output.contentItems,
-                        success = item.output.success
-                    )
+                    output =
+                        FunctionCallOutputPayload(
+                            content = truncated,
+                            contentItems = item.output.contentItems,
+                            success = item.output.success,
+                        ),
                 )
             }
             is ResponseItem.CustomToolCallOutput -> {
                 val truncated = truncateText(item.output, policyWithSerializationBudget)
                 ResponseItem.CustomToolCallOutput(
                     callId = item.callId,
-                    output = truncated
+                    output = truncated,
                 )
             }
             else -> item
@@ -154,9 +155,10 @@ class ContextManager {
 
     private fun getNonLastReasoningItemsTokens(): Long {
         // Find last user message index
-        val lastUserIndex = items.indexOfLast { item ->
-            item is ResponseItem.Message && item.role == "user"
-        }
+        val lastUserIndex =
+            items.indexOfLast { item ->
+                item is ResponseItem.Message && item.role == "user"
+            }
         if (lastUserIndex < 0) return 0L
 
         // Sum reasoning tokens before the last user message
@@ -172,17 +174,15 @@ class ContextManager {
     }
 
     companion object {
-        private fun estimateReasoningLength(encodedLen: Int): Int {
-            return ((encodedLen * 3) / 4).coerceAtLeast(0) - 650
-        }
+        private fun estimateReasoningLength(encodedLen: Int): Int = ((encodedLen * 3) / 4).coerceAtLeast(0) - 650
     }
 }
 
 /**
  * Check if a response item is an API message (should be included in history).
  */
-private fun isApiMessage(message: ResponseItem): Boolean {
-    return when (message) {
+private fun isApiMessage(message: ResponseItem): Boolean =
+    when (message) {
         is ResponseItem.Message -> message.role != "system"
         is ResponseItem.FunctionCallOutput,
         is ResponseItem.FunctionCall,
@@ -191,11 +191,11 @@ private fun isApiMessage(message: ResponseItem): Boolean {
         is ResponseItem.LocalShellCall,
         is ResponseItem.Reasoning,
         is ResponseItem.WebSearchCall,
-        is ResponseItem.CompactionSummary -> true
+        is ResponseItem.CompactionSummary,
+        -> true
         is ResponseItem.GhostSnapshot -> false
         else -> false
     }
-}
 
 /**
  * Ensure every tool call has a corresponding output.
@@ -210,14 +210,16 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
                 val hasOutput = items.any { it is ResponseItem.FunctionCallOutput && it.callId == callId }
                 if (!hasOutput) {
                     missingOutputsToInsert.add(
-                        idx to ResponseItem.FunctionCallOutput(
-                            callId = callId,
-                            output = FunctionCallOutputPayload(
-                                content = "aborted",
-                                contentItems = null,
-                                success = null
-                            )
-                        )
+                        idx to
+                            ResponseItem.FunctionCallOutput(
+                                callId = callId,
+                                output =
+                                    FunctionCallOutputPayload(
+                                        content = "aborted",
+                                        contentItems = null,
+                                        success = null,
+                                    ),
+                            ),
                     )
                 }
             }
@@ -226,10 +228,11 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
                 val hasOutput = items.any { it is ResponseItem.CustomToolCallOutput && it.callId == callId }
                 if (!hasOutput) {
                     missingOutputsToInsert.add(
-                        idx to ResponseItem.CustomToolCallOutput(
-                            callId = callId,
-                            output = "aborted"
-                        )
+                        idx to
+                            ResponseItem.CustomToolCallOutput(
+                                callId = callId,
+                                output = "aborted",
+                            ),
                     )
                 }
             }
@@ -238,14 +241,16 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
                 val hasOutput = items.any { it is ResponseItem.FunctionCallOutput && it.callId == callId }
                 if (!hasOutput) {
                     missingOutputsToInsert.add(
-                        idx to ResponseItem.FunctionCallOutput(
-                            callId = callId,
-                            output = FunctionCallOutputPayload(
-                                content = "aborted",
-                                contentItems = null,
-                                success = null
-                            )
-                        )
+                        idx to
+                            ResponseItem.FunctionCallOutput(
+                                callId = callId,
+                                output =
+                                    FunctionCallOutputPayload(
+                                        content = "aborted",
+                                        contentItems = null,
+                                        success = null,
+                                    ),
+                            ),
                     )
                 }
             }
@@ -263,12 +268,21 @@ private fun ensureCallOutputsPresent(items: MutableList<ResponseItem>) {
  * Remove outputs that do not have a corresponding call.
  */
 private fun removeOrphanOutputs(items: MutableList<ResponseItem>) {
-    val functionCallIds = items.filterIsInstance<ResponseItem.FunctionCall>()
-        .map { it.callId }.toSet()
-    val localShellCallIds = items.filterIsInstance<ResponseItem.LocalShellCall>()
-        .mapNotNull { it.callId }.toSet()
-    val customToolCallIds = items.filterIsInstance<ResponseItem.CustomToolCall>()
-        .map { it.callId }.toSet()
+    val functionCallIds =
+        items
+            .filterIsInstance<ResponseItem.FunctionCall>()
+            .map { it.callId }
+            .toSet()
+    val localShellCallIds =
+        items
+            .filterIsInstance<ResponseItem.LocalShellCall>()
+            .mapNotNull { it.callId }
+            .toSet()
+    val customToolCallIds =
+        items
+            .filterIsInstance<ResponseItem.CustomToolCall>()
+            .map { it.callId }
+            .toSet()
 
     items.removeAll { item ->
         when (item) {
@@ -289,41 +303,47 @@ private fun removeOrphanOutputs(items: MutableList<ResponseItem>) {
 private fun removeCorrespondingFor(items: MutableList<ResponseItem>, item: ResponseItem) {
     when (item) {
         is ResponseItem.FunctionCall -> {
-            val idx = items.indexOfFirst {
-                it is ResponseItem.FunctionCallOutput && it.callId == item.callId
-            }
+            val idx =
+                items.indexOfFirst {
+                    it is ResponseItem.FunctionCallOutput && it.callId == item.callId
+                }
             if (idx >= 0) items.removeAt(idx)
         }
         is ResponseItem.FunctionCallOutput -> {
-            var idx = items.indexOfFirst {
-                it is ResponseItem.FunctionCall && it.callId == item.callId
-            }
+            var idx =
+                items.indexOfFirst {
+                    it is ResponseItem.FunctionCall && it.callId == item.callId
+                }
             if (idx >= 0) {
                 items.removeAt(idx)
             } else {
-                idx = items.indexOfFirst {
-                    it is ResponseItem.LocalShellCall && it.callId == item.callId
-                }
+                idx =
+                    items.indexOfFirst {
+                        it is ResponseItem.LocalShellCall && it.callId == item.callId
+                    }
                 if (idx >= 0) items.removeAt(idx)
             }
         }
         is ResponseItem.CustomToolCall -> {
-            val idx = items.indexOfFirst {
-                it is ResponseItem.CustomToolCallOutput && it.callId == item.callId
-            }
+            val idx =
+                items.indexOfFirst {
+                    it is ResponseItem.CustomToolCallOutput && it.callId == item.callId
+                }
             if (idx >= 0) items.removeAt(idx)
         }
         is ResponseItem.CustomToolCallOutput -> {
-            val idx = items.indexOfFirst {
-                it is ResponseItem.CustomToolCall && it.callId == item.callId
-            }
+            val idx =
+                items.indexOfFirst {
+                    it is ResponseItem.CustomToolCall && it.callId == item.callId
+                }
             if (idx >= 0) items.removeAt(idx)
         }
         is ResponseItem.LocalShellCall -> {
             val callId = item.callId ?: return
-            val idx = items.indexOfFirst {
-                it is ResponseItem.FunctionCallOutput && it.callId == callId
-            }
+            val idx =
+                items.indexOfFirst {
+                    it is ResponseItem.FunctionCallOutput && it.callId == callId
+                }
             if (idx >= 0) items.removeAt(idx)
         }
         else -> {}

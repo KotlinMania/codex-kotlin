@@ -1,26 +1,28 @@
 // port-lint: source ollama/src/parser.rs (tests)
 package io.github.kotlinmania.codex.ollama
 
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 
 class ParserTest {
     @Test
     fun testPullEventsDecoderStatusAndSuccess() {
-        val v = buildJsonObject {
-            put("status", JsonPrimitive("verifying"))
-        }
+        val v =
+            buildJsonObject {
+                put("status", JsonPrimitive("verifying"))
+            }
         val events = pullEventsFromValue(v)
         assertEquals(1, events.size)
         assertTrue(events[0] is PullEvent.Status)
         assertEquals("verifying", (events[0] as PullEvent.Status).status)
 
-        val v2 = buildJsonObject {
-            put("status", JsonPrimitive("success"))
-        }
+        val v2 =
+            buildJsonObject {
+                put("status", JsonPrimitive("success"))
+            }
         val events2 = pullEventsFromValue(v2)
         assertEquals(2, events2.size)
         assertTrue(events2[0] is PullEvent.Status)
@@ -30,10 +32,11 @@ class ParserTest {
 
     @Test
     fun testPullEventsDecoderProgress() {
-        val v = buildJsonObject {
-            put("digest", JsonPrimitive("sha256:abc"))
-            put("total", JsonPrimitive(100))
-        }
+        val v =
+            buildJsonObject {
+                put("digest", JsonPrimitive("sha256:abc"))
+                put("total", JsonPrimitive(100))
+            }
         val events = pullEventsFromValue(v)
         assertEquals(1, events.size)
         val e0 = events[0]
@@ -42,10 +45,11 @@ class ParserTest {
         assertEquals(100L, e0.total)
         assertEquals(null, e0.completed)
 
-        val v2 = buildJsonObject {
-            put("digest", JsonPrimitive("sha256:def"))
-            put("completed", JsonPrimitive(42))
-        }
+        val v2 =
+            buildJsonObject {
+                put("digest", JsonPrimitive("sha256:def"))
+                put("completed", JsonPrimitive(42))
+            }
         val events2 = pullEventsFromValue(v2)
         assertEquals(1, events2.size)
         val e1 = events2[0]

@@ -40,37 +40,35 @@ class ResponsesClient<A : AuthProvider>(
         return this
     }
 
-    suspend fun streamRequest(request: ResponsesRequest): Result<ResponseStream> {
-        return stream(request.body, request.configureHeaders)
-    }
+    suspend fun streamRequest(request: ResponsesRequest): Result<ResponseStream> = stream(request.body, request.configureHeaders)
 
     suspend fun streamPrompt(
         model: String,
         prompt: Prompt,
         options: ResponsesOptions = ResponsesOptions(),
     ): Result<ResponseStream> {
-        val request = ResponsesRequestBuilder(model, prompt.instructions, prompt.input)
-            .tools(prompt.tools)
-            .parallelToolCalls(prompt.parallelToolCalls)
-            .reasoning(options.reasoning)
-            .include(options.include)
-            .promptCacheKey(options.promptCacheKey)
-            .text(options.text)
-            .storeOverride(options.storeOverride)
-            .conversation(options.conversationId)
-            .sessionSource(options.sessionSource)
-            .build(streaming.provider())
-            .getOrElse { return Result.failure(it) }
+        val request =
+            ResponsesRequestBuilder(model, prompt.instructions, prompt.input)
+                .tools(prompt.tools)
+                .parallelToolCalls(prompt.parallelToolCalls)
+                .reasoning(options.reasoning)
+                .include(options.include)
+                .promptCacheKey(options.promptCacheKey)
+                .text(options.text)
+                .storeOverride(options.storeOverride)
+                .conversation(options.conversationId)
+                .sessionSource(options.sessionSource)
+                .build(streaming.provider())
+                .getOrElse { return Result.failure(it) }
         return streamRequest(request)
     }
 
     private suspend fun stream(
         body: kotlinx.serialization.json.JsonElement,
         configureExtraHeaders: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
-    ): Result<ResponseStream> {
-        return streaming.stream("responses", body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
-            io.github.kotlinmania.codex.api.sse.spawnResponsesStream(client, requestConfig, idleTimeout, telemetry)
+    ): Result<ResponseStream> =
+        streaming.stream("responses", body, configureExtraHeaders) { client, requestConfig, idleTimeout, telemetry ->
+            io.github.kotlinmania.codex.api.sse
+                .spawnResponsesStream(client, requestConfig, idleTimeout, telemetry)
         }
-    }
 }
-

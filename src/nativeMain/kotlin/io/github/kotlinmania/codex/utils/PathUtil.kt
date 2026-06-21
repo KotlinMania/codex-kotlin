@@ -11,8 +11,9 @@ import platform.posix.PATH_MAX
 import platform.posix.realpath
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun canonicalizePath(path: String): String = memScoped {
-    val buffer = allocArray<ByteVar>(PATH_MAX)
-    val result = realpath(path, buffer)
-    if (result != null) result.toKString() else path
-}
+actual fun canonicalizePath(path: String): String =
+    memScoped {
+        val buffer = allocArray<ByteVar>(PATH_MAX)
+        val result = realpath(path, buffer)
+        if (result != null) result.toKString() else path
+    }

@@ -7,13 +7,14 @@ import io.github.kotlinmania.codex.core.bash.parseShellLcPlainCommands
  * Checks if a command is known to be safe.
  */
 fun isKnownSafeCommand(command: List<String>): Boolean {
-    val normalizedCommand: List<String> = command.map { s ->
-        if (s == "zsh") {
-            "bash"
-        } else {
-            s
+    val normalizedCommand: List<String> =
+        command.map { s ->
+            if (s == "zsh") {
+                "bash"
+            } else {
+                s
+            }
         }
-    }
 
     if (isSafeCommandWindows(normalizedCommand)) {
         return true
@@ -49,32 +50,41 @@ private fun isSafeToCallWithExec(command: List<String>): Boolean {
             // Certain options to `find` can delete files, write to files, or
             // execute arbitrary commands, so we cannot auto-approve the
             // invocation of `find` in such cases.
-            val unsafeFindOptions = listOf(
-                // Options that can execute arbitrary commands.
-                "-exec", "-execdir", "-ok", "-okdir",
-                // Option that deletes matching files.
-                "-delete",
-                // Options that write pathnames to a file.
-                "-fls", "-fprint", "-fprint0", "-fprintf"
-            )
+            val unsafeFindOptions =
+                listOf(
+                    // Options that can execute arbitrary commands.
+                    "-exec",
+                    "-execdir",
+                    "-ok",
+                    "-okdir",
+                    // Option that deletes matching files.
+                    "-delete",
+                    // Options that write pathnames to a file.
+                    "-fls",
+                    "-fprint",
+                    "-fprint0",
+                    "-fprintf",
+                )
 
             !command.any { arg -> unsafeFindOptions.contains(arg) }
         }
 
         // Ripgrep
         "rg" -> {
-            val unsafeRipgrepOptionsWithArgs = listOf(
-                // Takes an arbitrary command that is executed for each match.
-                "--pre",
-                // Takes a command that can be used to obtain the local hostname.
-                "--hostname-bin"
-            )
-            val unsafeRipgrepOptionsWithoutArgs = listOf(
-                // Calls out to other decompression tools, so do not auto-approve
-                // out of an abundance of caution.
-                "--search-zip",
-                "-z"
-            )
+            val unsafeRipgrepOptionsWithArgs =
+                listOf(
+                    // Takes an arbitrary command that is executed for each match.
+                    "--pre",
+                    // Takes a command that can be used to obtain the local hostname.
+                    "--hostname-bin",
+                )
+            val unsafeRipgrepOptionsWithoutArgs =
+                listOf(
+                    // Calls out to other decompression tools, so do not auto-approve
+                    // out of an abundance of caution.
+                    "--search-zip",
+                    "-z",
+                )
 
             !command.any { arg ->
                 unsafeRipgrepOptionsWithoutArgs.contains(arg) ||
@@ -113,11 +123,12 @@ private fun isValidSedNArg(arg: String?): Boolean {
     val s = arg ?: return false
 
     // must end with 'p', strip it
-    val core = if (s.endsWith('p')) {
-        s.dropLast(1)
-    } else {
-        return false
-    }
+    val core =
+        if (s.endsWith('p')) {
+            s.dropLast(1)
+        } else {
+            return false
+        }
 
     // split on ',' and ensure 1 or 2 numeric parts
     val parts = core.split(',')

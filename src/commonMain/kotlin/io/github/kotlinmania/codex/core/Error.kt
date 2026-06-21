@@ -1,10 +1,10 @@
 // port-lint: source error.rs
 package io.github.kotlinmania.codex.core
 
-import io.github.kotlinmania.codex.core.ProcessedResponseItem
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.KnownPlan
 import io.github.kotlinmania.codex.core.PlanType
+import io.github.kotlinmania.codex.core.ProcessedResponseItem
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.truncateText
 import io.github.kotlinmania.codex.protocol.CodexErrorInfo
@@ -75,9 +75,7 @@ data class UnexpectedResponseError(
         return message
     }
 
-    override fun toString(): String {
-        return fmt()
-    }
+    override fun toString(): String = fmt()
 
     fun fmt(): String {
         val friendly = friendlyMessage()
@@ -98,9 +96,7 @@ data class RetryLimitReachedError(
     val status: Int,
     val requestId: String? = null,
 ) {
-    override fun toString(): String {
-        return fmt()
-    }
+    override fun toString(): String = fmt()
 
     fun fmt(): String {
         val requestId = requestId
@@ -133,9 +129,7 @@ data class ResponseStreamFailed(
     val requestId: String? = null,
     val status: Int? = null,
 ) {
-    override fun toString(): String {
-        return fmt()
-    }
+    override fun toString(): String = fmt()
 
     fun fmt(): String {
         val source = source
@@ -153,9 +147,7 @@ data class UsageLimitReachedError(
     val resetsAt: Instant? = null,
     val rateLimits: RateLimitSnapshot? = null,
 ) {
-    override fun toString(): String {
-        return fmt()
-    }
+    override fun toString(): String = fmt()
 
     fun fmt(): String {
         val planType = planType
@@ -197,9 +189,7 @@ data class EnvVarError(
     /** Optional instructions to help the user set a valid value. */
     val instructions: String? = null,
 ) {
-    override fun toString(): String {
-        return fmt()
-    }
+    override fun toString(): String = fmt()
 
     fun fmt(): String {
         var message = "Missing environment variable: `$varName`."
@@ -212,25 +202,35 @@ data class EnvVarError(
 
 /** Sandbox error types. */
 sealed class SandboxErr {
-    data class Denied(val output: ExecToolCallOutput) : SandboxErr() {
+    data class Denied(
+        val output: ExecToolCallOutput,
+    ) : SandboxErr() {
         override fun toString(): String =
             "sandbox denied exec error, exit code: ${output.exitCode}, " +
                 "stdout: ${output.stdout.text}, stderr: ${output.stderr.text}"
     }
 
-    data class SeccompInstall(val message: String? = null) : SandboxErr() {
+    data class SeccompInstall(
+        val message: String? = null,
+    ) : SandboxErr() {
         override fun toString(): String = "seccomp setup error"
     }
 
-    data class SeccompBackend(val message: String? = null) : SandboxErr() {
+    data class SeccompBackend(
+        val message: String? = null,
+    ) : SandboxErr() {
         override fun toString(): String = "seccomp backend error"
     }
 
-    data class Timeout(val output: ExecToolCallOutput) : SandboxErr() {
+    data class Timeout(
+        val output: ExecToolCallOutput,
+    ) : SandboxErr() {
         override fun toString(): String = "command timed out"
     }
 
-    data class Signal(val signal: Int) : SandboxErr() {
+    data class Signal(
+        val signal: Int,
+    ) : SandboxErr() {
         override fun toString(): String = "command was killed by a signal"
     }
 
@@ -271,13 +271,14 @@ sealed class CodexErr {
     /**
      * Translate core error to client-facing protocol error.
      */
-    fun toCodexProtocolError(): CodexErrorInfo {
-        return when (this) {
+    fun toCodexProtocolError(): CodexErrorInfo =
+        when (this) {
             is ContextWindowExceeded ->
                 CodexErrorInfo.ContextWindowExceeded
             is UsageLimitReached,
             is QuotaExceeded,
-            is UsageNotIncluded ->
+            is UsageNotIncluded,
+            ->
                 CodexErrorInfo.UsageLimitExceeded
             is RetryLimit ->
                 CodexErrorInfo.ResponseTooManyFailedAttempts(httpStatusCode = httpStatusCodeValue())
@@ -289,29 +290,31 @@ sealed class CodexErr {
                 CodexErrorInfo.Unauthorized
             is SessionConfiguredNotFirstEvent,
             is InternalServerError,
-            is InternalAgentDied ->
+            is InternalAgentDied,
+            ->
                 CodexErrorInfo.InternalServerError
             is UnsupportedOperation,
-            is ConversationNotFound ->
+            is ConversationNotFound,
+            ->
                 CodexErrorInfo.BadRequest
             is Sandbox ->
                 CodexErrorInfo.SandboxError
             else ->
                 CodexErrorInfo.Other
         }
-    }
 
     /**
      * Return the HTTP status code for this error, if any.
      */
     fun httpStatusCodeValue(): Int? {
-        val httpStatusCode: Int? = when (this) {
-            is RetryLimit -> error.status
-            is UnexpectedStatus -> error.status
-            is ConnectionFailed -> error.status
-            is ResponseStreamFailed -> error.status
-            else -> null
-        }
+        val httpStatusCode: Int? =
+            when (this) {
+                is RetryLimit -> error.status
+                is UnexpectedStatus -> error.status
+                is ConnectionFailed -> error.status
+                is ResponseStreamFailed -> error.status
+                else -> null
+            }
         return httpStatusCode
     }
 
@@ -319,12 +322,17 @@ sealed class CodexErr {
     // Core variants
     // -----------------------------------------------------------------
 
-    data class TurnAborted(val danglingArtifacts: List<ProcessedResponseItem> = emptyList()) : CodexErr() {
+    data class TurnAborted(
+        val danglingArtifacts: List<ProcessedResponseItem> = emptyList(),
+    ) : CodexErr() {
         override fun toString(): String =
             "turn aborted. Something went wrong? Hit `/feedback` to report the issue."
     }
 
-    data class Stream(val message: String, val retryDelay: kotlin.time.Duration? = null) : CodexErr() {
+    data class Stream(
+        val message: String,
+        val retryDelay: kotlin.time.Duration? = null,
+    ) : CodexErr() {
         override fun toString(): String = "stream disconnected before completion: $message"
     }
 
@@ -334,7 +342,9 @@ sealed class CodexErr {
                 "or clear earlier history before retrying."
     }
 
-    data class ConversationNotFound(val id: ConversationId) : CodexErr() {
+    data class ConversationNotFound(
+        val id: ConversationId,
+    ) : CodexErr() {
         override fun toString(): String = "no conversation with id: $id"
     }
 
@@ -357,7 +367,9 @@ sealed class CodexErr {
             "interrupted (Ctrl-C). Something went wrong? Hit `/feedback` to report the issue."
     }
 
-    data class UnexpectedStatus(val error: UnexpectedResponseError) : CodexErr() {
+    data class UnexpectedStatus(
+        val error: UnexpectedResponseError,
+    ) : CodexErr() {
         override fun toString(): String = error.toString()
     }
 
@@ -373,12 +385,15 @@ sealed class CodexErr {
         override fun toString(): String = legacyMessage ?: error.toString()
     }
 
-    data class ResponseStreamFailed(val error: io.github.kotlinmania.codex.core.ResponseStreamFailed) :
-        CodexErr() {
+    data class ResponseStreamFailed(
+        val error: io.github.kotlinmania.codex.core.ResponseStreamFailed,
+    ) : CodexErr() {
         override fun toString(): String = error.toString()
     }
 
-    data class ConnectionFailed(val error: ConnectionFailedError) : CodexErr() {
+    data class ConnectionFailed(
+        val error: ConnectionFailedError,
+    ) : CodexErr() {
         override fun toString(): String = error.toString()
     }
 
@@ -396,7 +411,9 @@ sealed class CodexErr {
             "We're currently experiencing high demand, which may cause temporary errors."
     }
 
-    data class RetryLimit(val error: RetryLimitReachedError) : CodexErr() {
+    data class RetryLimit(
+        val error: RetryLimitReachedError,
+    ) : CodexErr() {
         override fun toString(): String = error.toString()
     }
 
@@ -404,7 +421,9 @@ sealed class CodexErr {
         override fun toString(): String = "internal error; agent loop died unexpectedly"
     }
 
-    data class Sandbox(val error: SandboxErr) : CodexErr() {
+    data class Sandbox(
+        val error: SandboxErr,
+    ) : CodexErr() {
         override fun toString(): String = "sandbox error: $error"
     }
 
@@ -412,7 +431,9 @@ sealed class CodexErr {
         override fun toString(): String = "codex-linux-sandbox was required but not provided"
     }
 
-    data class UnsupportedOperation(val message: String) : CodexErr() {
+    data class UnsupportedOperation(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = "unsupported operation: $message"
     }
 
@@ -424,10 +445,13 @@ sealed class CodexErr {
             this(RefreshTokenFailedError(RefreshTokenFailedReason.Other, message))
 
         val message: String get() = error.message
+
         override fun toString(): String = error.toString()
     }
 
-    data class Fatal(val message: String) : CodexErr() {
+    data class Fatal(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = "Fatal error: $message"
     }
 
@@ -436,33 +460,46 @@ sealed class CodexErr {
     // -----------------------------------------------------------------
 
     /** Generic I/O error. */
-    data class Io(val message: String) : CodexErr() {
+    data class Io(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = message
     }
 
     /** JSON (de)serialization error. */
-    data class Json(val message: String) : CodexErr() {
+    data class Json(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = message
     }
 
-    data class LandlockRuleset(val message: String) : CodexErr() {
+    data class LandlockRuleset(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = message
     }
 
-    data class LandlockPathFd(val message: String) : CodexErr() {
+    data class LandlockPathFd(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = message
     }
 
     /** Join error from structured concurrency. */
-    data class TokioJoin(val message: String) : CodexErr() {
+    data class TokioJoin(
+        val message: String,
+    ) : CodexErr() {
         override fun toString(): String = message
     }
 
-    data class EnvVar(val error: EnvVarError) : CodexErr() {
+    data class EnvVar(
+        val error: EnvVarError,
+    ) : CodexErr() {
         /** Legacy constructor accepting just the variable name. */
         constructor(varName: String) : this(EnvVarError(varName = varName))
 
         val varName: String get() = error.varName
+
         override fun toString(): String = error.toString()
     }
 }
@@ -486,12 +523,18 @@ internal fun nowForRetry(): Instant {
 }
 
 internal fun retrySuffix(resetsAt: Instant?): String =
-    if (resetsAt != null) " Try again at ${formatRetryTimestamp(resetsAt)}."
-    else " Try again later."
+    if (resetsAt != null) {
+        " Try again at ${formatRetryTimestamp(resetsAt)}."
+    } else {
+        " Try again later."
+    }
 
 internal fun retrySuffixAfterOr(resetsAt: Instant?): String =
-    if (resetsAt != null) " or try again at ${formatRetryTimestamp(resetsAt)}."
-    else " or try again later."
+    if (resetsAt != null) {
+        " or try again at ${formatRetryTimestamp(resetsAt)}."
+    } else {
+        " or try again later."
+    }
 
 internal fun formatRetryTimestamp(resetsAt: Instant): String {
     val localZone = TimeZone.currentSystemDefault()
@@ -509,61 +552,75 @@ internal fun formatRetryTimestamp(resetsAt: Instant): String {
 
 private fun formatTimeHMSP(dt: LocalDateTime): String {
     val hour24 = dt.hour
-    val hour12 = when {
-        hour24 == 0 -> 12
-        hour24 > 12 -> hour24 - 12
-        else -> hour24
-    }
+    val hour12 =
+        when {
+            hour24 == 0 -> 12
+            hour24 > 12 -> hour24 - 12
+            else -> hour24
+        }
     val ampm = if (hour24 < 12) "AM" else "PM"
     val minute = dt.minute.toString().padStart(2, '0')
     return "$hour12:$minute $ampm"
 }
 
-private fun monthAbbrev(month: Int): String = when (month) {
-    1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"
-    5 -> "May"; 6 -> "Jun"; 7 -> "Jul"; 8 -> "Aug"
-    9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
-    else -> "???"
-}
-
-internal fun daySuffix(day: Int): String = when (day) {
-    in 11..13 -> "th"
-    else -> when (day % 10) {
-        1 -> "st"
-        2 -> "nd" // codespell:ignore
-        3 -> "rd"
-        else -> "th"
+private fun monthAbbrev(month: Int): String =
+    when (month) {
+        1 -> "Jan"
+        2 -> "Feb"
+        3 -> "Mar"
+        4 -> "Apr"
+        5 -> "May"
+        6 -> "Jun"
+        7 -> "Jul"
+        8 -> "Aug"
+        9 -> "Sep"
+        10 -> "Oct"
+        11 -> "Nov"
+        12 -> "Dec"
+        else -> "???"
     }
-}
+
+internal fun daySuffix(day: Int): String =
+    when (day) {
+        in 11..13 -> "th"
+        else ->
+            when (day % 10) {
+                1 -> "st"
+                2 -> "nd" // codespell:ignore
+                3 -> "rd"
+                else -> "th"
+            }
+    }
 
 /**
  * Produce a user-facing error message for display in the UI.
  */
 fun getErrorMessageUi(e: CodexErr): String {
-    val message = when (e) {
-        is CodexErr.Sandbox ->
-            when (val err = e.error) {
-                is SandboxErr.Denied -> {
-                    val output = err.output
-                    val aggregated = output.aggregatedOutput.text.trim()
-                    if (aggregated.isNotEmpty()) {
-                        output.aggregatedOutput.text
-                    } else {
-                        val stderr = output.stderr.text.trim()
-                        val stdout = output.stdout.text.trim()
-                        when {
-                            stderr.isNotEmpty() && stdout.isNotEmpty() -> "$stderr\n$stdout"
-                            stderr.isNotEmpty() -> output.stderr.text
-                            stdout.isNotEmpty() -> output.stdout.text
-                            else -> "command failed inside sandbox with exit code ${output.exitCode}"
+    val message =
+        when (e) {
+            is CodexErr.Sandbox ->
+                when (val err = e.error) {
+                    is SandboxErr.Denied -> {
+                        val output = err.output
+                        val aggregated = output.aggregatedOutput.text.trim()
+                        if (aggregated.isNotEmpty()) {
+                            output.aggregatedOutput.text
+                        } else {
+                            val stderr = output.stderr.text.trim()
+                            val stdout = output.stdout.text.trim()
+                            when {
+                                stderr.isNotEmpty() && stdout.isNotEmpty() -> "$stderr\n$stdout"
+                                stderr.isNotEmpty() -> output.stderr.text
+                                stdout.isNotEmpty() -> output.stdout.text
+                                else -> "command failed inside sandbox with exit code ${output.exitCode}"
+                            }
                         }
                     }
+                    is SandboxErr.Timeout ->
+                        "error: command timed out after ${err.output.duration.inWholeMilliseconds} ms"
+                    else -> e.toString()
                 }
-                is SandboxErr.Timeout ->
-                    "error: command timed out after ${err.output.duration.inWholeMilliseconds} ms"
-                else -> e.toString()
-            }
-        else -> e.toString()
-    }
+            else -> e.toString()
+        }
     return truncateText(message, TruncationPolicy.Bytes(ERROR_MESSAGE_UI_MAX_BYTES))
 }

@@ -50,23 +50,21 @@ class AuthManager(
     /**
      * Current cached auth (clone). May be null if not logged in or load failed.
      */
-    suspend fun auth(): CodexAuth? {
-        return mutex.withLock {
+    suspend fun auth(): CodexAuth? =
+        mutex.withLock {
             cachedAuth
         }
-    }
 
     /**
      * Force a reload of the auth information. Returns whether the auth value changed.
      */
-    suspend fun reload(): Boolean {
-        return mutex.withLock {
+    suspend fun reload(): Boolean =
+        mutex.withLock {
             val newAuth = loadAuth()
             val changed = cachedAuth != newAuth
             cachedAuth = newAuth
             changed
         }
-    }
 
     /**
      * Refresh the bearer token (for ChatGPT auth mode).
@@ -81,11 +79,12 @@ class AuthManager(
 
         return when (auth.mode) {
             AuthMode.ApiKey -> CodexResult.success(auth.apiKey)
-            AuthMode.ChatGPT -> CodexResult.failure(
-                CodexErr.RefreshTokenFailed(
-                    "ChatGPT token refresh requires the core AuthManager (with on-disk storage)",
-                ),
-            )
+            AuthMode.ChatGPT ->
+                CodexResult.failure(
+                    CodexErr.RefreshTokenFailed(
+                        "ChatGPT token refresh requires the core AuthManager (with on-disk storage)",
+                    ),
+                )
             AuthMode.None -> CodexResult.success(null)
         }
     }
@@ -93,8 +92,8 @@ class AuthManager(
     /**
      * Get authorization header value for API requests.
      */
-    suspend fun getAuthorizationHeader(): String? {
-        return mutex.withLock {
+    suspend fun getAuthorizationHeader(): String? =
+        mutex.withLock {
             cachedAuth?.let { auth ->
                 when (auth.mode) {
                     AuthMode.ApiKey -> auth.apiKey?.let { "Bearer $it" }
@@ -103,13 +102,12 @@ class AuthManager(
                 }
             }
         }
-    }
 
     /**
      * Get the current token for API requests.
      */
-    suspend fun getToken(): String? {
-        return mutex.withLock {
+    suspend fun getToken(): String? =
+        mutex.withLock {
             cachedAuth?.let { auth ->
                 when (auth.mode) {
                     AuthMode.ApiKey -> auth.apiKey
@@ -118,34 +116,34 @@ class AuthManager(
                 }
             }
         }
-    }
 
     /**
      * Get account ID if available.
      */
-    suspend fun getAccountId(): String? {
-        return mutex.withLock {
+    suspend fun getAccountId(): String? =
+        mutex.withLock {
             cachedAuth?.tokenData?.accountId
         }
-    }
 
     /**
      * Get account email if available.
      */
-    suspend fun getAccountEmail(): String? {
-        return mutex.withLock {
+    suspend fun getAccountEmail(): String? =
+        mutex.withLock {
             cachedAuth?.tokenData?.idToken?.email
         }
-    }
 
     /**
      * Get the account plan type.
      */
-    suspend fun getAccountPlanType(): AccountPlanType? {
-        return mutex.withLock {
-            cachedAuth?.tokenData?.idToken?.planType?.toAccountPlanType()
+    suspend fun getAccountPlanType(): AccountPlanType? =
+        mutex.withLock {
+            cachedAuth
+                ?.tokenData
+                ?.idToken
+                ?.planType
+                ?.toAccountPlanType()
         }
-    }
 
     /**
      * Log out by clearing the in-memory cached auth.
@@ -153,13 +151,12 @@ class AuthManager(
      * On-disk auth.json deletion is the responsibility of the core
      * [io.github.kotlinmania.codex.core.AuthManager], which owns the storage backend.
      */
-    suspend fun logout(): Boolean {
-        return mutex.withLock {
+    suspend fun logout(): Boolean =
+        mutex.withLock {
             val hadAuth = cachedAuth != null
             cachedAuth = null
             hadAuth
         }
-    }
 
     /**
      * Load auth from environment variables only.
@@ -197,35 +194,30 @@ class AuthManager(
         fun shared(
             codexHome: String? = null,
             enableCodexApiKeyEnv: Boolean = true,
-            authCredentialsStoreMode: AuthCredentialsStoreMode = AuthCredentialsStoreMode.File
-        ): AuthManager {
-            return AuthManager(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode)
-        }
+            authCredentialsStoreMode: AuthCredentialsStoreMode = AuthCredentialsStoreMode.File,
+        ): AuthManager = AuthManager(codexHome, enableCodexApiKeyEnv, authCredentialsStoreMode)
 
         /**
          * Create an AuthManager with a specific API key (for testing).
          */
-        fun fromApiKey(apiKey: String): AuthManager {
-            return AuthManager(
+        fun fromApiKey(apiKey: String): AuthManager =
+            AuthManager(
                 enableCodexApiKeyEnv = false,
                 initialAuth = CodexAuth.fromApiKey(apiKey),
             )
-        }
 
         /**
          * Create an AuthManager with a specific [CodexAuth], for testing only.
          *
          * Mirrors Rust `AuthManager::fromAuthForTesting`.
          */
-        fun fromAuthForTesting(auth: CodexAuth): AuthManager {
-            return AuthManager(
+        fun fromAuthForTesting(auth: CodexAuth): AuthManager =
+            AuthManager(
                 codexHome = null,
                 enableCodexApiKeyEnv = false,
                 authCredentialsStoreMode = AuthCredentialsStoreMode.File,
                 initialAuth = auth,
             )
-        }
-
     }
 }
 
@@ -237,24 +229,22 @@ class AuthManager(
 data class CodexAuth(
     val mode: AuthMode,
     val apiKey: String?,
-    val tokenData: TokenData?
+    val tokenData: TokenData?,
 ) {
     companion object {
-        fun fromApiKey(apiKey: String): CodexAuth {
-            return CodexAuth(
+        fun fromApiKey(apiKey: String): CodexAuth =
+            CodexAuth(
                 mode = AuthMode.ApiKey,
                 apiKey = apiKey,
-                tokenData = null
+                tokenData = null,
             )
-        }
 
-        fun fromChatGpt(tokenData: TokenData): CodexAuth {
-            return CodexAuth(
+        fun fromChatGpt(tokenData: TokenData): CodexAuth =
+            CodexAuth(
                 mode = AuthMode.ChatGPT,
                 apiKey = null,
-                tokenData = tokenData
+                tokenData = tokenData,
             )
-        }
     }
 }
 
@@ -267,7 +257,7 @@ data class TokenData(
     val idToken: IdTokenInfo,
     val accessToken: String,
     val refreshToken: String,
-    val accountId: String?
+    val accountId: String?,
 )
 
 /**
@@ -279,30 +269,35 @@ data class IdTokenInfo(
     val email: String?,
     val planType: PlanType?,
     val chatgptAccountId: String?,
-    val rawJwt: String?
+    val rawJwt: String?,
 )
 
 /**
  * Plan type from the ID token.
  */
 sealed class PlanType {
-    data class Known(val plan: KnownPlan) : PlanType()
-    data class Unknown(val raw: String) : PlanType()
+    data class Known(
+        val plan: KnownPlan,
+    ) : PlanType()
 
-    fun toAccountPlanType(): AccountPlanType {
-        return when (this) {
-            is Known -> when (plan) {
-                KnownPlan.Free -> AccountPlanType.Free
-                KnownPlan.Plus -> AccountPlanType.Plus
-                KnownPlan.Pro -> AccountPlanType.Pro
-                KnownPlan.Team -> AccountPlanType.Team
-                KnownPlan.Business -> AccountPlanType.Business
-                KnownPlan.Enterprise -> AccountPlanType.Enterprise
-                KnownPlan.Edu -> AccountPlanType.Edu
-            }
+    data class Unknown(
+        val raw: String,
+    ) : PlanType()
+
+    fun toAccountPlanType(): AccountPlanType =
+        when (this) {
+            is Known ->
+                when (plan) {
+                    KnownPlan.Free -> AccountPlanType.Free
+                    KnownPlan.Plus -> AccountPlanType.Plus
+                    KnownPlan.Pro -> AccountPlanType.Pro
+                    KnownPlan.Team -> AccountPlanType.Team
+                    KnownPlan.Business -> AccountPlanType.Business
+                    KnownPlan.Enterprise -> AccountPlanType.Enterprise
+                    KnownPlan.Edu -> AccountPlanType.Edu
+                }
             is Unknown -> AccountPlanType.Unknown
         }
-    }
 }
 
 /**
@@ -315,7 +310,7 @@ enum class KnownPlan {
     Team,
     Business,
     Enterprise,
-    Edu
+    Edu,
 }
 
 /**
@@ -331,7 +326,7 @@ enum class AccountPlanType {
     Business,
     Enterprise,
     Edu,
-    Unknown
+    Unknown,
 }
 
 /**
@@ -345,7 +340,7 @@ enum class AuthMode {
     ChatGPT,
 
     /** No authentication */
-    None
+    None,
 }
 
 /**
@@ -407,7 +402,7 @@ enum class AuthCredentialsStoreMode {
     Keychain,
 
     /** Memory only (no persistence) */
-    Memory
+    Memory,
 }
 
 /**
@@ -426,5 +421,5 @@ enum class RefreshTokenFailedReason {
     Revoked,
 
     /** Unknown failure reason */
-    Other
+    Other,
 }

@@ -43,8 +43,8 @@ data class Provider(
         return url
     }
 
-    fun buildRequest(method: HttpMethod, path: String, block: HttpRequestBuilder.() -> Unit = {}): HttpRequestBuilder {
-        return HttpRequestBuilder().apply {
+    fun buildRequest(method: HttpMethod, path: String, block: HttpRequestBuilder.() -> Unit = {}): HttpRequestBuilder =
+        HttpRequestBuilder().apply {
             this.method = method
             this.url(urlForPath(path))
             defaultHeaders.forEach { (key, value) ->
@@ -52,7 +52,6 @@ data class Provider(
             }
             block()
         }
-    }
 
     fun isAzureResponsesEndpoint(): Boolean {
         if (wire != WireApi.Responses) return false
@@ -63,16 +62,16 @@ data class Provider(
 
     companion object {
         private fun matchesAzureResponsesBaseUrl(baseUrl: String): Boolean {
-            val azureMarkers = listOf(
-                "cognitiveservices.azure.",
-                "aoai.azure.",
-                "azure-api.",
-                "azurefd.",
-                "windows.net/openai",
-            )
+            val azureMarkers =
+                listOf(
+                    "cognitiveservices.azure.",
+                    "aoai.azure.",
+                    "azure-api.",
+                    "azurefd.",
+                    "windows.net/openai",
+                )
             val base = baseUrl.lowercase()
             return azureMarkers.any { base.contains(it) }
         }
     }
 }
-
