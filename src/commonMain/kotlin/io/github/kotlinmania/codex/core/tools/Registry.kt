@@ -8,7 +8,7 @@ import io.github.kotlinmania.codex.protocol.ResponseInputItem
 /**
  * The kind of tool handler.
  */
-enum class ToolKind {
+internal enum class ToolKind {
     Function,
     Mcp
 }
@@ -111,7 +111,7 @@ internal class ToolRegistry(
 /**
  * A tool specification with parallel support configuration.
  */
-data class ConfiguredToolSpec(
+internal data class ConfiguredToolSpec(
     val spec: ToolSpec,
     val supportsParallelToolCalls: Boolean
 ) {

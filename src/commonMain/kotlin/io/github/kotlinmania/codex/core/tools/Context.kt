@@ -20,7 +20,7 @@ internal data class ToolInvocation(
     val payload: ToolPayload,
 )
 
-sealed class ToolPayload {
+internal sealed class ToolPayload {
     data class Function(val arguments: String) : ToolPayload()
     data class Custom(val input: String) : ToolPayload()
     data class LocalShell(val params: ShellToolCallParams) : ToolPayload()
@@ -41,7 +41,7 @@ sealed class ToolPayload {
         }
 }
 
-sealed class ToolOutput {
+internal sealed class ToolOutput {
     data class Function(
         val content: String,
         val contentItems: List<FunctionCallOutputContentItem>? = null,

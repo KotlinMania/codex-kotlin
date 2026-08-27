@@ -24,7 +24,7 @@ import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import kotlin.time.Duration.Companion.milliseconds
 
-data class ShellRequest(
+internal data class ShellRequest(
         val command: List<String>,
         val cwd: String,
         val timeoutMs: Long?,
@@ -38,7 +38,7 @@ data class ShellRequest(
     }
 }
 
-data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
+internal data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
 
 internal class ShellRuntime(private val processExecutor: Exec) :
         ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {

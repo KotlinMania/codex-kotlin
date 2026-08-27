@@ -13,7 +13,7 @@ import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.ShellToolCallParams
 
-data class ToolCall(
+internal data class ToolCall(
     val toolName: String,
     val callId: String,
     val payload: ToolPayload

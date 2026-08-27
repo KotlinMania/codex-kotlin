@@ -8,7 +8,7 @@ import io.github.kotlinmania.codex.protocol.FileChange
 /**
  * Thread-safe wrapper for TurnDiffTracker that can be shared across tasks.
  */
-class SharedTurnDiffTracker {
+internal class SharedTurnDiffTracker {
     private val tracker = TurnDiffTracker()
 
     suspend fun onPatchBegin(changes: Map<String, FileChange>) {

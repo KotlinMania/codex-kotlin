@@ -77,7 +77,7 @@ internal class PlanHandler : ToolHandler {
 }
 
 /** The updatePlan tool spec. Mirrors codex-rs/core/src/tools/handlers/plan.rs PLAN_TOOL. */
-val PLAN_TOOL: ToolSpec = run {
+internal val PLAN_TOOL: ToolSpec = run {
     val planItemProps = mutableMapOf<String, JsonSchema>()
     planItemProps["step"] = JsonSchema.String(description = null)
     planItemProps["status"] = JsonSchema.String(
