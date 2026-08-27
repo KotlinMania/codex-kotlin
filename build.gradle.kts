@@ -128,6 +128,7 @@ val commonOptIns =
         "kotlin.time.ExperimentalTime",
         "kotlin.concurrent.atomics.ExperimentalAtomicApi",
         "kotlin.ExperimentalUnsignedTypes",
+        "kotlin.uuid.ExperimentalUuidApi",
     )
 
 // ============================================================================
@@ -345,6 +346,8 @@ tasks
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
     if (name.startsWith("compileSwiftExport")) {
         compilerOptions.allWarningsAsErrors.set(false)
+        compilerOptions.optIn.addAll(commonOptIns)
+        compilerOptions.freeCompilerArgs.add("-opt-in=kotlin.uuid.ExperimentalUuidApi")
     }
 }
 
@@ -507,6 +510,12 @@ kotlin {
                 findByName("${targetName}Benchmark")?.dependsOn(commonBenchmark)
             }
         }
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    compilerOptions {
+        optIn.addAll(commonOptIns)
     }
 }
 

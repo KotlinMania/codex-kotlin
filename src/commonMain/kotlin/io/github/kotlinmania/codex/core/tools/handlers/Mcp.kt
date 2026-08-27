@@ -53,8 +53,8 @@ internal class McpHandler : ToolHandler {
         return Result.success(
             ToolOutput.Mcp(
                 callResult.fold(
-                    onSuccess = { McpResult<io.github.kotlinmania.codex.protocol.CallToolResult, String>(value = it) },
-                    onFailure = { McpResult<io.github.kotlinmania.codex.protocol.CallToolResult, String>(error = it.message ?: "Unknown error") }
+                    onSuccess = { McpResult(value = it) },
+                    onFailure = { McpResult(error = it.message ?: "Unknown error") }
                 )
             )
         )
