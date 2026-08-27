@@ -184,7 +184,7 @@ class ColumnRenderable : Renderable {
     }
 }
 
-private class FlexChild(
+private data class FlexChild(
     val flex: Int,
     val child: RenderableItem,
 )

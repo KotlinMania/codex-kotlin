@@ -3,10 +3,10 @@
 
 package io.github.kotlinmania.codex.cli
 
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
+import kotlinx.cinterop.refTo
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fread
 import platform.posix.getenv
 import kotlin.native.OsFamily
 import kotlin.native.Platform
@@ -24,15 +24,20 @@ fun isWsl(): Boolean {
     if (distro != null) {
         return true
     }
-    val procVersion = Path("/proc/version")
-    if (!SystemFileSystem.exists(procVersion)) {
-        return false
-    }
+    val file = fopen("/proc/version", "r") ?: return false
     return try {
-        val version = SystemFileSystem.source(procVersion).buffered().use { it.readString() }
-        version.lowercase().contains("microsoft")
+        val buffer = ByteArray(1024)
+        val read = fread(buffer.refTo(0), 1u, 1024u, file)
+        if (read > 0u) {
+            val content = buffer.decodeToString(0, read.toInt())
+            content.lowercase().contains("microsoft")
+        } else {
+            false
+        }
     } catch (_: Throwable) {
         false
+    } finally {
+        fclose(file)
     }
 }
 

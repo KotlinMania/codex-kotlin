@@ -1,41 +1,51 @@
 // port-lint: source protocol/src/num_format.rs
 package io.github.kotlinmania.codex.protocol
 
-import io.github.kotlinmania.icudecimal.DecimalFormatter
-import io.github.kotlinmania.icudecimal.input.Decimal
-import io.github.kotlinmania.icudecimal.options.DecimalFormatterOptions
 import kotlin.math.pow
 import kotlin.math.round
-
-private val FORMATTER: DecimalFormatter by lazy { makeEnUsFormatter() }
-
-private fun makeEnUsFormatter(): DecimalFormatter =
-    DecimalFormatter.tryNew("en-US", DecimalFormatterOptions())
-
-private fun formatter(): DecimalFormatter = FORMATTER
 
 /**
  * Format an i64 with locale-aware digit separators (e.g. "12345" -> "12,345"
  * for en-US).
  */
-fun formatWithSeparators(n: Long): String =
-    formatWithSeparatorsWithFormatter(n, formatter())
+fun formatWithSeparators(n: Long): String {
+    val isNeg = n < 0
+    val s = if (isNeg) (-n).toString() else n.toString()
+    val sb = StringBuilder()
+    val len = s.length
+    for (i in 0 until len) {
+        if (i > 0 && (len - i) % 3 == 0) {
+            sb.append(',')
+        }
+        sb.append(s[i])
+    }
+    return if (isNeg) "-$sb" else sb.toString()
+}
 
-private fun formatWithSeparatorsWithFormatter(n: Long, formatter: DecimalFormatter): String =
-    formatter.format(Decimal.from(n)).toString()
+private fun formatScaled(value: Long, scale: Long, fractionDigits: Int): String {
+    val scaled = round((value.toDouble() / scale.toDouble()) * 10.0.pow(fractionDigits)).toLong()
+    if (fractionDigits == 0) {
+        return scaled.toString()
+    }
+    val divisor = 10.0.pow(fractionDigits).toLong()
+    val whole = scaled / divisor
+    val frac = scaled % divisor
+    val fracStr = frac.toString().padStart(fractionDigits, '0')
+    return "$whole.$fracStr"
+}
 
-private fun formatSiSuffixWithFormatter(n: Long, formatter: DecimalFormatter): String {
+/**
+ * Format token counts to 3 significant figures, using base-10 SI suffixes.
+ *
+ * Examples (en-US):
+ *   - 999 -> "999"
+ *   - 1200 -> "1.20K"
+ *   - 123456789 -> "123M"
+ */
+fun formatSiSuffix(n: Long): String {
     val value = n.coerceAtLeast(0)
     if (value < 1000) {
-        return formatter.format(Decimal.from(value)).toString()
-    }
-
-    fun formatScaled(value: Long, scale: Long, fractionDigits: Int): String {
-        val scaled = round((value.toDouble() / scale.toDouble()) * 10.0.pow(fractionDigits))
-            .toLong()
-        val decimal = Decimal.from(scaled)
-        decimal.multiplyPow10(-fractionDigits)
-        return formatter.format(decimal).toString()
+        return value.toString()
     }
 
     val units = listOf(
@@ -55,17 +65,5 @@ private fun formatSiSuffixWithFormatter(n: Long, formatter: DecimalFormatter): S
     }
 
     // Above 1000G, keep whole-G precision.
-    return formatWithSeparatorsWithFormatter(round(floating / 1e9).toLong(), formatter) + "G"
-}
-
-/**
- * Format token counts to 3 significant figures, using base-10 SI suffixes.
- *
- * Examples (en-US):
- *   - 999 -> "999"
- *   - 1200 -> "1.20K"
- *   - 123456789 -> "123M"
- */
-fun formatSiSuffix(n: Long): String {
-    return formatSiSuffixWithFormatter(n, formatter())
+    return formatWithSeparators(round(floating / 1e9).toLong()) + "G"
 }

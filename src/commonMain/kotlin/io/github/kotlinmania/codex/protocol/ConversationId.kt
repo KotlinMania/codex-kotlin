@@ -1,9 +1,6 @@
 // port-lint: source protocol/src/conversation_id.rs
 package io.github.kotlinmania.codex.protocol
 
-import io.github.kotlinmania.schemars.Schema
-import io.github.kotlinmania.schemars.StringJsonSchema
-import io.github.kotlinmania.schemars.generate.SchemaGenerator
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.KSerializer
@@ -40,10 +37,6 @@ data class ConversationId(
 
         fun schemaName(): String {
             return "ConversationId"
-        }
-
-        fun jsonSchema(generator: SchemaGenerator): Schema {
-            return StringJsonSchema.jsonSchema(generator)
         }
     }
 

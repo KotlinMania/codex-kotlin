@@ -26,7 +26,7 @@ typealias ResponsesApiRequest = io.github.kotlinmania.codex.api.common.Responses
 
 /** Re-export wrapper for createTextParamForRequest */
 fun createTextParamForRequest(
-    verbosity: io.github.kotlinmania.codex.api.common.VerbosityConfig?,
+    verbosity: io.github.kotlinmania.codex.protocol.Verbosity?,
     outputSchema: kotlinx.serialization.json.JsonElement?,
 ) = io.github.kotlinmania.codex.api.common
     .createTextParamForRequest(verbosity, outputSchema)

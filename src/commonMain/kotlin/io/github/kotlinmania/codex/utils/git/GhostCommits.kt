@@ -3,9 +3,6 @@ package io.github.kotlinmania.codex.utils.git
 
 import io.github.kotlinmania.codex.utils.Environment
 import kotlinx.serialization.Serializable
-import okio.FileSystem
-import okio.IOException
-import okio.Path.Companion.toPath
 
 /**
  * Default commit message used for ghost commits when none is provided.
@@ -475,49 +472,32 @@ class ShellGitOperations : GitOperations {
     }
 
     private fun isDirectory(path: String): Boolean {
-        // Ported from Rust ghostCommits.rs symlinkMetadata behavior:
-        // If stat fails with ENOENT, treat as "not a directory" (return false)
-        // Log other errors but still return false for safety
-        return try {
-            FileSystem.SYSTEM.metadata(path.toPath()).isDirectory
-        } catch (e: IOException) {
-            // Log unexpected errors (not "file not found")
-            if (!e.message.orEmpty().contains("ENOENT") &&
-                !e.message.orEmpty().contains("No such file")) {
-                println("WARN: isDirectory check failed for '$path': ${e.message}")
-            }
-            false
-        }
+        return platformIsDirectory(path)
     }
 
     private fun deleteTempFile(path: String) {
-        // Ported from Rust ghostCommits.rs removePath behavior:
-        // Only ignore "file not found", log other errors
-        try {
-            FileSystem.SYSTEM.delete(path.toPath())
-        } catch (e: IOException) {
-            // Ignore "file not found" errors, log others
-            if (!e.message.orEmpty().contains("ENOENT") &&
-                !e.message.orEmpty().contains("No such file")) {
-                println("WARN: failed to delete temp file '$path': ${e.message}")
-            }
-        }
+        platformDeleteFile(path)
     }
 
     private fun deletePath(path: String) {
-        // Ported from Rust ghostCommits.rs removePath behavior:
-        // Only ignore NotFound errors, log other errors
-        // Use rm -rf for recursive directory deletion
         val exitCode = platformExecuteCommand(listOf("rm", "-rf", path))
         if (exitCode != 0) {
-            // rm -rf typically succeeds even if path does not exist,
-            // so a non-zero exit indicates a real error
             println("WARN: failed to delete path '$path': exit code $exitCode")
         }
     }
 }
 
 // ---- Platform-specific execution (expect/actual pattern) ----
+
+/**
+ * Check if path is a directory using platform APIs.
+ */
+internal expect fun platformIsDirectory(path: String): Boolean
+
+/**
+ * Delete a file using platform APIs.
+ */
+internal expect fun platformDeleteFile(path: String): Boolean
 
 /**
  * Execute git command using platform-specific process APIs.
