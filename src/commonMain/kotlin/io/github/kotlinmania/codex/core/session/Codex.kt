@@ -1396,7 +1396,7 @@ internal data class TurnContext(
     val autoCompactTokenLimit: Long? get() = client?.getAutoCompactTokenLimit()
 
     /** Stream max retries - from client provider. */
-    val streamMaxRetries: Long get() = client?.getProvider()?.streamMaxRetries() ?: 5L
+    val streamMaxRetries: Long get() = client?.getProvider()?.effectiveStreamMaxRetries() ?: 5L
 
     /**
      * Whether the model family supports parallel tool calls.

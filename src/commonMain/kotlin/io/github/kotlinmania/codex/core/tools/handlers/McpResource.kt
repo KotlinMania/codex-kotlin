@@ -24,6 +24,7 @@ import io.github.kotlinmania.codex.protocol.ReadResourceRequestParams
 import io.github.kotlinmania.codex.protocol.ReadResourceResult
 import io.github.kotlinmania.codex.protocol.ResourceContent
 import kotlin.time.TimeSource
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -96,7 +97,7 @@ data class ResourceWithServer(
         val server: String,
         val uri: String,
         val name: String,
-        val description: String? = null,
+        @SerialName("description") val descriptionText: String? = null,
         val mimeType: String? = null
 ) {
         constructor(
@@ -106,7 +107,7 @@ data class ResourceWithServer(
                 server = server,
                 uri = resource.uri,
                 name = resource.name,
-                description = resource.description,
+                descriptionText = resource.descriptionText,
                 mimeType = resource.mimeType
         )
 }
@@ -116,7 +117,7 @@ data class ResourceTemplateWithServer(
         val server: String,
         val uriTemplate: String,
         val name: String,
-        val description: String? = null,
+        @SerialName("description") val descriptionText: String? = null,
         val mimeType: String? = null
 ) {
         constructor(
@@ -126,7 +127,7 @@ data class ResourceTemplateWithServer(
                 server = server,
                 uriTemplate = template.uriTemplate,
                 name = template.name,
-                description = template.description,
+                descriptionText = template.descriptionText,
                 mimeType = template.mimeType
         )
 }

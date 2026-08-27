@@ -505,7 +505,7 @@ internal fun mcpToolToOpenAiTool(
     fullyQualifiedName: String,
     tool: io.github.kotlinmania.codex.protocol.McpTool
 ): ResponsesApiTool {
-    val description = tool.description ?: ""
+    val description = tool.descriptionText ?: ""
     val inputSchema = tool.inputSchema
 
     // Build a JsonObject mirroring the MCP tool input schema so we can reuse the

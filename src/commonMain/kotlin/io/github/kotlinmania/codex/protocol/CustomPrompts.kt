@@ -23,7 +23,8 @@ data class CustomPrompt(
     val name: String,
     val path: String,
     val content: String,
-    val description: String? = null,
+    @SerialName("description")
+    val descriptionText: String? = null,
     @SerialName("argument_hint")
     val argumentHint: String? = null
 )

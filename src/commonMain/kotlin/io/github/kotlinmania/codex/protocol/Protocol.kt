@@ -1091,7 +1091,7 @@ data class ToolInputSchema(
 @Serializable
 data class McpTool(
         val name: String,
-        val description: String? = null,
+        @SerialName("description") val descriptionText: String? = null,
         @SerialName("inputSchema") val inputSchema: ToolInputSchema = ToolInputSchema()
 )
 
@@ -1099,7 +1099,7 @@ data class McpTool(
 data class McpResource(
         val uri: String,
         val name: String = "",
-        val description: String? = null,
+        @SerialName("description") val descriptionText: String? = null,
         @SerialName("mimeType") val mimeType: String? = null
 )
 
@@ -1107,7 +1107,7 @@ data class McpResource(
 data class McpResourceTemplate(
         @SerialName("uriTemplate") val uriTemplate: String,
         val name: String = "",
-        val description: String? = null,
+        @SerialName("description") val descriptionText: String? = null,
         @SerialName("mimeType") val mimeType: String? = null
 )
 

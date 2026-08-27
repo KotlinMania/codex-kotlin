@@ -15,7 +15,7 @@ data class ReasoningEffortPreset(
     /** Effort level that the model supports. */
     val effort: ReasoningEffort,
     /** Short human description shown next to the effort in UIs. */
-    val description: String,
+    val descriptionText: String,
 )
 
 data class ModelUpgrade(
@@ -35,7 +35,7 @@ data class ModelPreset(
     /** Display name shown in UIs. */
     val displayName: String,
     /** Short human description shown in UIs. */
-    val description: String,
+    val descriptionText: String,
     /** Reasoning effort applied when none is explicitly chosen. */
     val defaultReasoningEffort: ReasoningEffort,
     /** Supported reasoning effort options. */
@@ -54,25 +54,25 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5.1-codex-max",
             model = "gpt-5.1-codex-max",
             displayName = "gpt-5.1-codex-max",
-            description = "Latest Codex-optimized flagship for deep and fast reasoning.",
+            descriptionText = "Latest Codex-optimized flagship for deep and fast reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Low,
-                        description = "Fast responses with lighter reasoning",
+                        descriptionText = "Fast responses with lighter reasoning",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Balances speed and reasoning depth for everyday tasks",
+                        descriptionText = "Balances speed and reasoning depth for everyday tasks",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex problems",
+                        descriptionText = "Maximizes reasoning depth for complex problems",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.XHigh,
-                        description = "Extra high reasoning depth for complex problems",
+                        descriptionText = "Extra high reasoning depth for complex problems",
                     ),
                 ),
             isDefault = true,
@@ -83,21 +83,21 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5.1-codex",
             model = "gpt-5.1-codex",
             displayName = "gpt-5.1-codex",
-            description = "Optimized for codex.",
+            descriptionText = "Optimized for codex.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Low,
-                        description = "Fastest responses with limited reasoning",
+                        descriptionText = "Fastest responses with limited reasoning",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Dynamically adjusts reasoning based on the task",
+                        descriptionText = "Dynamically adjusts reasoning based on the task",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
@@ -113,17 +113,17 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5.1-codex-mini",
             model = "gpt-5.1-codex-mini",
             displayName = "gpt-5.1-codex-mini",
-            description = "Optimized for codex. Cheaper, faster, but less capable.",
+            descriptionText = "Optimized for codex. Cheaper, faster, but less capable.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Dynamically adjusts reasoning based on the task",
+                        descriptionText = "Dynamically adjusts reasoning based on the task",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
@@ -139,21 +139,21 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5.1",
             model = "gpt-5.1",
             displayName = "gpt-5.1",
-            description = "Broad world knowledge with strong general reasoning.",
+            descriptionText = "Broad world knowledge with strong general reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Low,
-                        description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
+                        descriptionText = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
+                        descriptionText = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
@@ -170,21 +170,21 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5-codex",
             model = "gpt-5-codex",
             displayName = "gpt-5-codex",
-            description = "Optimized for codex.",
+            descriptionText = "Optimized for codex.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Low,
-                        description = "Fastest responses with limited reasoning",
+                        descriptionText = "Fastest responses with limited reasoning",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Dynamically adjusts reasoning based on the task",
+                        descriptionText = "Dynamically adjusts reasoning based on the task",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
@@ -200,17 +200,17 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5-codex-mini",
             model = "gpt-5-codex-mini",
             displayName = "gpt-5-codex-mini",
-            description = "Optimized for codex. Cheaper, faster, but less capable.",
+            descriptionText = "Optimized for codex. Cheaper, faster, but less capable.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Dynamically adjusts reasoning based on the task",
+                        descriptionText = "Dynamically adjusts reasoning based on the task",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
@@ -226,25 +226,25 @@ private val PRESETS: List<ModelPreset> by lazy {
             id = "gpt-5",
             model = "gpt-5",
             displayName = "gpt-5",
-            description = "Broad world knowledge with strong general reasoning.",
+            descriptionText = "Broad world knowledge with strong general reasoning.",
             defaultReasoningEffort = ReasoningEffort.Medium,
             supportedReasoningEfforts =
                 listOf(
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Minimal,
-                        description = "Fastest responses with little reasoning",
+                        descriptionText = "Fastest responses with little reasoning",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Low,
-                        description = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
+                        descriptionText = "Balances speed with some reasoning; useful for straightforward queries and short explanations",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.Medium,
-                        description = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
+                        descriptionText = "Provides a solid balance of reasoning depth and latency for general-purpose tasks",
                     ),
                     ReasoningEffortPreset(
                         effort = ReasoningEffort.High,
-                        description = "Maximizes reasoning depth for complex or ambiguous problems",
+                        descriptionText = "Maximizes reasoning depth for complex or ambiguous problems",
                     ),
                 ),
             isDefault = false,
