@@ -7,12 +7,11 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path
-import okio.Path.Companion.toPath
 
 /**
  * Handler for the listDir tool.
@@ -28,17 +27,18 @@ class ListDirHandler : ToolHandler {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
             return Result.failure(
-                FunctionCallError.RespondToModel("list_dir handler received unsupported payload")
+                FunctionCallError.Fatal("list_dir handler received unsupported payload")
             )
         }
 
-        val args = try {
-            LIST_DIR_JSON.decodeFromString<ListDirArgs>(payload.arguments)
-        } catch (e: Exception) {
-            return Result.failure(
-                FunctionCallError.RespondToModel("failed to parse function arguments: ${e.message}")
-            )
-        }
+        val args =
+            try {
+                LIST_DIR_JSON.decodeFromString<ListDirArgs>(payload.arguments)
+            } catch (e: Exception) {
+                return Result.failure(
+                    FunctionCallError.Fatal("failed to parse function arguments: ${e.message}")
+                )
+            }
 
         // Validate arguments
         if (args.offset == 0) {
@@ -67,7 +67,7 @@ class ListDirHandler : ToolHandler {
         }
 
         return try {
-            val entries = listDirSlice(dirPath.toPath(), args.offset, args.limit, args.depth)
+            val entries = listDirSlice(Path(dirPath), args.offset, args.limit, args.depth)
             val output = mutableListOf<String>()
             output.add("Absolute path: $dirPath")
             output.addAll(entries)
@@ -131,7 +131,7 @@ private val LIST_DIR_JSON = Json {
  */
 private fun listDirSlice(path: Path, offset: Int, limit: Int, depth: Int): List<String> {
     val entries = mutableListOf<DirEntry>()
-    collectEntries(path, "".toPath(), depth, entries)
+    collectEntries(path, Path(""), depth, entries)
 
     if (entries.isEmpty()) {
         return emptyList()
@@ -174,20 +174,19 @@ private fun collectEntries(
         val dirEntries = mutableListOf<Pair<Path, DirEntry>>()
 
         try {
-            FileSystem.SYSTEM.list(currentDir).forEach { entryPath ->
-                val metadata = FileSystem.SYSTEM.metadataOrNull(entryPath)
+            SystemFileSystem.list(currentDir).forEach { entryPath ->
+                val metadata = SystemFileSystem.metadataOrNull(entryPath)
                 val fileName = entryPath.name
                 val relativePath = if (prefix.toString().isEmpty()) {
-                    fileName.toPath()
+                    Path(fileName)
                 } else {
-                    (prefix.toString() + "/" + fileName).toPath()
+                    Path(prefix.toString() + "/" + fileName)
                 }
 
                 val displayName = formatEntryComponent(fileName)
                 val displayDepth = prefix.toString().split("/").filter { it.isNotEmpty() }.size
                 val sortKey = formatEntryName(relativePath)
                 val kind = when {
-                    metadata?.symlinkTarget != null -> DirEntryKind.Symlink
                     metadata?.isDirectory == true -> DirEntryKind.Directory
                     metadata?.isRegularFile == true -> DirEntryKind.File
                     else -> DirEntryKind.Other
@@ -241,15 +240,15 @@ private fun formatEntryComponent(name: String): String {
 }
 
 /**
- * Format an entry line with indentation and type suffix.
+ * Format a single entry for display.
  */
 private fun formatEntryLine(entry: DirEntry): String {
     val indent = " ".repeat(entry.depth * INDENTATION_SPACES)
-    val suffix = when (entry.kind) {
-        DirEntryKind.Directory -> "/"
-        DirEntryKind.Symlink -> "@"
-        DirEntryKind.Other -> "?"
-        DirEntryKind.File -> ""
+    val prefix = when (entry.kind) {
+        DirEntryKind.Directory -> "$indent[DIR] "
+        DirEntryKind.File -> "$indent[FILE] "
+        DirEntryKind.Symlink -> "$indent[LINK] "
+        DirEntryKind.Other -> "$indent[OTHER] "
     }
-    return "$indent${entry.displayName}$suffix"
+    return "$prefix${entry.displayName}"
 }
