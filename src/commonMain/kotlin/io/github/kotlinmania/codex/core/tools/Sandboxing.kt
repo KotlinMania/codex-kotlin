@@ -33,7 +33,7 @@ class ApprovalStore {
     }
 }
 
-suspend fun withCachedApproval(
+internal suspend fun withCachedApproval(
         services: SessionServices,
         key: Any,
         fetch: suspend () -> ReviewDecision
@@ -53,7 +53,7 @@ suspend fun withCachedApproval(
     return decision
 }
 
-data class ApprovalCtx(
+internal data class ApprovalCtx(
         val session: Session,
         val turn: TurnContext,
         val callId: String,
@@ -90,7 +90,7 @@ enum class SandboxOverride {
     BypassSandboxFirstAttempt
 }
 
-interface Approvable<Req> {
+internal interface Approvable<Req> {
     // type ApprovalKey
     // fun approvalKey(req: Req): ApprovalKey
 
@@ -130,7 +130,7 @@ interface Sandboxable {
     }
 }
 
-data class ToolCtx(
+internal data class ToolCtx(
         val session: Session,
         val turn: TurnContext,
         val callId: String,
@@ -155,7 +155,7 @@ sealed class ToolError : Exception() {
     }
 }
 
-interface ToolRuntime<Req, Out> : Approvable<Req>, Sandboxable {
+internal interface ToolRuntime<Req, Out> : Approvable<Req>, Sandboxable {
     suspend fun run(
             req: Req,
             attempt: SandboxAttempt,

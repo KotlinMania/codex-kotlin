@@ -3,11 +3,12 @@ package io.github.kotlinmania.codex.core.config
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path
-import okio.Path.Companion.toPath
-import okio.buffer
-import okio.use
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readString
+
+private val configJson = Json { ignoreUnknownKeys = true }
 
 /**
  * Loader for Codex configuration. This is a first-pass skeleton that will be
@@ -71,13 +72,13 @@ object ConfigLoader {
         overrides: ConfigOverrides? = null,
         env: Map<String, String>? = null,
     ): Result<LoadedConfig> {
-        val fs = FileSystem.SYSTEM
+        val fs = SystemFileSystem
 
         val codexHomeDir = env?.get("CODEX_HOME") ?: codexHome
         val candidates =
             buildList<Path> {
                 fun addIfNotNull(base: String?, rel: String) {
-                    if (!base.isNullOrBlank()) add((base.trimEnd('/') + "/" + rel).toPath())
+                    if (!base.isNullOrBlank()) add(Path(base.trimEnd('/') + "/" + rel))
                 }
                 // Working directory .codex
                 addIfNotNull(workingDir, ".codex/config.json")
@@ -90,8 +91,10 @@ object ConfigLoader {
                 addIfNotNull(codexHomeDir, "config.toml")
                 // XDG-style default
                 val home = env?.get("HOME")
-                addIfNotNull(home?.let { "$it/.config/codex" }, "config.json")
-                addIfNotNull(home?.let { "$it/.config/codex" }, "config.toml")
+                if (home != null) {
+                    addIfNotNull("$home/.config/codex", "config.json")
+                    addIfNotNull("$home/.config/codex", "config.toml")
+                }
             }
 
         var parsed: ConfigToml? = null
@@ -99,10 +102,10 @@ object ConfigLoader {
         for (path in candidates) {
             if (!fs.exists(path)) continue
             if (path.name.endsWith(".json")) {
-                val json = fs.source(path).buffer().use { it.readUtf8() }
+                val json = fs.source(path).buffered().use { it.readString() }
                 parsed =
                     try {
-                        Json { ignoreUnknownKeys = true }.decodeFromString<ConfigToml>(json)
+                        configJson.decodeFromString<ConfigToml>(json)
                     } catch (e: Throwable) {
                         error = "Failed to parse $path: ${e.message}"
                         null

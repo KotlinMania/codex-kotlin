@@ -12,10 +12,11 @@ import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ErrorEvent
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.utils.readiness.CancelErr
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /** Limit UI error messages to a reasonable size while keeping useful context. */
@@ -543,9 +544,9 @@ internal fun formatRetryTimestamp(resetsAt: Instant): String {
     return if (localReset.date == localNow.date) {
         formatTimeHMSP(localReset)
     } else {
-        val day = localReset.dayOfMonth
+        val day = localReset.day
         val suffix = daySuffix(day)
-        val month = monthAbbrev(localReset.monthNumber)
+        val month = monthAbbrev(localReset.month.number)
         "$month $day$suffix, ${localReset.year} ${formatTimeHMSP(localReset)}"
     }
 }

@@ -385,7 +385,7 @@ fun createReadMcpResourceTool(): ToolSpec {
     ))
 }
 
-fun buildSpecs(
+internal fun buildSpecs(
     config: ToolsConfig,
     mcpTools: Map<String, McpTool>?
 ): ToolRegistryBuilder {

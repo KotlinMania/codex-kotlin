@@ -37,7 +37,7 @@ import kotlinx.serialization.json.Json
  * - [ ] Response event parsing (AgentMessage, ToolCall, Reasoning, etc.)
  * - [ ] ModelProviderInfo for provider-specific configuration
  */
-class CodexHttpClient(
+internal class CodexHttpClient(
     private val baseUrl: String,
     private val authManager: AuthManager,
     private val maxRetries: Int = 3,
@@ -234,7 +234,7 @@ data class TextOptions(
  * @param T The transport type (for Kotlin/Native, this is abstracted by Ktor)
  * @param A The auth provider type
  */
-class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
+internal class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthProvider>(
     private val provider: Provider,
     private val auth: A,
     private val requestTelemetry: RequestTelemetry? = null,

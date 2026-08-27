@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/plan.rs
  */
-class PlanHandler : ToolHandler {
+internal class PlanHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 

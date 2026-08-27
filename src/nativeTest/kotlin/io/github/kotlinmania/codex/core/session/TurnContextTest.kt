@@ -72,7 +72,6 @@ class ShellEnvironmentPolicyTest {
     @Test
     fun testInheritAllDefault() {
         val policy = ShellEnvironmentPolicy.Inherit()
-        assertTrue(policy is ShellEnvironmentPolicy.Inherit)
         assertEquals(ShellEnvironmentInheritFilter.All, policy.filter)
     }
 
@@ -86,7 +85,6 @@ class ShellEnvironmentPolicyTest {
     fun testSanitize() {
         val vars = mapOf("CUSTOM_VAR" to "value")
         val policy = ShellEnvironmentPolicy.Sanitize(vars)
-        assertTrue(policy is ShellEnvironmentPolicy.Sanitize)
         assertEquals("value", policy.additionalVars["CUSTOM_VAR"])
     }
 }

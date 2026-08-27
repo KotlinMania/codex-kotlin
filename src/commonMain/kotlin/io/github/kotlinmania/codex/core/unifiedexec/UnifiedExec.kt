@@ -1,4 +1,3 @@
-// port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.unifiedexec
 
@@ -13,7 +12,7 @@ const val DEFAULT_MAX_OUTPUT_TOKENS: Int = 10_000
 // const val UNIFIED_EXEC_OUTPUT_MAX_TOKENS: Int = UNIFIED_EXEC_OUTPUT_MAX_BYTES / 4 // Defined in Session.kt or shared
 const val MAX_UNIFIED_EXEC_SESSIONS: Int = 64
 
-data class UnifiedExecContext(
+internal data class UnifiedExecContext(
     val session: CodexSession,
     val turn: TurnContext,
     val callId: String

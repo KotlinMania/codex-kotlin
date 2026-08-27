@@ -2,7 +2,7 @@
 package io.github.kotlinmania.codex.tui
 
 /** Commands that can be invoked by starting a message with a leading slash. */
-enum class SlashCommand(val command: String) {
+internal enum class SlashCommand(val command: String) {
     // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
     // more frequently used commands should be listed first.
     Model("model"),

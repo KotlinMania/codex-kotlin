@@ -32,13 +32,13 @@ fun createTextParamForRequest(
     .createTextParamForRequest(verbosity, outputSchema)
 
 /** Re-export from endpoint */
-typealias ChatClient<A> = io.github.kotlinmania.codex.api.endpoint.ChatClient<A>
+internal typealias ChatClient<A> = io.github.kotlinmania.codex.api.endpoint.ChatClient<A>
 
 /** Re-export from endpoint */
-typealias CompactClient<A> = io.github.kotlinmania.codex.api.endpoint.CompactClient<A>
+internal typealias CompactClient<A> = io.github.kotlinmania.codex.api.endpoint.CompactClient<A>
 
 /** Re-export from endpoint */
-typealias ResponsesClient<A> = io.github.kotlinmania.codex.api.endpoint.ResponsesClient<A>
+internal typealias ResponsesClient<A> = io.github.kotlinmania.codex.api.endpoint.ResponsesClient<A>
 
 /** Re-export from endpoint */
 typealias ResponsesOptions = io.github.kotlinmania.codex.api.endpoint.ResponsesOptions

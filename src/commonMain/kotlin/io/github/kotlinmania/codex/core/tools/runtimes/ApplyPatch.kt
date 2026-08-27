@@ -39,7 +39,7 @@ data class ApplyPatchRequest(
 
 data class ApprovalKey(val patch: String, val cwd: String)
 
-class ApplyPatchRuntime(private val processExecutor: Exec) :
+internal class ApplyPatchRuntime(private val processExecutor: Exec) :
         ToolRuntime<ApplyPatchRequest, ExecToolCallOutput>,
         Sandboxable,
         Approvable<ApplyPatchRequest> {
@@ -99,7 +99,7 @@ class ApplyPatchRuntime(private val processExecutor: Exec) :
                 val specResult = buildCommandSpec(req)
                 if (specResult.isFailure)
                         return Result.failure(
-                                specResult.exceptionOrNull() as? Throwable
+                                specResult.exceptionOrNull()
                                         ?: Exception("Unknown error")
                         )
                 val spec = specResult.getOrNull()!!

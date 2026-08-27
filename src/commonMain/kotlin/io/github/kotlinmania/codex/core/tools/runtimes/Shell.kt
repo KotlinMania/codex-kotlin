@@ -40,7 +40,7 @@ data class ShellRequest(
 
 data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
 
-class ShellRuntime(private val processExecutor: Exec) :
+internal class ShellRuntime(private val processExecutor: Exec) :
         ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {
 
     override fun sandboxPreference(): SandboxablePreference {

@@ -1,8 +1,10 @@
 package io.github.kotlinmania.codex.core.tools.handlers
 
-import okio.FileSystem
-import okio.buffer
-import okio.use
+import io.github.kotlinmania.codex.utils.Environment
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.writeString
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -10,25 +12,24 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class ReadFileTest {
-    private val fileSystem = FileSystem.SYSTEM
-    private val handler = ReadFileHandler(fileSystem)
-    private val testDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "codex-readfile-test-${Random.nextInt()}"
+    private val handler = ReadFileHandler()
+    private val testDir = Path("${Environment.TMPDIR}/codex-readfile-test-${Random.nextInt()}")
 
     init {
-        fileSystem.createDirectories(testDir)
+        SystemFileSystem.createDirectories(testDir)
     }
 
     @AfterTest
     fun cleanup() {
-        if (fileSystem.exists(testDir)) {
-            fileSystem.listOrNull(testDir)?.forEach { fileSystem.delete(it) }
-            fileSystem.delete(testDir)
+        if (SystemFileSystem.exists(testDir)) {
+            SystemFileSystem.list(testDir).forEach { SystemFileSystem.delete(it) }
+            SystemFileSystem.delete(testDir)
         }
     }
 
     private fun writeFile(name: String, contents: String): String {
-        val path = testDir / name
-        fileSystem.sink(path).buffer().use { it.writeUtf8(contents) }
+        val path = Path(testDir, name)
+        SystemFileSystem.sink(path).buffered().use { it.writeString(contents) }
         return path.toString()
     }
 

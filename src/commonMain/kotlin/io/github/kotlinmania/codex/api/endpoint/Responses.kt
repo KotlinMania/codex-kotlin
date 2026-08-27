@@ -25,7 +25,7 @@ data class ResponsesOptions(
 )
 
 /** Client for Responses endpoint. */
-class ResponsesClient<A : AuthProvider>(
+internal class ResponsesClient<A : AuthProvider>(
     httpClient: HttpClient,
     provider: Provider,
     auth: A,

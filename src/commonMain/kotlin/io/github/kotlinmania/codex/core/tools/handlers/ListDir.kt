@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/listDir.rs
  */
-class ListDirHandler : ToolHandler {
+internal class ListDirHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 

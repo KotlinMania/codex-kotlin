@@ -2,15 +2,19 @@
 package io.github.kotlinmania.codex.ollama
 
 import io.github.kotlinmania.codex.core.CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR
-import kotlinx.cinterop.ExperimentalForeignApi
+import io.github.kotlinmania.codex.utils.Environment
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import platform.posix.getenv
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalForeignApi::class)
 private fun networkDisabled(): Boolean =
-    getenv(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null
+    Environment.get(CODEX_SANDBOX_NETWORK_DISABLED_ENV_VAR) != null
 
 class ClientTest {
     @Test
@@ -19,10 +23,22 @@ class ClientTest {
             if (networkDisabled()) {
                 return@runTest
             }
-            val client = OllamaClient.fromHostRoot("http://localhost:11434")
-            runCatching {
-                client.fetchModels()
-            }
+            val mockEngine =
+                MockEngine { request ->
+                    when (request.url.encodedPath) {
+                        "/api/tags" ->
+                            respond(
+                                content = """{"models":[{"name":"llama3.2:3b"},{"name":"mistral"}]}""",
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        else -> respond("Not found", HttpStatusCode.NotFound)
+                    }
+                }
+            val client = OllamaClient.fromHostRoot("http://localhost:11434", HttpClient(mockEngine))
+            val models = client.fetchModels()
+            assertTrue(models.contains("llama3.2:3b"))
+            assertTrue(models.contains("mistral"))
         }
 
     @Test
@@ -31,12 +47,22 @@ class ClientTest {
             if (networkDisabled()) {
                 return@runTest
             }
-            runCatching {
-                OllamaClient.fromHostRoot("http://localhost:11434")
-            }
-            runCatching {
-                OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1")
-            }
+            val mockEngine =
+                MockEngine { request ->
+                    when (request.url.encodedPath) {
+                        "/api/tags", "/v1/models" ->
+                            respond(
+                                content = """{"models":[]}""",
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        else -> respond("Not found", HttpStatusCode.NotFound)
+                    }
+                }
+            val client1 = OllamaClient.fromHostRoot("http://localhost:11434", HttpClient(mockEngine))
+            val client2 = OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1", HttpClient(mockEngine))
+            assertTrue(client1.fetchModels().isEmpty())
+            assertTrue(client2.fetchModels().isEmpty())
         }
 
     @Test
@@ -45,9 +71,20 @@ class ClientTest {
             if (networkDisabled()) {
                 return@runTest
             }
-            runCatching {
-                OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1")
-            }
+            val mockEngine =
+                MockEngine { request ->
+                    when (request.url.encodedPath) {
+                        "/v1/models", "/api/tags" ->
+                            respond(
+                                content = """{"models":[]}""",
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        else -> respond("Not found", HttpStatusCode.NotFound)
+                    }
+                }
+            val client = OllamaClient.tryFromProviderWithBaseUrl("http://localhost:11434/v1", HttpClient(mockEngine))
+            assertTrue(client.fetchModels().isEmpty())
         }
 
     @Test
@@ -56,9 +93,13 @@ class ClientTest {
             if (networkDisabled()) {
                 return@runTest
             }
+            val mockEngine =
+                MockEngine { _ ->
+                    respond("Internal Server Error", HttpStatusCode.InternalServerError)
+                }
             val result =
                 runCatching {
-                    OllamaClient.tryFromProviderWithBaseUrl("http://127.0.0.1:1/v1")
+                    OllamaClient.tryFromProviderWithBaseUrl("http://127.0.0.1:1/v1", HttpClient(mockEngine))
                 }
             assertTrue(result.isFailure)
         }

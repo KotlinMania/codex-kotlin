@@ -41,7 +41,7 @@ data class UnifiedExecApprovalKey(
         val escalated: Boolean
 )
 
-class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
+internal class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
         ToolRuntime<UnifiedExecRequest, UnifiedExecSession>,
         Sandboxable,
         Approvable<UnifiedExecRequest> {
@@ -147,7 +147,7 @@ class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
                 is UnifiedExecError.SandboxError -> {
                     Result.failure(
                             ToolError.Codex(
-                                    CodexErr.Io(e.message ?: "Sandbox failed")
+                                    CodexErr.Io(e.message)
                             )
                     )
                 }

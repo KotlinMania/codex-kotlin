@@ -18,7 +18,7 @@ import kotlinx.io.files.Path
  * Widgets emit events to request actions that must be handled at the app layer, such as opening
  * pickers, persisting configuration, or shutting down the agent.
  */
-sealed class AppEvent {
+internal sealed class AppEvent {
     data class CodexEvent(val event: Event) : AppEvent()
 
     /** Start a new session. */
@@ -222,7 +222,7 @@ sealed class AppEvent {
     data object LaunchExternalEditor : AppEvent()
 }
 
-enum class RealtimeAudioDeviceKind {
+internal enum class RealtimeAudioDeviceKind {
     Microphone,
     Speaker;
 
@@ -239,29 +239,29 @@ enum class RealtimeAudioDeviceKind {
         }
 }
 
-enum class ThreadGoalSetMode {
+internal enum class ThreadGoalSetMode {
     ConfirmIfExists,
     ReplaceExisting,
 }
 
-data class HistoryLookupResponse(
+internal data class HistoryLookupResponse(
     val offset: Int,
     val logId: Long,
     val entry: HistoryEntry?,
 )
 
-enum class WindowsSandboxEnableMode {
+internal enum class WindowsSandboxEnableMode {
     Elevated,
     Legacy,
 }
 
-sealed class RateLimitRefreshOrigin {
+internal sealed class RateLimitRefreshOrigin {
     data object StartupPrefetch : RateLimitRefreshOrigin()
 
     data class StatusCommand(val requestId: Long) : RateLimitRefreshOrigin()
 }
 
-sealed class KeymapEditIntent {
+internal sealed class KeymapEditIntent {
     data object ReplaceAll : KeymapEditIntent()
 
     data object AddAlternate : KeymapEditIntent()
@@ -270,13 +270,13 @@ sealed class KeymapEditIntent {
 }
 
 /** The exit strategy requested by the UI layer. */
-enum class ExitMode {
+internal enum class ExitMode {
     ShutdownFirst,
     Immediate,
 }
 
 /** Feedback category selected by the user before optional note and upload consent flows. */
-enum class FeedbackCategory {
+internal enum class FeedbackCategory {
     BadResult,
     GoodResult,
     Bug,

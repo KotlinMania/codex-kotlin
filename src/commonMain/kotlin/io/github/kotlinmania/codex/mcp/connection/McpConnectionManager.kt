@@ -41,7 +41,7 @@ class McpConnectionManager {
     data class ElicitationResponse(val action: ElicitationAction, val content: String?)
 
     /** Initialize the connection manager with server configurations. */
-    suspend fun initialize(
+    internal suspend fun initialize(
             servers: Map<String, McpServerConfig>,
             eventChannel: Channel<Event>,
             cancellationToken: CancellationToken

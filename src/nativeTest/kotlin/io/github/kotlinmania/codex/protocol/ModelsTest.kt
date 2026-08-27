@@ -7,9 +7,10 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import platform.posix.remove
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.writeString
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -215,7 +216,7 @@ class ModelsTest {
     @Test
     fun localImageNonImageAddsPlaceholder() {
         val path = makeTempPath("not-image.txt")
-        FileSystem.SYSTEM.write(path.toPath()) { writeUtf8("not an image") }
+        SystemFileSystem.sink(Path(path)).buffered().use { it.writeString("not an image") }
 
         try {
             val item = ResponseInputItem.from(listOf(UserInput.LocalImage(path = path)))
@@ -224,7 +225,9 @@ class ModelsTest {
             val content0 = message.content[0] as ContentItem.InputText
             assertTrue(content0.text.contains("unsupported MIME type"), "expected unsupported mime placeholder")
         } finally {
-            remove(path)
+            if (SystemFileSystem.exists(Path(path))) {
+                SystemFileSystem.delete(Path(path))
+            }
         }
     }
 
@@ -235,7 +238,7 @@ class ModelsTest {
                 ?: Environment.get("TMP")
                 ?: "/tmp"
         val dir = "$tmp/codex-kotlin-${Random.nextInt(0, Int.MAX_VALUE)}"
-        FileSystem.SYSTEM.createDirectories(dir.toPath())
+        SystemFileSystem.createDirectories(Path(dir))
         return "$dir/$filename"
     }
 }

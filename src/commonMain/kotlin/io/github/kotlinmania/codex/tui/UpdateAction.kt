@@ -4,7 +4,7 @@ package io.github.kotlinmania.codex.tui
 import io.github.kotlinmania.codex.utils.Environment
 
 /** Update action the CLI should perform after the TUI exits. */
-enum class UpdateAction {
+internal enum class UpdateAction {
     /** Update via `npm install -g @openai/codex@latest`. */
     NpmGlobalLatest,
 
@@ -34,7 +34,7 @@ enum class UpdateAction {
  * current executable path and environment flags; matches
  * `detectUpdateAction` in the Rust original.
  */
-fun detectUpdateAction(
+internal fun detectUpdateAction(
     isMacos: Boolean,
     currentExe: String,
     managedByNpm: Boolean,
@@ -53,7 +53,7 @@ fun detectUpdateAction(
  * is no portable cross-platform helper for `std::env::currentExe()` in
  * Kotlin/Native.
  */
-fun getUpdateAction(currentExe: String, isMacos: Boolean): UpdateAction? =
+internal fun getUpdateAction(currentExe: String, isMacos: Boolean): UpdateAction? =
     detectUpdateAction(
         isMacos = isMacos,
         currentExe = currentExe,

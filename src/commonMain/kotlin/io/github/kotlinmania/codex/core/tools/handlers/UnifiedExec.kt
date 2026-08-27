@@ -15,8 +15,10 @@ import io.github.kotlinmania.codex.core.unifiedexec.WriteStdinRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+private val unifiedJson = Json { ignoreUnknownKeys = true }
+
 /** Handler for the unifiedExec tool. */
-class UnifiedExecHandler : ToolHandler {
+internal class UnifiedExecHandler : ToolHandler {
         override val kind: ToolKind = ToolKind.Function
 
         private val sessionManager = UnifiedExecSessionManager()
@@ -35,7 +37,7 @@ class UnifiedExecHandler : ToolHandler {
 
                 return try {
                         val args =
-                                Json { ignoreUnknownKeys = true }
+                                unifiedJson
                                         .decodeFromString<ExecCommandArgs>(arguments)
                         val command = getCommand(args)
                         !isKnownSafeCommand(command)
@@ -71,7 +73,7 @@ class UnifiedExecHandler : ToolHandler {
                                 "exec_command" -> {
                                         val args =
                                                 try {
-                                                        Json { ignoreUnknownKeys = true }
+                                                        unifiedJson
                                                                 .decodeFromString<ExecCommandArgs>(
                                                                         arguments
                                                                 )
@@ -117,7 +119,7 @@ class UnifiedExecHandler : ToolHandler {
                                 "write_stdin" -> {
                                         val args =
                                                 try {
-                                                        Json { ignoreUnknownKeys = true }
+                                                        unifiedJson
                                                                 .decodeFromString<
                                                                         WriteStdinRequest>(
                                                                         arguments

@@ -1,4 +1,3 @@
-// port-lint: ignore
 // transliterated from upstream module root + chat.rs + responses.rs
 package io.github.kotlinmania.codex.api.sse
 
@@ -30,7 +29,7 @@ import kotlin.time.TimeSource
 /**
  * Response stream wrapper around a channel.
  */
-class ChannelResponseStream(
+internal class ChannelResponseStream(
     private val channel: Channel<Result<ResponseEvent>>,
 ) : io.github.kotlinmania.codex.api.common.ResponseStream {
     /**
@@ -55,7 +54,7 @@ class ChannelResponseStream(
  * Spawn a chat stream parser from an HTTP response.
  * This is for the Chat Completions API format.
  */
-suspend fun spawnChatStream(
+internal suspend fun spawnChatStream(
     httpClient: HttpClient,
     request: HttpRequestBuilder.() -> Unit,
     idleTimeout: Duration,
@@ -83,7 +82,7 @@ suspend fun spawnChatStream(
  * Spawn a responses stream parser from an HTTP response.
  * This is for the Responses API format.
  */
-suspend fun spawnResponsesStream(
+internal suspend fun spawnResponsesStream(
     httpClient: HttpClient,
     request: HttpRequestBuilder.() -> Unit,
     idleTimeout: Duration,
@@ -116,7 +115,7 @@ suspend fun spawnResponsesStream(
 /**
  * Load an SSE stream from a test fixture file.
  */
-fun streamFromFixture(
+internal fun streamFromFixture(
     path: String,
     idleTimeout: Duration,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Default),

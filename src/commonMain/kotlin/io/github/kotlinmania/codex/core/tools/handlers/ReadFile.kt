@@ -22,7 +22,7 @@ import kotlinx.serialization.json.Json
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/readFile.rs
  */
-class ReadFileHandler : ToolHandler {
+internal class ReadFileHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 

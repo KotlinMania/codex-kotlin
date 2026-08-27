@@ -70,3 +70,7 @@ expect fun platformGetMacosDirParams(): List<Pair<String, String>>
 
 /** Platform-specific: set file permissions to 0600 (owner read/write only) */
 expect fun platformSetOwnerReadWritePermissions(path: String): Int
+
+/** Platform-specific process exit */
+expect fun platformExitProcess(code: Int): Nothing
+

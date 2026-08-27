@@ -13,7 +13,7 @@ import io.github.kotlinmania.codex.utils.git.platformExecuteCommand
 typealias ExecToolCallOutput = io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 typealias StreamOutput<T> = io.github.kotlinmania.codex.protocol.StreamOutput<T>
 
-data class StdoutStream(
+internal data class StdoutStream(
     val subId: String,
     val callId: String,
     val txEvent: kotlinx.coroutines.channels.SendChannel<io.github.kotlinmania.codex.protocol.Event>? = null,
@@ -30,7 +30,25 @@ data class ExecParams(
 )
 
 open class Exec {
-    open suspend fun executeExecEnv(
+    open suspend fun execute(
+        params: ExecParams,
+        sandboxPolicy: SandboxPolicy,
+        sandboxCwd: String = params.cwd,
+    ): CodexResult<ExecToolCallOutput> {
+        val env = ExecEnv(
+            command = params.command,
+            cwd = params.cwd,
+            env = params.env,
+            expiration = params.expiration,
+            sandbox = SandboxType.None,
+            withEscalatedPermissions = params.withEscalatedPermissions,
+            justification = params.justification,
+            arg0 = params.arg0,
+        )
+        return executeExecEnv(env, sandboxPolicy)
+    }
+
+    internal open suspend fun executeExecEnv(
         env: ExecEnv,
         policy: SandboxPolicy,
         stdoutStream: StdoutStream? = null,
@@ -38,16 +56,12 @@ open class Exec {
         if (env.command.isEmpty()) {
             return CodexResult.failure(CodexErr.Fatal("empty command"))
         }
-        val gitResult = platformExecuteCommand(
-            command = env.command,
-            workingDir = env.cwd,
-        )
-        val exitCode = if (gitResult.success) 0 else 1
+        val exitCode = platformExecuteCommand(env.command)
         val output = ExecToolCallOutput(
             exitCode = exitCode,
-            stdout = StreamOutput.of(gitResult.stdout),
-            stderr = StreamOutput.of(gitResult.stderr),
-            aggregatedOutput = StreamOutput.of(gitResult.stdout + gitResult.stderr),
+            stdout = StreamOutput.of(""),
+            stderr = StreamOutput.of(""),
+            aggregatedOutput = StreamOutput.of(""),
         )
         return CodexResult.success(output)
     }

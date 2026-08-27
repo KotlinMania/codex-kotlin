@@ -18,7 +18,7 @@ import kotlinx.io.files.SystemFileSystem
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/viewImage.rs
  */
-class ViewImageHandler : ToolHandler {
+internal class ViewImageHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 

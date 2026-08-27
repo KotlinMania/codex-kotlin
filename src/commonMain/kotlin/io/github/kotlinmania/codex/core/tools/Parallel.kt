@@ -19,7 +19,7 @@ import kotlinx.coroutines.sync.withLock
  * A ReadWriteMutex that allows multiple readers or a single writer. Matches tokio::sync::RwLock
  * semantics used in Rust.
  */
-class ReadWriteMutex {
+internal class ReadWriteMutex {
     private val writeMutex = Mutex()
     private val readMutex = Mutex()
     private var readers = 0
@@ -57,7 +57,7 @@ class ReadWriteMutex {
     }
 }
 
-class ToolCallRuntime(
+internal class ToolCallRuntime(
         private val router: ToolRouter,
         private val session: Session,
         private val turnContext: TurnContext,

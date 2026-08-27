@@ -22,7 +22,7 @@ import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class SessionEntry(
+internal data class SessionEntry(
         val session: UnifiedExecSession,
         val sessionRef: CodexSession,
         val turnRef: TurnContext,
@@ -34,7 +34,7 @@ data class SessionEntry(
         var lastUsed: Instant
 )
 
-sealed class SessionStatus {
+internal sealed class SessionStatus {
     data class Alive(val exitCode: Int?, val callId: String, val processId: String) :
             SessionStatus()
 
@@ -44,14 +44,14 @@ sealed class SessionStatus {
 }
 
 @OptIn(ExperimentalTime::class)
-class UnifiedExecSessionManager {
+internal class UnifiedExecSessionManager {
     private val sessions = Mutex() // Guards HashMap<String, SessionEntry>
     private val sessionsMap = HashMap<String, SessionEntry>()
 
     private val usedSessionIds = Mutex() // Guards HashSet<String>
     private val usedSessionIdsSet = HashSet<String>()
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun allocateProcessId(): String {
         while (true) {
@@ -237,7 +237,7 @@ class UnifiedExecSessionManager {
         var exitSignalReceived = cancellationToken.isCancelled
 
         while (true) {
-            val chunks = outputState.mutex.withLock { outputState.state.drain() }
+            val chunks: List<ByteArray> = outputState.mutex.withLock { outputState.state.drain() }
 
             if (chunks.isEmpty()) {
                 exitSignalReceived = exitSignalReceived || cancellationToken.isCancelled

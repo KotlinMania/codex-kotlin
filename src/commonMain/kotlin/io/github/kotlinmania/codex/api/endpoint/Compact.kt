@@ -16,7 +16,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
 /** Client for the compaction endpoint. */
-class CompactClient<A : AuthProvider>(
+internal class CompactClient<A : AuthProvider>(
     private val httpClient: HttpClient,
     private val provider: Provider,
     private val auth: A,

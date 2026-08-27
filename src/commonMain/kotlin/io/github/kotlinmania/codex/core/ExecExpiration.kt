@@ -41,9 +41,9 @@ sealed class ExecExpiration {
             ExecExpirationOutcome.Cancelled
         }
         is TimeoutOrCancellation -> {
-            val start = kotlinx.datetime.Clock.System.now()
+            val mark = kotlin.time.TimeSource.Monotonic.markNow()
             while (!isCancelled()) {
-                if ((kotlinx.datetime.Clock.System.now() - start) >= timeout) {
+                if (mark.elapsedNow() >= timeout) {
                     return ExecExpirationOutcome.TimedOut
                 }
                 delay(50)

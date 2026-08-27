@@ -13,7 +13,7 @@ private const val ALT_PREFIX = "⌥ + "
 private const val CTRL_PREFIX = "ctrl + "
 private const val SHIFT_PREFIX = "shift + "
 
-data class KeyBinding(
+internal data class KeyBinding(
     val key: KeyCode,
     val modifiers: KeyModifiers,
 ) {
@@ -45,19 +45,19 @@ data class KeyBinding(
     }
 }
 
-fun plain(key: KeyCode): KeyBinding {
+internal fun plain(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.NONE)
 }
 
-fun alt(key: KeyCode): KeyBinding {
+internal fun alt(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.ALT)
 }
 
-fun shift(key: KeyCode): KeyBinding {
+internal fun shift(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.SHIFT)
 }
 
-fun ctrl(key: KeyCode): KeyBinding {
+internal fun ctrl(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.CONTROL)
 }
 
@@ -79,10 +79,10 @@ private fun keyHintStyle(): Style {
     return Style(addModifier = Modifier.DIM)
 }
 
-fun hasCtrlOrAlt(mods: KeyModifiers): Boolean {
+internal fun hasCtrlOrAlt(mods: KeyModifiers): Boolean {
     return (mods.contains(KeyModifiers.CONTROL) || mods.contains(KeyModifiers.ALT)) && !isAltgr(mods)
 }
 
-fun isAltgr(mods: KeyModifiers): Boolean {
+internal fun isAltgr(mods: KeyModifiers): Boolean {
     return mods.contains(KeyModifiers.ALT) && mods.contains(KeyModifiers.CONTROL)
 }

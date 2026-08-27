@@ -10,23 +10,20 @@ class FeaturesTest {
     fun testDefaultFeatures() {
         val features = Features.withDefaults()
 
-        // Stable features with default_enabled=true
-        assertTrue(features.enabled(Feature.ParallelToolCalls))
+        // Stable features with defaultEnabled=true
         assertTrue(features.enabled(Feature.ViewImageTool))
         assertTrue(features.enabled(Feature.ShellTool))
-        assertTrue(features.enabled(Feature.ModelWarnings))
+        assertTrue(features.enabled(Feature.GhostCommit))
 
-        // GhostCommit is stable but default_enabled=false
-        assertFalse(features.enabled(Feature.GhostCommit))
-
-        // Experimental features should be disabled by default (unless defaultEnabled)
+        // Features with defaultEnabled=false
         assertFalse(features.enabled(Feature.UnifiedExec))
         assertFalse(features.enabled(Feature.ApplyPatchFreeform))
+        assertFalse(features.enabled(Feature.ParallelToolCalls))
+        assertFalse(features.enabled(Feature.WebSearchRequest))
 
-        // Experimental with default_enabled=true
+        // Experimental with defaultEnabled=true
         assertTrue(features.enabled(Feature.ExecPolicy))
         assertTrue(features.enabled(Feature.RemoteCompaction))
-        assertTrue(features.enabled(Feature.Skills))
     }
 
     @Test
@@ -43,19 +40,18 @@ class FeaturesTest {
 
     @Test
     fun testFeatureKeyLookup() {
-        assertEquals("undo", Feature.GhostCommit.key())
-        assertEquals("unified_exec", Feature.UnifiedExec.key())
-        assertEquals("shell_tool", Feature.ShellTool.key())
-        assertEquals("warnings", Feature.ModelWarnings.key())
+        assertEquals("undo", Feature.GhostCommit.key)
+        assertEquals("unified_exec", Feature.UnifiedExec.key)
+        assertEquals("shell_tool", Feature.ShellTool.key)
     }
 
     @Test
     fun testIsKnownKey() {
-        assertTrue(isKnownFeatureKey("undo"))
-        assertTrue(isKnownFeatureKey("unified_exec"))
-        assertTrue(isKnownFeatureKey("experimental_use_unified_exec_tool")) // legacy
-        assertTrue(isKnownFeatureKey("include_apply_patch_tool")) // legacy
-        assertFalse(isKnownFeatureKey("totally_fake_feature"))
+        assertTrue(Feature.isKnownKey("undo"))
+        assertTrue(Feature.isKnownKey("unified_exec"))
+        assertTrue(Feature.isKnownKey("experimental_use_unified_exec_tool")) // legacy
+        assertTrue(Feature.isKnownKey("include_apply_patch_tool")) // legacy
+        assertFalse(Feature.isKnownKey("totally_fake_feature"))
     }
 
     @Test
@@ -79,7 +75,7 @@ class FeaturesTest {
 
         features.recordLegacyUsage("experimental_use_unified_exec_tool", Feature.UnifiedExec)
 
-        val usages = features.legacyFeatureUsages()
+        val usages = features.legacyFeatureUsages().toList()
         assertEquals(1, usages.size)
         assertEquals("experimental_use_unified_exec_tool", usages[0].first)
         assertEquals(Feature.UnifiedExec, usages[0].second)
@@ -92,27 +88,16 @@ class FeaturesTest {
         // Using the current key should not record legacy usage
         features.recordLegacyUsage("unified_exec", Feature.UnifiedExec)
 
-        val usages = features.legacyFeatureUsages()
+        val usages = features.legacyFeatureUsages().toList()
         assertEquals(0, usages.size)
     }
 
     @Test
     fun testFeatureStages() {
-        assertEquals(Stage.Stable, Feature.GhostCommit.stage())
-        assertTrue(Feature.UnifiedExec.stage() is Stage.Beta)
-        assertEquals(Stage.Experimental, Feature.ApplyPatchFreeform.stage())
-        assertEquals(Stage.Stable, Feature.ModelWarnings.stage())
-    }
-
-    @Test
-    fun testBetaStageFields() {
-        val stage = Feature.UnifiedExec.stage()
-        assertTrue(stage is Stage.Beta)
-        assertEquals("Background terminal", stage.betaMenuName())
-        assertEquals(
-            "Run long-running terminal commands in the background.",
-            stage.betaMenuDescription(),
-        )
+        assertEquals(Stage.Stable, Feature.GhostCommit.stage)
+        assertEquals(Stage.Experimental, Feature.UnifiedExec.stage)
+        assertEquals(Stage.Beta, Feature.ApplyPatchFreeform.stage)
+        assertEquals(Stage.Stable, Feature.WebSearchRequest.stage)
     }
 
     @Test

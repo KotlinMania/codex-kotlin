@@ -9,7 +9,7 @@ import kotlin.math.min
  * Encapsulates optional selection, wrap-around navigation, and maintaining a scroll window so the
  * selected row stays visible.
  */
-data class ScrollState(
+internal data class ScrollState(
     /** Selected row index, or null when the list is empty. */
     var selectedIdx: Int? = null,
     /** First visible row index for the current scroll window. */

@@ -11,10 +11,10 @@ import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.ExecParams
 import io.github.kotlinmania.codex.core.Exec
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path.Companion.toPath
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/grepFiles.rs
  */
-class GrepFilesHandler : ToolHandler {
+internal class GrepFilesHandler : ToolHandler {
     private val processExecutor: Exec = Exec()
 
 
@@ -62,8 +62,8 @@ class GrepFilesHandler : ToolHandler {
         val searchPath = invocation.turn.resolvePath(args.path)
 
         // Verify path exists
-        val path = searchPath.toPath()
-        if (!FileSystem.SYSTEM.exists(path)) {
+        val path = Path(searchPath)
+        if (!SystemFileSystem.exists(path)) {
             return Result.failure(
                 FunctionCallError.RespondToModel("unable to access `$searchPath`: path does not exist")
             )
@@ -127,7 +127,7 @@ class GrepFilesHandler : ToolHandler {
         }
 
         val output = when (execResult) {
-            is io.github.kotlinmania.codex.core.CodexResult.Success -> execResult.value
+            is io.github.kotlinmania.codex.core.CodexResult.Success<io.github.kotlinmania.codex.protocol.ExecToolCallOutput> -> execResult.value
             is io.github.kotlinmania.codex.core.CodexResult.Failure -> return Result.failure(
                 FunctionCallError.RespondToModel(
                     "failed to launch rg: ${execResult.error}. Ensure ripgrep is installed and on PATH."

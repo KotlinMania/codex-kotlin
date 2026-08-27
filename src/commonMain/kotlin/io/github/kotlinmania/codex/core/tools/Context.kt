@@ -11,7 +11,7 @@ import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ShellToolCallParams
 import io.github.kotlinmania.codex.utils.string.takeBytesAtCharBoundary
 
-data class ToolInvocation(
+internal data class ToolInvocation(
     val session: Session,
     val turn: TurnContext,
     val tracker: SharedTurnDiffTracker,

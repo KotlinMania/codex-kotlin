@@ -1,4 +1,3 @@
-// port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.context
 
@@ -15,7 +14,7 @@ import io.github.kotlinmania.codex.protocol.TokenUsageInfo
 class ContextManager {
     /** The oldest items are at the beginning of the list. */
     private val items = mutableListOf<ResponseItem>()
-    private var tokenInfo: TokenUsageInfo? = TokenUsageInfoFactory.newOrAppend(null, null, null)
+    private var tokenInfo: TokenUsageInfo? = TokenUsageInfo.newOrAppend(null, null, null)
 
     /**
      * Return a deep-enough clone mirroring Rust `(derive(Clone))` on `ContextManager`.
@@ -40,7 +39,7 @@ class ContextManager {
         if (info != null) {
             tokenInfo = info.fillToContextWindow(contextWindow)
         } else {
-            tokenInfo = TokenUsageInfoFactory.fullContextWindow(contextWindow)
+            tokenInfo = TokenUsageInfo.fullContextWindow(contextWindow)
         }
     }
 
@@ -98,7 +97,7 @@ class ContextManager {
      * Update token info from usage data.
      */
     fun updateTokenInfo(usage: TokenUsage, modelContextWindow: Long?) {
-        tokenInfo = TokenUsageInfoFactory.newOrAppend(tokenInfo, usage, modelContextWindow)
+        tokenInfo = TokenUsageInfo.newOrAppend(tokenInfo, usage, modelContextWindow)
     }
 
     /**

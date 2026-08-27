@@ -19,7 +19,7 @@ data class ToolCall(
     val payload: ToolPayload
 )
 
-class ToolRouter(
+internal class ToolRouter(
     private val registry: ToolRegistry,
     private val specs: List<ConfiguredToolSpec>
 ) {
@@ -44,7 +44,7 @@ class ToolRouter(
             .any { it.spec.name() == toolName }
     }
 
-    suspend fun buildToolCall(
+    internal suspend fun buildToolCall(
         session: Session,
         item: ResponseItem
     ): Result<ToolCall?> {
@@ -110,7 +110,7 @@ class ToolRouter(
         }
     }
 
-    suspend fun dispatchToolCall(
+    internal suspend fun dispatchToolCall(
         session: Session,
         turn: TurnContext,
         tracker: SharedTurnDiffTracker,

@@ -16,17 +16,18 @@ import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.buffer
-import okio.use
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readString
+import kotlinx.io.writeString
 
 /**
  * Handler for the applyPatch tool. Applies unified diff patches to files.
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/applyPatch.rs
  */
-class ApplyPatchHandler : ToolHandler {
+internal class ApplyPatchHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 
@@ -220,16 +221,16 @@ class ApplyPatchHandler : ToolHandler {
         /** Add a new file. */
         private fun addFile(path: String, content: String, cwd: String): Result<Unit> {
             return try {
-                val fullPath = resolvePath(path, cwd).toPath()
+                val fullPath = Path(resolvePath(path, cwd))
 
                 // Create parent directories if needed
                 fullPath.parent?.let { parent ->
-                    if (!FileSystem.SYSTEM.exists(parent)) {
-                        FileSystem.SYSTEM.createDirectories(parent)
+                    if (!SystemFileSystem.exists(parent)) {
+                        SystemFileSystem.createDirectories(parent)
                     }
                 }
 
-                FileSystem.SYSTEM.sink(fullPath).buffer().use { sink -> sink.writeUtf8(content) }
+                SystemFileSystem.sink(fullPath).buffered().use { sink -> sink.writeString(content) }
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
@@ -241,8 +242,8 @@ class ApplyPatchHandler : ToolHandler {
         /** Delete a file. */
         private fun deleteFile(path: String, cwd: String): Result<Unit> {
             return try {
-                val fullPath = resolvePath(path, cwd).toPath()
-                FileSystem.SYSTEM.delete(fullPath)
+                val fullPath = Path(resolvePath(path, cwd))
+                SystemFileSystem.delete(fullPath)
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
@@ -261,12 +262,12 @@ class ApplyPatchHandler : ToolHandler {
                 cwd: String
         ): Result<Unit> {
             return try {
-                val fullPath = resolvePath(path, cwd).toPath()
+                val fullPath = Path(resolvePath(path, cwd))
 
                 // Read existing content
                 val existingContent =
-                        FileSystem.SYSTEM.source(fullPath).buffer().use { source ->
-                            source.readUtf8()
+                        SystemFileSystem.source(fullPath).buffered().use { source ->
+                            source.readString()
                         }
                 val existingLines = existingContent.lines().toMutableList()
 
@@ -280,21 +281,21 @@ class ApplyPatchHandler : ToolHandler {
                 // Handle move if specified
                 val targetPath =
                         if (newPath != null) {
-                            FileSystem.SYSTEM.delete(fullPath)
-                            resolvePath(newPath, cwd).toPath()
+                            SystemFileSystem.delete(fullPath)
+                            Path(resolvePath(newPath, cwd))
                         } else {
                             fullPath
                         }
 
                 // Create parent directories if needed (for move)
                 targetPath.parent?.let { parent ->
-                    if (!FileSystem.SYSTEM.exists(parent)) {
-                        FileSystem.SYSTEM.createDirectories(parent)
+                    if (!SystemFileSystem.exists(parent)) {
+                        SystemFileSystem.createDirectories(parent)
                     }
                 }
 
-                FileSystem.SYSTEM.sink(targetPath).buffer().use { sink ->
-                    sink.writeUtf8(newContent)
+                SystemFileSystem.sink(targetPath).buffered().use { sink ->
+                    sink.writeString(newContent)
                 }
 
                 Result.success(Unit)

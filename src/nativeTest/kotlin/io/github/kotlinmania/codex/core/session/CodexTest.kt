@@ -52,8 +52,8 @@ class FunctionCallOutputPayloadConversionTest {
         val got = FunctionCallOutputPayload.from(ctr)
 
         // structuredContent takes precedence
-        assertTrue(got.content?.contains("\"ok\":true") ?: false || got.content?.contains("\"ok\": true") ?: false)
-        assertTrue(got.content?.contains("\"value\":42") ?: false || got.content?.contains("\"value\": 42") ?: false)
+        assertTrue(got.content.contains("\"ok\":true") || got.content.contains("\"ok\": true"))
+        assertTrue(got.content.contains("\"value\":42") || got.content.contains("\"value\": 42"))
         assertEquals(true, got.success)
     }
 
@@ -92,7 +92,7 @@ class FunctionCallOutputPayloadConversionTest {
 
         // isError =true should result in success = false
         assertEquals(false, got.success)
-        assertTrue(got.content?.contains("\"message\":\"bad\"") ?: false || got.content?.contains("\"message\": \"bad\"") ?: false)
+        assertTrue(got.content.contains("\"message\":\"bad\"") || got.content.contains("\"message\": \"bad\""))
     }
 
     @Test
@@ -187,8 +187,8 @@ class SessionSourceTest {
 class InitialHistoryTest {
     @Test
     fun testNewHistory() {
-        val history = InitialHistory.New
-        assertTrue(history is InitialHistory.New)
+        val history: InitialHistory = InitialHistory.New
+        assertEquals(InitialHistory.New, history)
     }
 
     @Test
@@ -213,7 +213,6 @@ class InitialHistoryTest {
                     ),
             )
 
-        assertTrue(history is InitialHistory.Resumed)
         assertEquals(conversationId, history.payload.conversationId)
         assertEquals(1, history.payload.history.size)
         assertEquals("/tmp/rollout.jsonl", history.payload.rolloutPath)
@@ -232,7 +231,6 @@ class InitialHistoryTest {
             )
         val history = InitialHistory.Forked(rolloutItems)
 
-        assertTrue(history is InitialHistory.Forked)
         assertEquals(1, history.items.size)
     }
 }
@@ -286,7 +284,7 @@ class CompactedItemTest {
 
         assertEquals("Summary", item.message)
         assertNotNull(item.replacementHistory)
-        assertEquals(1, item.replacementHistory!!.size)
+        assertEquals(1, item.replacementHistory.size)
     }
 }
 
@@ -299,8 +297,7 @@ class RolloutItemTest {
                 content = listOf(ContentItem.InputText(text = "test message")),
             )
         val rolloutItem = RolloutItem.ResponseItemHolder(responseItem)
-
-        assertTrue(rolloutItem is RolloutItem.ResponseItemHolder)
+        assertEquals(responseItem, rolloutItem.payload)
     }
 
     @Test
@@ -308,7 +305,6 @@ class RolloutItemTest {
         val compactedItem = CompactedItem(message = "compacted")
         val rolloutItem = RolloutItem.Compacted(compactedItem)
 
-        assertTrue(rolloutItem is RolloutItem.Compacted)
         assertEquals("compacted", rolloutItem.payload.message)
     }
 }
@@ -454,7 +450,6 @@ class ContentBlockTest {
     @Test
     fun testTextContentBlock() {
         val block = ContentBlock.TextContent(text = "Hello world")
-        assertTrue(block is ContentBlock.TextContent)
         assertEquals("Hello world", block.text)
     }
 
@@ -465,7 +460,6 @@ class ContentBlockTest {
                 data = "base64encodeddata",
                 mimeType = "image/png",
             )
-        assertTrue(block is ContentBlock.ImageContent)
         assertEquals("base64encodeddata", block.data)
         assertEquals("image/png", block.mimeType)
     }
@@ -480,7 +474,6 @@ class ResponseItemTest {
                 content = listOf(ContentItem.OutputText(text = "Response text")),
             )
 
-        assertTrue(item is ResponseItem.Message)
         assertEquals("assistant", item.role)
         assertEquals(1, item.content.size)
     }
@@ -494,7 +487,6 @@ class ResponseItemTest {
                 callId = "call-123",
             )
 
-        assertTrue(item is ResponseItem.FunctionCall)
         assertEquals("shell", item.name)
         assertEquals("call-123", item.callId)
     }
@@ -512,7 +504,6 @@ class ResponseItemTest {
                 output = output,
             )
 
-        assertTrue(item is ResponseItem.FunctionCallOutput)
         assertEquals("call-123", item.callId)
         assertEquals(true, item.output.success)
     }
