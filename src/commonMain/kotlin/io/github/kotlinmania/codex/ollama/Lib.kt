@@ -1,4 +1,3 @@
-// port-lint: ignore
 // transliterated from upstream module root (ollama crate)
 package io.github.kotlinmania.codex.ollama
 
@@ -13,7 +12,7 @@ const val DEFAULT_OSS_MODEL: String = "gpt-oss:20b"
  * - Ensures a local Ollama server is reachable.
  * - Checks if the model exists locally and pulls it if missing.
  */
-suspend fun ensureOssReady(config: Config) {
+internal suspend fun ensureOssReady(config: Config) {
     val model = config.model
 
     // Verify local Ollama is reachable.

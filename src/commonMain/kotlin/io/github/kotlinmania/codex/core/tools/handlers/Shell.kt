@@ -19,7 +19,7 @@ import io.github.kotlinmania.codex.protocol.ShellCommandToolCallParams
 import io.github.kotlinmania.codex.protocol.ShellToolCallParams
 import kotlinx.serialization.json.Json
 
-class ShellHandler : ToolHandler {
+internal class ShellHandler : ToolHandler {
         override val kind: ToolKind = ToolKind.Function
 
         override fun matchesKind(payload: ToolPayload): Boolean {
@@ -109,7 +109,7 @@ class ShellHandler : ToolHandler {
                         )
                 }
 
-                suspend fun runExecLike(
+                internal suspend fun runExecLike(
                         toolName: String,
                         execParams: ExecParams,
                         session: Session,
@@ -193,7 +193,7 @@ class ShellHandler : ToolHandler {
         }
 }
 
-class ShellCommandHandler : ToolHandler {
+internal class ShellCommandHandler : ToolHandler {
         override val kind: ToolKind = ToolKind.Function
 
         override fun matchesKind(payload: ToolPayload): Boolean {
@@ -232,7 +232,7 @@ class ShellCommandHandler : ToolHandler {
         }
 
         companion object {
-                fun toExecParams(
+                internal fun toExecParams(
                         params: ShellCommandToolCallParams,
                         session: Session,
                         turnContext: TurnContext

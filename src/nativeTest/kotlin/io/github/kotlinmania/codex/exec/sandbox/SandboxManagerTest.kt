@@ -63,21 +63,18 @@ class ApprovalRequirementTest {
     @Test
     fun testSkipRequirement() {
         val req = ApprovalRequirement.Skip(bypassSandbox = true)
-        assertTrue(req is ApprovalRequirement.Skip)
         assertTrue(req.bypassSandbox)
     }
 
     @Test
     fun testNeedsApprovalRequirement() {
         val req = ApprovalRequirement.NeedsApproval(reason = "Test reason")
-        assertTrue(req is ApprovalRequirement.NeedsApproval)
         assertEquals("Test reason", req.reason)
     }
 
     @Test
     fun testForbiddenRequirement() {
         val req = ApprovalRequirement.Forbidden(reason = "Not allowed")
-        assertTrue(req is ApprovalRequirement.Forbidden)
         assertEquals("Not allowed", req.reason)
     }
 }
@@ -102,8 +99,7 @@ class ToolErrorTest {
     @Test
     fun testRejectedError() {
         val error = ToolError.Rejected("Not permitted")
-        assertTrue(error is ToolError.Rejected)
-        assertEquals("Not permitted", (error as ToolError.Rejected).message)
+        assertEquals("Not permitted", error.message)
     }
 }
 

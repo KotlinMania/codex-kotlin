@@ -2,8 +2,8 @@
 package io.github.kotlinmania.codex.exec.shell
 
 import io.github.kotlinmania.codex.utils.Environment
-import okio.FileSystem
-import okio.Path.Companion.toPath
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 
 /**
  * Shell types supported by the system
@@ -284,7 +284,7 @@ class ShellDetector {
 }
 
 private fun platformGetUserShellPath(): String? = Environment.SHELL
-private fun platformFileExists(path: String): Boolean = FileSystem.SYSTEM.exists(path.toPath())
+private fun platformFileExists(path: String): Boolean = SystemFileSystem.exists(Path(path))
 
 /**
  * Walk the PATH environment variable looking for an executable matching [binaryName].

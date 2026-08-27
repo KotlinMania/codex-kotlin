@@ -31,39 +31,39 @@ private const val OLLAMA_CONNECTION_ERROR: String =
         "Install instructions: https://github.com/ollama/ollama?tab=readme-ov-file#ollama"
 
 /** Client for interacting with a local Ollama instance. */
-class OllamaClient private constructor(
+internal class OllamaClient(
     private val client: HttpClient,
     private val hostRoot: String,
-    private val usesOpenaiCompat: Boolean,
+    private val usesOpenaiCompat: Boolean = false,
 ) {
     companion object {
-        suspend fun tryFromOssProvider(config: Config): OllamaClient {
+        suspend fun tryFromOssProvider(config: Config, client: HttpClient? = null): OllamaClient {
             val provider =
                 builtInModelProviders()[OLLAMA_OSS_PROVIDER_ID]
                     ?: error("Built-in provider $OLLAMA_OSS_PROVIDER_ID not found")
-            return tryFromProvider(provider)
+            return tryFromProvider(provider, client)
         }
 
-        suspend fun tryFromProviderWithBaseUrl(baseUrl: String): OllamaClient {
+        suspend fun tryFromProviderWithBaseUrl(baseUrl: String, client: HttpClient? = null): OllamaClient {
             val provider = createOssProviderWithBaseUrl(baseUrl, WireApi.Chat)
-            return tryFromProvider(provider)
+            return tryFromProvider(provider, client)
         }
 
-        private suspend fun tryFromProvider(provider: ModelProviderInfo): OllamaClient {
+        private suspend fun tryFromProvider(provider: ModelProviderInfo, client: HttpClient? = null): OllamaClient {
             val baseUrl = provider.baseUrl ?: error("oss provider must have a baseUrl")
             val usesOpenaiCompat =
                 isOpenaiCompatibleBaseUrl(baseUrl) ||
                     (provider.wireApi == WireApi.Chat && isOpenaiCompatibleBaseUrl(baseUrl))
             val hostRoot = baseUrlToHostRoot(baseUrl)
-            val client = HttpClient()
-            val ollamaClient = OllamaClient(client = client, hostRoot = hostRoot, usesOpenaiCompat = usesOpenaiCompat)
+            val httpClient = client ?: HttpClient()
+            val ollamaClient = OllamaClient(client = httpClient, hostRoot = hostRoot, usesOpenaiCompat = usesOpenaiCompat)
             ollamaClient.probeServer()
             return ollamaClient
         }
 
-        fun fromHostRoot(hostRoot: String): OllamaClient {
-            val client = HttpClient()
-            return OllamaClient(client = client, hostRoot = hostRoot, usesOpenaiCompat = false)
+        fun fromHostRoot(hostRoot: String, client: HttpClient? = null): OllamaClient {
+            val httpClient = client ?: HttpClient()
+            return OllamaClient(client = httpClient, hostRoot = hostRoot, usesOpenaiCompat = false)
         }
     }
 
@@ -168,8 +168,8 @@ class OllamaClient private constructor(
 
 // Test-only helpers in upstream are `impl` associated functions. Keep thin wrappers here so
 // deep port checks can match the symbol names directly.
-suspend fun tryFromProviderWithBaseUrl(baseUrl: String): OllamaClient =
+internal suspend fun tryFromProviderWithBaseUrl(baseUrl: String): OllamaClient =
     OllamaClient.tryFromProviderWithBaseUrl(baseUrl)
 
-fun fromHostRoot(hostRoot: String): OllamaClient =
+internal fun fromHostRoot(hostRoot: String): OllamaClient =
     OllamaClient.fromHostRoot(hostRoot)

@@ -3,7 +3,7 @@ package io.github.kotlinmania.codex.core.tools.runtimes
 
 import io.github.kotlinmania.codex.core.Exec
 import io.github.kotlinmania.codex.core.ExecExpiration
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StdoutStream
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.tools.Approvable
@@ -40,7 +40,7 @@ data class ShellRequest(
 
 data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
 
-class ShellRuntime(private val processExecutor: Exec) :
+internal class ShellRuntime(private val processExecutor: Exec) :
         ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {
 
     override fun sandboxPreference(): SandboxablePreference {
@@ -155,7 +155,7 @@ class ShellRuntime(private val processExecutor: Exec) :
     ): Result<ExecToolCallOutput> {
         val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
         return when (result) {
-            is io.github.kotlinmania.codex.core.CodexResult.Success -> Result.success(result.value)
+            is io.github.kotlinmania.codex.core.CodexResult.Success<ExecToolCallOutput> -> Result.success(result.value)
             is io.github.kotlinmania.codex.core.CodexResult.Failure ->
                     Result.failure(result.error.toException())
         }

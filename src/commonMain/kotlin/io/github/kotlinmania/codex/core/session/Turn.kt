@@ -1,7 +1,6 @@
 // port-lint: source core/src/state/turn.rs
 package io.github.kotlinmania.codex.core.session
 
-import io.github.kotlinmania.indexmap.IndexMap
 import io.github.kotlinmania.codex.client.auth.AuthManager
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
@@ -29,13 +28,13 @@ enum class TaskKind {
 /**
  * Metadata about the currently running turn.
  */
-class ActiveTurn {
-    private val tasks = IndexMap.new<String, RunningTask>()
+internal class ActiveTurn {
+    private val tasks = linkedMapOf<String, RunningTask>()
     val turnState = TurnState()
 
     fun addTask(task: RunningTask) {
         val subId = task.turnContext.subId
-        tasks.insert(subId, task)
+        tasks[subId] = task
     }
 
     /**
@@ -47,12 +46,12 @@ class ActiveTurn {
     }
 
     fun drainTasks(): List<RunningTask> {
-        val result = tasks.values()
+        val result = tasks.values.toList()
         tasks.clear()
         return result
     }
 
-    fun getTasks(): Map<String, RunningTask> = tasks.asEntries().toMap()
+    fun getTasks(): Map<String, RunningTask> = tasks.toMap()
 
     /**
      * Clear any pending approvals and input buffered for the current turn.
@@ -65,7 +64,7 @@ class ActiveTurn {
 /**
  * A running task in the session.
  */
-data class RunningTask(
+internal data class RunningTask(
     val done: CompletableDeferred<Unit>,
     val kind: TaskKind,
     val task: SessionTask,
@@ -78,9 +77,9 @@ data class RunningTask(
  *
  * Ported from Rust codex-rs/core/src/state/turn.rs
  */
-class TurnState {
+internal class TurnState {
     private val mutex = Mutex()
-    private val pendingApprovals = IndexMap.new<String, CompletableDeferred<ReviewDecision>>()
+    private val pendingApprovals = linkedMapOf<String, CompletableDeferred<ReviewDecision>>()
     private val pendingInput = mutableListOf<ResponseInputItem>()
 
     /**
@@ -92,7 +91,7 @@ class TurnState {
         deferred: CompletableDeferred<ReviewDecision>
     ): CompletableDeferred<ReviewDecision>? {
         return mutex.withLock {
-            pendingApprovals.insert(key, deferred)
+            pendingApprovals.put(key, deferred)
         }
     }
 
@@ -110,12 +109,6 @@ class TurnState {
      */
     suspend fun clearPending() {
         mutex.withLock {
-            // Complete any pending approvals with Denied
-            for ((_, deferred) in pendingApprovals) {
-                if (!deferred.isCompleted) {
-                    deferred.complete(ReviewDecision.Denied)
-                }
-            }
             pendingApprovals.clear()
             pendingInput.clear()
         }
@@ -150,106 +143,38 @@ class TurnState {
      */
     suspend fun hasPendingApprovals(): Boolean {
         return mutex.withLock {
-            !pendingApprovals.isEmpty()
+            pendingApprovals.isNotEmpty()
         }
     }
 }
 
 /**
+ * User input items for a turn.
+ *
+ * Ported from Rust codex-rs/core/src/state/turn.rs
+ */
+sealed class UserInput {
+    data class Text(val content: String) : UserInput()
+    data class Image(val mimeType: String, val data: String = "") : UserInput()
+    data class FileRef(val path: String) : UserInput()
+}
+
+internal class SessionTaskContext(private val session: Session) {
+    fun getSession(): Session = session
+}
+
+/**
  * Async task that drives a Session turn.
  *
- * Implementations encapsulate a specific Codex workflow (regular chat,
- * reviews, ghost snapshots, etc.). Each task instance is owned by a
- * Session and executed on a background coroutine.
- *
- * Ported from Rust codex-rs/core/src/tasks/mod.rs
+ * Ported from Rust codex-rs/core/src/state/turn.rs
  */
-interface SessionTask {
-    /**
-     * Describes the type of work the task performs.
-     */
+internal interface SessionTask {
     fun kind(): TaskKind
-
-    /**
-     * Executes the task until completion or cancellation.
-     *
-     * Implementations typically stream protocol events using session and ctx,
-     * returning an optional final agent message when finished. The provided
-     * cancellationToken is cancelled when the session requests an abort;
-     * implementers should watch for it and terminate quickly once it fires.
-     *
-     * @return Optional final agent message
-     */
+    suspend fun abort(sessionContext: SessionTaskContext, turnContext: TurnContext) {}
     suspend fun run(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
         cancellationToken: CancellationToken
     ): String?
-
-    /**
-     * Gives the task a chance to perform cleanup after an abort.
-     *
-     * The default implementation is a no-op; override this if additional
-     * teardown or notifications are required once abortAllTasks cancels the task.
-     */
-    suspend fun abort(sessionContext: SessionTaskContext, turnContext: TurnContext) {
-        // Default no-op
-    }
 }
-
-/**
- * Thin wrapper that exposes the parts of Session task runners need.
- *
- * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext
- */
-class SessionTaskContext(
-    private val session: Session
-) {
-    fun getSession(): Session = session
-
-    /**
-     * Get the auth manager for API authentication.
-     * Ported from Rust codex-rs/core/src/tasks/mod.rs SessionTaskContext::authManager
-     */
-    fun authManager(): AuthManager = session.services.authManager
-}
-
-/**
- * User input for a turn.
- *
- * Ported from Rust codex-rs/protocol/src/userInput.rs
- */
-sealed class UserInput {
-    /**
-     * Text input from the user.
-     */
-    data class Text(val content: String) : UserInput()
-
-    /**
-     * Image input from the user.
-     */
-    data class Image(
-        val data: ByteArray,
-        val mimeType: String
-    ) : UserInput() {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is Image) return false
-            return data.contentEquals(other.data) && mimeType == other.mimeType
-        }
-
-        override fun hashCode(): Int {
-            var result = data.contentHashCode()
-            result = 31 * result + mimeType.hashCode()
-            return result
-        }
-    }
-
-    /**
-     * File reference input.
-     */
-    data class FileRef(val path: String) : UserInput()
-}
-
-// TurnAbortReason is imported from io.github.kotlinmania.codex.protocol

@@ -4,7 +4,7 @@ package io.github.kotlinmania.codex.core
 import io.github.kotlinmania.codex.protocol.CodexErrorInfo
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.RateLimitWindow
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds

@@ -18,7 +18,7 @@ enum class ToolKind {
  *
  * Implements the asyncTrait pattern from Rust.
  */
-interface ToolHandler {
+internal interface ToolHandler {
     /**
      * The kind of tool this handler supports.
      */
@@ -48,7 +48,7 @@ interface ToolHandler {
 /**
  * Registry of tool handlers keyed by tool name.
  */
-class ToolRegistry(
+internal class ToolRegistry(
     private val handlers: Map<String, ToolHandler>
 ) {
     /**
@@ -127,7 +127,7 @@ data class ConfiguredToolSpec(
 /**
  * Builder for constructing a ToolRegistry with tool specs.
  */
-class ToolRegistryBuilder {
+internal class ToolRegistryBuilder {
     private val handlers = mutableMapOf<String, ToolHandler>()
     private val specs = mutableListOf<ConfiguredToolSpec>()
 

@@ -30,12 +30,6 @@ class ResponsesRequestBuilder(
     private var storeOverride: Boolean? = null
     private val extraHeaders: MutableMap<String, String> = mutableMapOf()
 
-    constructor(model: String, instructions: String, input: List<io.github.kotlinmania.codex.protocol.ResponseItem>) : this() {
-        this.model = model
-        this.instructions = instructions
-        this.input = input
-    }
-
     fun tools(tools: List<JsonElement>): ResponsesRequestBuilder {
         this.tools = tools
         return this

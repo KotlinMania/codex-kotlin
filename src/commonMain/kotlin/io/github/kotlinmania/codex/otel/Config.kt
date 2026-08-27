@@ -3,7 +3,7 @@ package io.github.kotlinmania.codex.otel
 
 import kotlinx.io.files.Path
 
-data class OtelSettings(
+internal data class OtelSettings(
     val environment: String,
     val serviceName: String,
     val serviceVersion: String,
@@ -11,20 +11,20 @@ data class OtelSettings(
     val exporter: OtelExporter,
 )
 
-enum class OtelHttpProtocol {
+internal enum class OtelHttpProtocol {
     /** HTTP protocol with binary protobuf */
     Binary,
     /** HTTP protocol with JSON payload */
     Json,
 }
 
-data class OtelTlsConfig(
+internal data class OtelTlsConfig(
     val caCertificate: Path?,
     val clientCertificate: Path?,
     val clientPrivateKey: Path?,
 )
 
-sealed class OtelExporter {
+internal sealed class OtelExporter {
     data object None : OtelExporter()
 
     data class OtlpGrpc(

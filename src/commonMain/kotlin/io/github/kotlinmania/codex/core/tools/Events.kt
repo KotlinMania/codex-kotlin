@@ -19,25 +19,25 @@ import io.github.kotlinmania.codex.protocol.TurnDiffEvent
 import io.github.kotlinmania.codex.protocol.parseCommand
 import kotlin.time.Duration
 
-class ToolEventCtx(
+internal class ToolEventCtx(
     val session: Session,
     val turn: TurnContext,
     val callId: String,
     val turnDiffTracker: SharedTurnDiffTracker?
 )
 
-sealed class ToolEventStage {
+internal sealed class ToolEventStage {
     object Begin : ToolEventStage()
     data class Success(val output: ExecToolCallOutput) : ToolEventStage()
     data class Failure(val failure: ToolEventFailure) : ToolEventStage()
 }
 
-sealed class ToolEventFailure {
+internal sealed class ToolEventFailure {
     data class Output(val output: ExecToolCallOutput) : ToolEventFailure()
     data class Message(val message: String) : ToolEventFailure()
 }
 
-suspend fun emitExecCommandBegin(
+internal suspend fun emitExecCommandBegin(
     ctx: ToolEventCtx,
     command: List<String>,
     cwd: String, // PathBuf -> String
@@ -63,7 +63,7 @@ suspend fun emitExecCommandBegin(
     )
 }
 
-sealed class ToolEmitter {
+internal sealed class ToolEmitter {
     data class Shell(
         val command: List<String>,
         val cwd: String,
@@ -320,7 +320,7 @@ data class ExecCommandResult(
     val formattedOutput: String
 )
 
-suspend fun emitExecStage(
+internal suspend fun emitExecStage(
     ctx: ToolEventCtx,
     execInput: ExecCommandInput,
     stage: ToolEventStage
@@ -380,7 +380,7 @@ suspend fun emitExecStage(
     }
 }
 
-suspend fun emitExecEnd(
+internal suspend fun emitExecEnd(
     ctx: ToolEventCtx,
     execInput: ExecCommandInput,
     execResult: ExecCommandResult
@@ -408,7 +408,7 @@ suspend fun emitExecEnd(
     )
 }
 
-suspend fun emitPatchEnd(
+internal suspend fun emitPatchEnd(
     ctx: ToolEventCtx,
     changes: Map<String, FileChange>,
     stdout: String,

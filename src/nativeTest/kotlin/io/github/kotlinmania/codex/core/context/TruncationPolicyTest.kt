@@ -24,7 +24,7 @@ class TruncationPolicyTest {
         val policy = TruncationPolicy.Bytes(100)
         val scaled = policy.mul(1.5)
         assertTrue(scaled is TruncationPolicy.Bytes)
-        assertEquals(151, (scaled as TruncationPolicy.Bytes).bytes) // 100 * 1.5 + 1
+        assertEquals(151, scaled.bytes) // 100 * 1.5 + 1
     }
 
     @Test

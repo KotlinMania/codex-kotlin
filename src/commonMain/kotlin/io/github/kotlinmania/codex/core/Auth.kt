@@ -10,7 +10,9 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.cinterop.toKString
+import io.github.kotlinmania.codex.utils.Environment
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.files.Path
@@ -25,6 +27,8 @@ import kotlin.time.TimeSource
 // ============================================================================
 // Constants
 // ============================================================================
+
+private val authJson = Json { ignoreUnknownKeys = true }
 
 @OptIn(ExperimentalTime::class)
 private val systemClock = TimeSource.Monotonic
@@ -249,7 +253,10 @@ fun createDummyChatGptAuthForTesting(): CodexAuth {
 /**
  * Create an auth from an API key.
  */
-fun codexAuthFromApiKey(apiKey: String, client: HttpClient = HttpClient()): CodexAuth =
+fun codexAuthFromApiKey(apiKey: String): CodexAuth =
+    codexAuthFromApiKey(apiKey, HttpClient())
+
+internal fun codexAuthFromApiKey(apiKey: String, client: HttpClient): CodexAuth =
     CodexAuth(
         mode = AuthMode.ApiKey,
         apiKey = apiKey,
@@ -797,35 +804,34 @@ private fun parseAuthRefreshErrorMessage(body: String): String {
  *
  * Reference: codex-rs/core/src/tokenData.rs - parseIdToken()
  */
+@OptIn(ExperimentalEncodingApi::class)
 private fun parseIdToken(jwt: String): Result<IdTokenInfo> =
     try {
-        // Decode JWT without verification
-        val decoded =
-            io.github.kotlinmania.jwt.JWT
-                .decode(jwt)
+        val parts = jwt.split('.')
+        if (parts.size < 2) {
+            Result.failure(Exception("Invalid JWT format"))
+        } else {
+            val payloadBase64 = parts[1]
+            val padded = payloadBase64.padEnd((payloadBase64.length + 3) / 4 * 4, '=')
+            val decodedBytes = Base64.UrlSafe.decode(padded)
+            val jsonStr = decodedBytes.decodeToString()
+            val json = authJson.parseToJsonElement(jsonStr).jsonObject
 
-        // Extract email
-        val email = decoded.getClaim("email").asString()
+            val email = json["email"]?.jsonPrimitive?.contentOrNull
+            val authClaim = json["https://api.openai.com/auth"]?.jsonObject
+            val planTypeStr = authClaim?.get("chatgpt_plan_type")?.jsonPrimitive?.contentOrNull
+            val planType = planTypeStr?.let { planTypeFromString(it) }
+            val accountId = authClaim?.get("chatgpt_account_id")?.jsonPrimitive?.contentOrNull
 
-        // Extract OpenAI auth claims
-        val authClaim = decoded.getClaim("https://api.openai.com/auth")
-        val authMap = authClaim.asMap()
-
-        val planTypeStr = authMap?.get("chatgpt_plan_type") as? String
-        val planType = planTypeStr?.let { planTypeFromString(it) }
-
-        val accountId = authMap?.get("chatgpt_account_id") as? String
-
-        Result.success(
-            IdTokenInfo(
-                email = email,
-                chatgptPlanType = planType,
-                chatgptAccountId = accountId,
-                rawJwt = jwt,
-            ),
-        )
-    } catch (e: io.github.kotlinmania.jwt.exceptions.JWTDecodeException) {
-        Result.failure(Exception("Failed to decode JWT: ${e.message}", e))
+            Result.success(
+                IdTokenInfo(
+                    email = email,
+                    chatgptPlanType = planType,
+                    chatgptAccountId = accountId,
+                    rawJwt = jwt,
+                ),
+            )
+        }
     } catch (e: Exception) {
         Result.failure(Exception("JWT parsing failed: ${e.message}", e))
     }
@@ -972,11 +978,4 @@ class AuthManager private constructor(
 // Platform-specific stubs
 // ============================================================================
 
-/**
- * Get environment variable value.
- *
- * Uses platform.posix.getenv for Native platforms (macOS/Linux/Windows).
- * For more complex multiplatform scenarios, consider creating expect/actual.
- */
-@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-private fun getEnvironmentVariable(name: String): String? = platform.posix.getenv(name)?.toKString()
+private fun getEnvironmentVariable(name: String): String? = Environment.get(name)

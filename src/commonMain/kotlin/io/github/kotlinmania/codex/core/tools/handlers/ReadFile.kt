@@ -8,13 +8,13 @@ import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
 import kotlin.text.iterator
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readLine
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.buffer
-import okio.use
 
 /**
  * Handler for the readFile tool. Reads file contents with support for slice mode and
@@ -22,7 +22,7 @@ import okio.use
  *
  * Ported from Rust codex-rs/core/src/tools/handlers/readFile.rs
  */
-class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : ToolHandler {
+internal class ReadFileHandler : ToolHandler {
 
     override val kind: ToolKind = ToolKind.Function
 
@@ -96,15 +96,14 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         }
     }
 
-    /** Read a simple slice of lines from a file. */
     internal fun readSlice(filePath: String, offset: Int, limit: Int): List<String> {
-        val path = filePath.toPath()
+        val path = Path(filePath)
         val collected = mutableListOf<String>()
         var lineNumber = 0
 
-        fileSystem.source(path).buffer().use { source ->
+        SystemFileSystem.source(path).buffered().use { source ->
             while (true) {
-                val line = source.readUtf8Line() ?: break
+                val line = source.readLine() ?: break
                 lineNumber++
 
                 if (lineNumber < offset) continue
@@ -240,15 +239,14 @@ class ReadFileHandler(private val fileSystem: FileSystem = FileSystem.SYSTEM) : 
         return out.map { "L${it.number}: ${it.display}" }
     }
 
-    /** Collect all lines from a file into LineRecord objects. */
     private fun collectFileLines(filePath: String): List<LineRecord> {
-        val path = filePath.toPath()
+        val path = Path(filePath)
         val lines = mutableListOf<LineRecord>()
         var number = 0
 
-        fileSystem.source(path).buffer().use { source ->
+        SystemFileSystem.source(path).buffered().use { source ->
             while (true) {
-                val raw = source.readUtf8Line() ?: break
+                val raw = source.readLine() ?: break
                 number++
                 val indent = measureIndent(raw)
                 val display = formatLine(raw)

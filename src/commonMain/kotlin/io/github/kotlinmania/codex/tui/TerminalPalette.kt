@@ -9,18 +9,18 @@ import ratatui.style.Color
  * For now, assumes truecolor support and returns an RGB color directly.
  * A more complete implementation would query terminal capabilities.
  */
-fun bestColor(target: Triple<UByte, UByte, UByte>): Color {
+internal fun bestColor(target: Triple<UByte, UByte, UByte>): Color {
     // Assume truecolor support on modern terminals.
     // A full implementation would check supportsColor equivalent.
     return Color.Rgb(target.first, target.second, target.third)
 }
 
-fun requeryDefaultColors() {
+internal fun requeryDefaultColors() {
     defaultColorsCache = null
     defaultColorsAttempted = false
 }
 
-data class DefaultColors(
+internal data class DefaultColors(
     val fg: Triple<UByte, UByte, UByte>,
     val bg: Triple<UByte, UByte, UByte>,
 )
@@ -28,7 +28,7 @@ data class DefaultColors(
 private var defaultColorsCache: DefaultColors? = null
 private var defaultColorsAttempted: Boolean = false
 
-fun defaultColors(): DefaultColors? {
+internal fun defaultColors(): DefaultColors? {
     if (!defaultColorsAttempted) {
         defaultColorsCache = queryDefaultColors()
         defaultColorsAttempted = true
@@ -36,11 +36,11 @@ fun defaultColors(): DefaultColors? {
     return defaultColorsCache
 }
 
-fun defaultFg(): Triple<UByte, UByte, UByte>? {
+internal fun defaultFg(): Triple<UByte, UByte, UByte>? {
     return defaultColors()?.fg
 }
 
-fun defaultBg(): Triple<UByte, UByte, UByte>? {
+internal fun defaultBg(): Triple<UByte, UByte, UByte>? {
     return defaultColors()?.bg
 }
 

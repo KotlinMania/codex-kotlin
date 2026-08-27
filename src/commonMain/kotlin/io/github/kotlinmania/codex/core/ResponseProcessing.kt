@@ -23,7 +23,7 @@ data class ProcessItemsResult(
     val itemsToRecord: List<ResponseItem>
 )
 
-class ToolCallProcessor(
+internal class ToolCallProcessor(
     private val config: ToolCallProcessorConfig = ToolCallProcessorConfig()
 ) {
     suspend fun processItems(

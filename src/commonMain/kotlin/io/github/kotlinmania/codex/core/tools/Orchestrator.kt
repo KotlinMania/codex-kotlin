@@ -11,7 +11,7 @@ import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.core.session.TurnContext
 
-class ToolOrchestrator {
+internal class ToolOrchestrator {
     private val sandbox = SandboxManager()
 
     suspend fun <Req, Out, T> run(

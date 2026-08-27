@@ -1,8 +1,8 @@
 // port-lint: source core/src/unifiedExec/session.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.StreamOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied
@@ -14,7 +14,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
@@ -27,7 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 const val UNIFIED_EXEC_OUTPUT_MAX_BYTES = 1024 * 1024 // Placeholder value
 const val UNIFIED_EXEC_OUTPUT_MAX_TOKENS = 1000 // Placeholder value
 
-class OutputBufferState {
+internal class OutputBufferState {
     val chunks = ArrayDeque<ByteArray>()
     var totalBytes: Int = 0
 
@@ -62,23 +61,47 @@ class OutputBufferState {
         return drained
     }
 
-    fun snapshot(): List<ByteArray> {
+    fun drainToVec(): ByteArray {
+        val result = ByteArray(totalBytes)
+        var offset = 0
+        while (chunks.isNotEmpty()) {
+            val chunk = chunks.removeFirst()
+            chunk.copyInto(result, offset)
+            offset += chunk.size
+        }
+        totalBytes = 0
+        return result
+    }
+
+    fun cloneChunks(): List<ByteArray> {
         return chunks.toList()
     }
 }
 
-data class OutputHandles(
+internal data class UnifiedExecOutput(
+        val output: StreamOutput<String>,
+        val hasMore: Boolean
+)
+
+internal data class DrainHistoryOutput(
+        val totalBytes: Int,
+        val output: String,
+        val outputBuffer: ByteArray,
+        val hasMore: Boolean
+)
+
+internal class OutputBufferStateWrapper {
+    val mutex = Mutex()
+    val state = OutputBufferState()
+}
+
+internal data class OutputHandles(
         val outputState: OutputBufferStateWrapper,
         val outputNotify: Notify,
         val cancellationToken: Job
 )
 
-class OutputBufferStateWrapper {
-    val mutex = Mutex()
-    val state = OutputBufferState()
-}
-
-class UnifiedExecSession(
+internal class UnifiedExecSession(
         private val session: ExecCommandSession,
         private val outputBuffer: OutputBufferStateWrapper,
         private val outputNotify: Notify,
@@ -99,7 +122,7 @@ class UnifiedExecSession(
             val bufferWrapper = outputBuffer
 
             val outputJob =
-                    scope.launch(Dispatchers.IO) {
+                    scope.launch(Dispatchers.Default) {
                         try {
                             for (chunk in initialOutputRx) {
                                 bufferWrapper.mutex.withLock {
@@ -169,7 +192,7 @@ class UnifiedExecSession(
     fun exitCode(): Int? = session.exitCode()
 
     suspend fun snapshotOutput(): List<ByteArray> {
-        return outputBuffer.mutex.withLock { outputBuffer.state.snapshot() }
+        return outputBuffer.mutex.withLock { outputBuffer.state.cloneChunks() }
     }
 
     fun sandboxType(): SandboxType = sandboxType

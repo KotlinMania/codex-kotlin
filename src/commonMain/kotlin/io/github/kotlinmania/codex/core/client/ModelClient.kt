@@ -46,7 +46,7 @@ import io.github.kotlinmania.codex.api.common.ResponseStream as ApiResponseStrea
  *
  * Mirrors the upstream ModelClient from core/src/client.rs
  */
-class ModelClient(
+internal class ModelClient internal constructor(
     private val config: Config,
     private val authManager: AuthManager?,
     private val otelEventManager: OtelEventManager,
@@ -86,7 +86,7 @@ class ModelClient(
      * For Chat providers, the underlying stream is optionally aggregated
      * based on the `showRawAgentReasoning` flag in the config.
      */
-    suspend fun stream(prompt: Prompt): Result<ResponseStream> {
+    internal suspend fun stream(prompt: Prompt): Result<ResponseStream> {
         return when (provider.wireApi) {
             WireApi.Responses -> streamResponsesApi(prompt)
             WireApi.Chat -> {
@@ -276,7 +276,7 @@ class ModelClient(
 
     fun getProvider(): ModelProviderInfo = provider
 
-    fun getOtelEventManager(): OtelEventManager = otelEventManager
+    internal fun getOtelEventManager(): OtelEventManager = otelEventManager
 
     fun getSessionSource(): SessionSource = sessionSource
 
@@ -472,7 +472,7 @@ private class ApiTelemetry(
  * Core ResponseStream wrapper.
  * TODO: This should be defined in core, not here.
  */
-data class ResponseStream(
+internal data class ResponseStream(
     val events: Flow<Result<ResponseEvent>>,
 )
 
@@ -480,7 +480,7 @@ data class ResponseStream(
  * Placeholder for OtelEventManager.
  * TODO: Port from codex-otel crate.
  */
-class OtelEventManager {
+internal class OtelEventManager {
     fun sseEventCompleted(
         inputTokens: Long,
         outputTokens: Long,

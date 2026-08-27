@@ -15,7 +15,7 @@ import io.ktor.client.*
 import kotlinx.serialization.json.JsonElement
 
 /** Client for Chat Completions endpoint. */
-class ChatClient<A : AuthProvider>(
+internal class ChatClient<A : AuthProvider>(
     httpClient: HttpClient,
     provider: Provider,
     auth: A,
@@ -73,7 +73,7 @@ enum class AggregateMode {
  * Stream adapter that merges token deltas into a single assistant message per turn.
  * Mirrors the upstream AggregatedStream implementation Stream for AggregatedStream.
  */
-class AggregatedStream private constructor(
+internal class AggregatedStream private constructor(
     private val inner: ResponseStream,
     private val mode: AggregateMode,
 ) : ResponseStream {
@@ -237,6 +237,6 @@ class AggregatedStream private constructor(
  * Extension functions for ResponseStream aggregation.
  * Mirrors the upstream AggregateStreamExt trait.
  */
-fun ResponseStream.aggregate(): AggregatedStream = AggregatedStream.new(this, AggregateMode.AggregatedOnly)
+internal fun ResponseStream.aggregate(): AggregatedStream = AggregatedStream.new(this, AggregateMode.AggregatedOnly)
 
-fun ResponseStream.streamingMode(): ResponseStream = this
+internal fun ResponseStream.streamingMode(): ResponseStream = this

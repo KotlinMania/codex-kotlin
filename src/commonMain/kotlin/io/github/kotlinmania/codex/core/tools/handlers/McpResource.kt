@@ -31,7 +31,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 
-class McpResourceHandler : ToolHandler {
+internal class McpResourceHandler : ToolHandler {
         override val kind: ToolKind = ToolKind.Function
 
         override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {

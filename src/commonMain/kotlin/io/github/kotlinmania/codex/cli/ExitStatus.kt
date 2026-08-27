@@ -1,11 +1,8 @@
 // port-lint: source cli/src/exit_status.rs
-@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class, kotlin.experimental.ExperimentalNativeApi::class)
-
 package io.github.kotlinmania.codex.cli
 
-import kotlin.native.OsFamily
-import kotlin.native.Platform
-import kotlin.system.exitProcess
+import io.github.kotlinmania.codex.core.platformExitProcess
+import io.github.kotlinmania.codex.core.platformIsWindows
 
 /**
  * Result describing how a child process terminated.
@@ -29,13 +26,13 @@ data class ProcessExitStatus(
  * This function never returns.
  */
 fun handleExitStatus(status: ProcessExitStatus): Nothing {
-    val isWindows = Platform.osFamily == OsFamily.WINDOWS
+    val isWindows = platformIsWindows()
     val code = status.code
     if (code != null) {
-        exitProcess(code)
+        platformExitProcess(code)
     } else if (!isWindows && status.signal != null) {
-        exitProcess(128 + status.signal)
+        platformExitProcess(128 + status.signal)
     } else {
-        exitProcess(1)
+        platformExitProcess(1)
     }
 }

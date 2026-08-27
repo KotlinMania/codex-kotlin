@@ -1,31 +1,19 @@
 // port-lint: source tui/src/key_hint.rs
-@file:OptIn(ExperimentalNativeApi::class)
-
 package io.github.kotlinmania.codex.tui
 
 import io.github.kotlinmania.crossterm.event.KeyCode
 import io.github.kotlinmania.crossterm.event.KeyEvent
 import io.github.kotlinmania.crossterm.event.KeyEventKind
 import io.github.kotlinmania.crossterm.event.KeyModifiers
-import kotlin.experimental.ExperimentalNativeApi
-import kotlin.native.OsFamily
-import kotlin.native.Platform
 import ratatui.style.Modifier
 import ratatui.style.Style
 import ratatui.text.Span
 
-private const val ALT_PREFIX_MACOS = "⌥ + "
-private const val ALT_PREFIX_OTHER = "alt + "
+private const val ALT_PREFIX = "⌥ + "
 private const val CTRL_PREFIX = "ctrl + "
 private const val SHIFT_PREFIX = "shift + "
 
-// Use macOS prefix by default; could be made platform-aware
-private val ALT_PREFIX: String = run {
-    // On macOS, import the option symbol; on other platforms, use "alt"
-    if (Platform.osFamily == OsFamily.MACOSX) ALT_PREFIX_MACOS else ALT_PREFIX_OTHER
-}
-
-data class KeyBinding(
+internal data class KeyBinding(
     val key: KeyCode,
     val modifiers: KeyModifiers,
 ) {
@@ -38,16 +26,16 @@ data class KeyBinding(
     fun toSpan(): Span {
         val modStr = modifiersToString(modifiers)
         val keyStr = when (key) {
-            is KeyCode.Enter -> "enter"
-            is KeyCode.Up -> "↑"
-            is KeyCode.Down -> "↓"
-            is KeyCode.Left -> "←"
-            is KeyCode.Right -> "→"
-            is KeyCode.PageUp -> "pgup"
-            is KeyCode.PageDown -> "pgdn"
+            KeyCode.Enter -> "enter"
+            KeyCode.Up -> "↑"
+            KeyCode.Down -> "↓"
+            KeyCode.Left -> "←"
+            KeyCode.Right -> "→"
+            KeyCode.PageUp -> "pgup"
+            KeyCode.PageDown -> "pgdn"
             else -> key.toString().lowercase()
         }
-        return Span("$modStr$keyStr", keyHintStyle())
+        return Span.styled("$modStr$keyStr", keyHintStyle())
     }
 
     companion object {
@@ -57,19 +45,19 @@ data class KeyBinding(
     }
 }
 
-fun plain(key: KeyCode): KeyBinding {
+internal fun plain(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.NONE)
 }
 
-fun alt(key: KeyCode): KeyBinding {
+internal fun alt(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.ALT)
 }
 
-fun shift(key: KeyCode): KeyBinding {
+internal fun shift(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.SHIFT)
 }
 
-fun ctrl(key: KeyCode): KeyBinding {
+internal fun ctrl(key: KeyCode): KeyBinding {
     return KeyBinding(key = key, modifiers = KeyModifiers.CONTROL)
 }
 
@@ -88,16 +76,13 @@ private fun modifiersToString(modifiers: KeyModifiers): String {
 }
 
 private fun keyHintStyle(): Style {
-    return Style(addModifier = ratatui.style.Modifier.DIM)
+    return Style(addModifier = Modifier.DIM)
 }
 
-fun hasCtrlOrAlt(mods: KeyModifiers): Boolean {
+internal fun hasCtrlOrAlt(mods: KeyModifiers): Boolean {
     return (mods.contains(KeyModifiers.CONTROL) || mods.contains(KeyModifiers.ALT)) && !isAltgr(mods)
 }
 
-fun isAltgr(mods: KeyModifiers): Boolean {
-    // AltGr is only relevant on Windows where it sends Alt+Ctrl together.
-    // On non-Windows platforms, this always returns false.
-    return kotlin.native.Platform.osFamily == OsFamily.WINDOWS &&
-        mods.contains(KeyModifiers.ALT) && mods.contains(KeyModifiers.CONTROL)
+internal fun isAltgr(mods: KeyModifiers): Boolean {
+    return mods.contains(KeyModifiers.ALT) && mods.contains(KeyModifiers.CONTROL)
 }

@@ -8,6 +8,8 @@ import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.truncateText
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
+import kotlinx.io.*
+import kotlinx.io.files.*
 import io.github.kotlinmania.codex.core.features.Feature
 import io.github.kotlinmania.codex.core.features.Features
 import io.github.kotlinmania.codex.core.ProcessedResponseItem
@@ -135,6 +137,12 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
+private val codexJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+private val rolloutJson = kotlinx.serialization.json.Json {
+    ignoreUnknownKeys = true
+    classDiscriminator = "type"
+}
+
 /**
  * Timeout for graceful task interruption before forcing abort.
  * Ported from Rust codex-rs/core/src/tasks/mod.rs GRACEFULL_INTERRUPTION_TIMEOUT_MS
@@ -226,7 +234,7 @@ class Codex internal constructor(
     /**
      * Get a Flow of events for reactive consumption.
      */
-    fun eventFlow(): Flow<Event> = rxEvent.receiveAsFlow()
+    internal fun eventFlow(): Flow<Event> = rxEvent.receiveAsFlow()
 }
 
 /**
@@ -330,7 +338,7 @@ suspend fun spawnCodex(
  * Ported from Rust codex-rs/core/src/codex.rs Session
  */
 @OptIn(ExperimentalAtomicApi::class)
-class Session private constructor(
+internal class Session private constructor(
     val conversationId: ConversationId,
     private val txEvent: Channel<Event>,
     private val state: SessionState,
@@ -344,7 +352,7 @@ class Session private constructor(
     /**
      * Get the event sender channel.
      */
-    fun getTxEvent(): Channel<Event> = txEvent
+    internal fun getTxEvent(): Channel<Event> = txEvent
 
     /**
      * Ensure all rollout writes are durably flushed.
@@ -1157,7 +1165,7 @@ class Session private constructor(
          * Create a new session.
          */
         @OptIn(ExperimentalAtomicApi::class)
-        suspend fun new(
+        internal suspend fun new(
             sessionConfiguration: SessionConfiguration,
             config: Config,
             authManager: AuthManager,
@@ -1329,7 +1337,7 @@ private val TURN_CONTEXT_DEFAULT_COMPACT_PROMPT = """
     - Critical constraints and requirements
 """.trimIndent()
 
-data class TurnContext(
+internal data class TurnContext(
     val subId: String,
     /**
      * The model client for this turn - provides access to OTEL, config, and API calls.
@@ -1345,6 +1353,7 @@ data class TurnContext(
     val cwd: String,
     val developerInstructions: String? = null,
     val baseInstructions: String? = null,
+    @get:kotlin.jvm.JvmName("getRawCompactPrompt")
     val compactPrompt: String? = null,
     val userInstructions: String? = null,
     val approvalPolicy: AskForApproval,
@@ -1599,9 +1608,6 @@ private suspend fun submissionLoop(
             is Op.Review -> {
                 Handlers.review(sess, config, sub.id, op.reviewRequest)
             }
-            else -> {
-                // Ignore unknown ops
-            }
         }
     }
     println("DEBUG: Agent loop exited")
@@ -1816,7 +1822,7 @@ private object Handlers {
  *
  * Ported from Rust codex-rs/core/src/codex.rs runTask
  */
-suspend fun runTask(
+internal suspend fun runTask(
     sess: Session,
     turnContext: TurnContext,
     input: List<UserInput>,
@@ -2115,8 +2121,7 @@ private suspend fun tryRunTurn(
 
                         else -> {
                             // Tool call error - respond with error message
-                            val errorResult = toolCallResult as? CodexResult.Failure
-                            val errorMessage = errorResult?.error?.toException()?.message ?: "Unknown tool call error"
+                            val errorMessage = toolCallResult.exceptionOrNull()?.message ?: "Unknown tool call error"
 
                             val response = ResponseInputItem.FunctionCallOutput(
                                 callId = "",
@@ -2442,7 +2447,7 @@ private const val REVIEW_EXIT_INTERRUPTED_TMPL = """<user_action>
 /**
  * Holder for the active turn with mutex protection.
  */
-class ActiveTurnHolder {
+internal class ActiveTurnHolder {
     private val mutex = Mutex()
     private var turn: ActiveTurn? = null
 
@@ -2475,7 +2480,7 @@ class ActiveTurnHolder {
  *
  * Ported from Rust codex-rs/core/src/state.rs SessionServices
  */
-data class SessionServices(
+internal data class SessionServices(
     val mcpConnectionManager: McpConnectionManager,
     val mcpStartupCancellationToken: CancellationToken,
     val unifiedExecManager: UnifiedExecSessionManager,
@@ -2492,7 +2497,7 @@ data class SessionServices(
  *
  * Ported from Rust codex-rs/core/src/state.rs SessionState
  */
-class SessionState(
+internal class SessionState(
     var sessionConfiguration: SessionConfiguration
 ) {
     private val contextManager = ContextManager()
@@ -2697,8 +2702,8 @@ class RolloutRecorder(
          */
         suspend fun getRolloutHistory(path: String): CodexResult<InitialHistory> {
             val text = try {
-                okio.FileSystem.SYSTEM.read(okio.Path.Companion.run { path.toPath() }) { readUtf8() }
-            } catch (e: okio.IOException) {
+                SystemFileSystem.source(Path(path)).buffered().use { it.readString() }
+            } catch (e: Exception) {
                 return CodexResult.failure(CodexErr.Io(e.message ?: "failed to read rollout file"))
             }
             if (text.trim().isEmpty()) {
@@ -2707,12 +2712,9 @@ class RolloutRecorder(
 
             val items: MutableList<RolloutItem> = mutableListOf()
             var conversationId: io.github.kotlinmania.codex.protocol.ConversationId? = null
-            val json = kotlinx.serialization.json.Json {
-                ignoreUnknownKeys = true
-                classDiscriminator = "type"
-            }
+            val json = rolloutJson
 
-            for (line in text.lineSequence()) {
+            for (line in text.lines()) {
                 if (line.trim().isEmpty()) continue
                 val rolloutLine = try {
                     json.decodeFromString(
@@ -3031,7 +3033,7 @@ private suspend fun runCompactTaskInner(sess: Session, turnContext: TurnContext,
     sess.persistRolloutItems(listOf(rolloutItem))
 
     // Send compaction event
-    val event = EventMsg.ContextCompacted(ContextCompactedEvent())
+    val event = EventMsg.ContextCompacted(ContextCompactedEvent)
     sess.sendEvent(turnContext, event)
 
     // Send warning about compaction limitations
@@ -3098,7 +3100,7 @@ private fun environmentContextDiff(prev: TurnContext, next: TurnContext): Enviro
 
 // Note: SessionTask, SessionTaskContext are defined in Turn.kt
 
-class RegularTask : SessionTask {
+internal class RegularTask : SessionTask {
     override fun kind() = TaskKind.Regular
     override suspend fun run(
         sessionContext: SessionTaskContext,
@@ -3110,7 +3112,7 @@ class RegularTask : SessionTask {
     }
 }
 
-class UserShellCommandTask(private val command: String) : SessionTask {
+internal class UserShellCommandTask(private val command: String) : SessionTask {
     private val processExecutor = Exec()
 
     override fun kind() = TaskKind.Regular
@@ -3234,7 +3236,7 @@ class UserShellCommandTask(private val command: String) : SessionTask {
     }
 }
 
-class UndoTask : SessionTask {
+internal class UndoTask : SessionTask {
     private val gitOperations = ShellGitOperations()
 
     override fun kind() = TaskKind.Regular
@@ -3348,7 +3350,7 @@ class UndoTask : SessionTask {
  *
  * Ported from Rust codex-rs/core/src/tasks/compact.rs
  */
-class CompactTask : SessionTask {
+internal class CompactTask : SessionTask {
     override fun kind() = TaskKind.Compact
 
     override suspend fun run(
@@ -3396,87 +3398,85 @@ class CompactTask : SessionTask {
         }
 
         // Send to model for summarization using regular task flow
-        val compactionInput = listOf(UserInput.Text(compactionRequest))
-        val summaryResult = runTask(session, turnContext, compactionInput, cancellationToken)
+        val compactInput = listOf(UserInput.Text(compactionRequest))
+        val summaryResponse = runTask(session, turnContext, compactInput, cancellationToken)
 
-        // Use the summary or a default if model did not respond
-        val summary = summaryResult ?: "[Previous conversation context compacted]"
+        if (summaryResponse == null) {
+            println("WARN: compaction failed - no response from model")
+            return null
+        }
 
-        // Build initial context
-        val initialContext = session.buildInitialContext(turnContext)
+        // Extract summary text
+        val summary = extractSummaryFromResponse(summaryResponse)
 
-        // Build compacted history
-        val compactedHistory = buildCompactedHistory(initialContext, userMessages, summary)
-
-        // Replace session history
-        session.replaceHistory(compactedHistory)
-
-        // Persist compacted state to rollout
-        val rolloutItem = io.github.kotlinmania.codex.protocol.RolloutItem.Compacted(
-            payload = io.github.kotlinmania.codex.protocol.CompactedItem(
-                message = summary,
-                replacementHistory = compactedHistory
-            )
+        // Build new compacted history
+        val compactedItems = buildCompactedHistory(
+            initialContext = emptyList(),
+            userMessages = userMessages,
+            summary = summary
         )
-        session.persistRolloutItems(listOf(rolloutItem))
+
+        // Replace session history with compacted version
+        session.replaceHistory(compactedItems)
 
         // Send ContextCompacted event
         session.sendEvent(
             turnContext,
-            EventMsg.ContextCompacted(ContextCompactedEvent())
+            EventMsg.ContextCompacted(ContextCompactedEvent)
         )
 
-        println("INFO: compact task completed - history compacted from ${snapshot.size} to ${compactedHistory.size} items")
-
-        return null
+        return summary
     }
-}
 
-/**
- * Format history items as text for compaction prompt.
- */
-private fun formatHistoryForCompaction(history: List<ResponseItem>): String {
-    return buildString {
-        for (item in history) {
+    private fun collectUserMessages(items: List<ResponseItem>): List<ResponseItem.Message> {
+        return items.filterIsInstance<ResponseItem.Message>()
+            .filter { it.role == "user" }
+    }
+
+    private fun formatHistoryForCompaction(items: List<ResponseItem>): String {
+        return items.joinToString("\n---\n") { item ->
             when (item) {
-                is ResponseItem.Message -> {
-                    val role = item.role.uppercase()
-                    val content = item.content.joinToString("\n") { contentItem ->
-                        when (contentItem) {
-                            is ContentItem.InputText -> contentItem.text
-                            is ContentItem.OutputText -> contentItem.text
-                            else -> ""
-                        }
-                    }
-                    if (content.isNotBlank()) {
-                        appendLine("[$role]: $content")
-                        appendLine()
-                    }
-                }
-                is ResponseItem.FunctionCall -> {
-                    appendLine("[TOOL CALL: ${item.name}]")
-                }
-                is ResponseItem.FunctionCallOutput -> {
-                    val output = item.output.content.take(200)
-                    val truncated = if (item.output.content.length > 200) "..." else ""
-                    appendLine("[TOOL OUTPUT]: $output$truncated")
-                }
-                is ResponseItem.Reasoning -> {
-                    item.summary.firstOrNull()?.let { summary ->
-                        if (summary is io.github.kotlinmania.codex.protocol.ReasoningItemReasoningSummary.SummaryText) {
-                            appendLine("[REASONING]: ${summary.text.take(100)}...")
-                        }
-                    }
-                }
-                else -> {
-                    // Skip other item types
-                }
+                is ResponseItem.Message -> "${item.role.uppercase()}: ${item.content.filterIsInstance<ContentItem.InputText>().joinToString("\n") { it.text }}"
+                is ResponseItem.FunctionCall -> "TOOL CALL: ${item.name}(${item.arguments})"
+                is ResponseItem.FunctionCallOutput -> "TOOL RESULT: ${item.output}"
+                else -> item.toString()
             }
         }
     }
+
+    private fun extractSummaryFromResponse(response: String): String {
+        // Look for summary prefix or take the whole response
+        return if (response.contains(SUMMARY_PREFIX)) {
+            response.substringAfter(SUMMARY_PREFIX).trim()
+        } else {
+            response.trim()
+        }
+    }
+
+    private fun buildCompactedHistory(
+        initialContext: List<ResponseItem>,
+        userMessages: List<ResponseItem.Message>,
+        summary: String
+    ): List<ResponseItem> {
+        val result = mutableListOf<ResponseItem>()
+
+        // Keep initial system instructions/context
+        result.addAll(initialContext)
+
+        // Add summary message with prefix
+        result.add(ResponseItem.Message(
+            role = "user",
+            content = listOf(ContentItem.InputText("$SUMMARY_PREFIX\n\n$summary"))
+        ))
+
+        // Keep recent user messages
+        result.addAll(userMessages.takeLast(3))
+
+        return result
+    }
 }
 
-class GhostSnapshotTask(
+internal class GhostSnapshotTask(
     private val token: ReadinessToken,
     private val readinessFlag: ReadinessFlag
 ) : SessionTask {
@@ -3608,7 +3608,7 @@ private fun formatLargeUntrackedWarning(report: GhostSnapshotReport): String? {
  *
  * Ported from Rust codex-rs/core/src/tasks/review.rs
  */
-class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
+internal class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
     override fun kind() = TaskKind.Review
 
     /**
@@ -3663,8 +3663,7 @@ class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
 
         // Try direct JSON parsing first
         try {
-            return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString<ReviewOutputEvent>(text)
+            return codexJson.decodeFromString<ReviewOutputEvent>(text)
         } catch (_: Exception) {
             // Continue to fallback parsing
         }
@@ -3675,8 +3674,7 @@ class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
         if (startBrace >= 0 && endBrace > startBrace) {
             val jsonSlice = text.substring(startBrace, endBrace + 1)
             try {
-                return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                    .decodeFromString<ReviewOutputEvent>(jsonSlice)
+                return codexJson.decodeFromString<ReviewOutputEvent>(jsonSlice)
             } catch (_: Exception) {
                 // Continue to fallback
             }

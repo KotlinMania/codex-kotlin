@@ -14,7 +14,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class TestSyncHandler : ToolHandler {
+internal class TestSyncHandler : ToolHandler {
     override val kind: ToolKind = ToolKind.Function
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {

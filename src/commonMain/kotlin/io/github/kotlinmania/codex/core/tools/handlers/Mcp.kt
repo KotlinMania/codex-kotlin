@@ -16,7 +16,7 @@ import kotlinx.serialization.json.JsonElement
  * result into a `ToolOutput.Mcp` value. Mirrors the upstream McpHandler in
  * codex-rs/core/src/tools/handlers/mcp.rs.
  */
-class McpHandler : ToolHandler {
+internal class McpHandler : ToolHandler {
     override val kind: ToolKind = ToolKind.Mcp
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {

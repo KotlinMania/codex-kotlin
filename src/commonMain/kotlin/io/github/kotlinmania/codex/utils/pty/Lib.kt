@@ -1,4 +1,3 @@
-// port-lint: ignore
 // transliterated from upstream module root (utils/pty crate)
 package io.github.kotlinmania.codex.utils.pty
 
@@ -13,7 +12,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 
 import io.github.kotlinmania.codex.core.createPlatformProcess
 import io.github.kotlinmania.codex.core.ProcessHandle
@@ -26,7 +24,7 @@ import kotlinx.coroutines.isActive
  * Represents an active execution session.
  * In Rust this uses portablePty, here we import pipes via Exec/PlatformProcess.
  */
-class ExecCommandSession(
+internal class ExecCommandSession(
     private val writerTx: SendChannel<ByteArray>,
     private val outputTx: ReceiveChannel<ByteArray>, // Broadcast in Rust, here simple channel or flow
     private val killer: ProcessKiller,
@@ -59,17 +57,17 @@ class ExecCommandSession(
     }
 }
 
-interface ProcessKiller {
+internal interface ProcessKiller {
     fun kill()
 }
 
-data class SpawnedPty(
+internal data class SpawnedPty(
     val session: ExecCommandSession,
     val outputRx: ReceiveChannel<ByteArray>,
     val exitRx: ReceiveChannel<Int>
 )
 
-suspend fun spawnPtyProcess(
+internal suspend fun spawnPtyProcess(
     command: String,
     args: List<String>,
     cwd: String,
@@ -93,7 +91,7 @@ suspend fun spawnPtyProcess(
     
     // Reader Jobs (Stdout/Stderr)
     // We launch separate jobs for stdout and stderr because read() is blocking
-    val stdoutJob = scope.launch(Dispatchers.IO) {
+    val stdoutJob = scope.launch(Dispatchers.Default) {
         val buffer = ByteArray(4096)
         while (isActive) {
             val n = process.readStdout(buffer)
@@ -105,7 +103,7 @@ suspend fun spawnPtyProcess(
         }
     }
 
-    val stderrJob = scope.launch(Dispatchers.IO) {
+    val stderrJob = scope.launch(Dispatchers.Default) {
         val buffer = ByteArray(4096)
         while (isActive) {
             val n = process.readStderr(buffer)
@@ -118,7 +116,7 @@ suspend fun spawnPtyProcess(
     }
 
     // Waiter Job: waits for process exit and ensures streams are drained
-    val waiterJob = scope.launch(Dispatchers.IO) {
+    val waiterJob = scope.launch(Dispatchers.Default) {
         val code = process.onAwait()
         exitCode.value = code
         exitStatus.value = true
@@ -130,13 +128,13 @@ suspend fun spawnPtyProcess(
         outputCh.close()
     }
     
-    val writerJob = scope.launch(Dispatchers.IO) {
+    val writerJob = scope.launch(Dispatchers.Default) {
         for (data in writerCh) {
             // TODO: Implement writing to process stdin
         }
     }
     
-    val waitJob = scope.launch(Dispatchers.IO) {
+    val waitJob = scope.launch(Dispatchers.Default) {
         // Already handled in readerJob for now
     }
     

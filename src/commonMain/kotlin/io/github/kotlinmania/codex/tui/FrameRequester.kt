@@ -18,7 +18,7 @@ import kotlin.time.Instant
  * Instances of this class can be shared across coroutines to trigger frame draws from anywhere in
  * the TUI code.
  */
-class FrameRequester private constructor(
+internal class FrameRequester private constructor(
     private val frameScheduleTx: SendChannel<Instant>,
 ) {
     companion object {

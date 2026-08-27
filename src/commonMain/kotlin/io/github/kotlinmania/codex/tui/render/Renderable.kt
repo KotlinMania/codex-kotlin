@@ -7,7 +7,7 @@ import ratatui.text.Line
 import ratatui.text.Span
 import ratatui.widgets.paragraph.Paragraph
 
-interface Renderable {
+internal interface Renderable {
     fun render(area: Rect, buf: Buffer)
     fun desiredHeight(width: Int): Int
 
@@ -22,7 +22,7 @@ interface Renderable {
     }
 }
 
-sealed class RenderableItem : Renderable {
+internal sealed class RenderableItem : Renderable {
     class Owned(val child: Renderable) : RenderableItem() {
         override fun render(area: Rect, buf: Buffer) = child.render(area, buf)
         override fun desiredHeight(width: Int): Int = child.desiredHeight(width)
@@ -64,13 +64,13 @@ sealed class RenderableItem : Renderable {
 }
 
 /** A no-op renderable with zero height. */
-object EmptyRenderable : Renderable {
+internal object EmptyRenderable : Renderable {
     override fun render(area: Rect, buf: Buffer) {}
     override fun desiredHeight(width: Int): Int = 0
 }
 
 /** A renderable that renders a single string. */
-class StringRenderable(private val text: String) : Renderable {
+internal class StringRenderable(private val text: String) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         Span(text).render(area, buf)
     }
@@ -79,7 +79,7 @@ class StringRenderable(private val text: String) : Renderable {
 }
 
 /** A renderable that wraps a [Span]. */
-class SpanRenderable(private val span: Span) : Renderable {
+internal class SpanRenderable(private val span: Span) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         span.render(area, buf)
     }
@@ -88,7 +88,7 @@ class SpanRenderable(private val span: Span) : Renderable {
 }
 
 /** A renderable that wraps a [Line]. */
-class LineRenderable(private val line: Line) : Renderable {
+internal class LineRenderable(private val line: Line) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         line.render(area, buf)
     }
@@ -97,7 +97,7 @@ class LineRenderable(private val line: Line) : Renderable {
 }
 
 /** A renderable that wraps a [Paragraph]. */
-class ParagraphRenderable(private val paragraph: Paragraph) : Renderable {
+internal class ParagraphRenderable(private val paragraph: Paragraph) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         paragraph.render(area, buf)
     }
@@ -106,7 +106,7 @@ class ParagraphRenderable(private val paragraph: Paragraph) : Renderable {
 }
 
 /** A renderable that delegates to an optional inner renderable. */
-class OptionalRenderable(private val inner: Renderable?) : Renderable {
+internal class OptionalRenderable(private val inner: Renderable?) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         val renderable = inner
         if (renderable != null) {
@@ -124,7 +124,7 @@ class OptionalRenderable(private val inner: Renderable?) : Renderable {
 }
 
 /** Lays out children in a vertical column. */
-class ColumnRenderable : Renderable {
+internal class ColumnRenderable : Renderable {
     private val children: MutableList<RenderableItem> = mutableListOf()
 
     override fun render(area: Rect, buf: Buffer) {
@@ -184,7 +184,7 @@ class ColumnRenderable : Renderable {
     }
 }
 
-private class FlexChild(
+private data class FlexChild(
     val flex: Int,
     val child: RenderableItem,
 )
@@ -195,7 +195,7 @@ private class FlexChild(
  * Children with flex factor > 0 will be allocated the remaining space after the non-flex children,
  * proportional to the flex factor.
  */
-class FlexRenderable : Renderable {
+internal class FlexRenderable : Renderable {
     private val children: MutableList<FlexChild> = mutableListOf()
 
     fun push(flex: Int, child: Renderable) {
@@ -286,7 +286,7 @@ class FlexRenderable : Renderable {
 }
 
 /** Lays out children in a horizontal row with specified widths. */
-class RowRenderable : Renderable {
+internal class RowRenderable : Renderable {
     private val children: MutableList<Pair<Int, RenderableItem>> = mutableListOf()
 
     override fun render(area: Rect, buf: Buffer) {
@@ -343,7 +343,7 @@ class RowRenderable : Renderable {
 }
 
 /** A renderable that wraps a child with insets. */
-class InsetRenderable(
+internal class InsetRenderable(
     private val child: RenderableItem,
     private val insets: Insets,
 ) : Renderable {
@@ -360,7 +360,7 @@ class InsetRenderable(
     }
 
     companion object {
-        fun new(child: Renderable, insets: Insets): InsetRenderable {
+        internal fun new(child: Renderable, insets: Insets): InsetRenderable {
             return InsetRenderable(
                 child = RenderableItem.Owned(child),
                 insets = insets,
@@ -370,6 +370,6 @@ class InsetRenderable(
 }
 
 /** Extension to wrap a renderable with insets. */
-fun Renderable.inset(insets: Insets): RenderableItem {
+internal fun Renderable.inset(insets: Insets): RenderableItem {
     return RenderableItem.Owned(InsetRenderable(RenderableItem.Owned(this), insets))
 }

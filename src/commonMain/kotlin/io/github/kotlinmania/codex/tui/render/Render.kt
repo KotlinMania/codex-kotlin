@@ -3,7 +3,7 @@ package io.github.kotlinmania.codex.tui.render
 
 import ratatui.layout.Rect
 
-data class Insets(
+internal data class Insets(
     val left: Int = 0,
     val top: Int = 0,
     val right: Int = 0,
@@ -27,7 +27,7 @@ data class Insets(
     }
 }
 
-fun Rect.inset(insets: Insets): Rect {
+internal fun Rect.inset(insets: Insets): Rect {
     val horizontal = saturatingAdd(insets.left, insets.right)
     val vertical = saturatingAdd(insets.top, insets.bottom)
     return Rect(

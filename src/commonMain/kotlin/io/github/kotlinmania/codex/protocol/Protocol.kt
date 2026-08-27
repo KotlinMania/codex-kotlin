@@ -123,6 +123,20 @@ sealed class SandboxPolicy {
             @SerialName("exclude_slash_tmp") val excludeSlashTmp: Boolean = false
     ) : SandboxPolicy()
 
+    companion object {
+        fun newWorkspaceWritePolicy(
+            writableRoots: List<String> = emptyList(),
+            networkAccess: Boolean = false,
+            excludeTmpdirEnvVar: Boolean = false,
+            excludeSlashTmp: Boolean = false
+        ): SandboxPolicy = WorkspaceWrite(
+            writableRoots = writableRoots,
+            networkAccess = networkAccess,
+            excludeTmpdirEnvVar = excludeTmpdirEnvVar,
+            excludeSlashTmp = excludeSlashTmp
+        )
+    }
+
     fun hasFullDiskReadAccess(): Boolean = true
 
     fun hasFullDiskWriteAccess(): Boolean =
@@ -507,7 +521,6 @@ data class TokenUsageInfo(
     fun appendLastUsage(last: TokenUsage): TokenUsageInfo {
         return copy(totalTokenUsage = totalTokenUsage.addAssign(last), lastTokenUsage = last)
     }
-
     fun fillToContextWindow(contextWindow: Long): TokenUsageInfo {
         val delta = (contextWindow - totalTokenUsage.totalTokens).coerceAtLeast(0)
         return copy(
@@ -515,6 +528,17 @@ data class TokenUsageInfo(
                 totalTokenUsage = TokenUsage(totalTokens = contextWindow),
                 lastTokenUsage = TokenUsage(totalTokens = delta)
         )
+    }
+
+    companion object {
+        fun newOrAppend(
+                info: TokenUsageInfo?,
+                last: TokenUsage?,
+                modelContextWindow: Long?
+        ): TokenUsageInfo? = TokenUsageInfoFactory.newOrAppend(info, last, modelContextWindow)
+
+        fun fullContextWindow(contextWindow: Long): TokenUsageInfo =
+                TokenUsageInfoFactory.fullContextWindow(contextWindow)
     }
 }
 
@@ -1087,6 +1111,7 @@ data class McpResourceTemplate(
         @SerialName("mimeType") val mimeType: String? = null
 )
 
+@Serializable
 data class McpResult<T, E>(val value: T? = null, val error: E? = null) {
     val isSuccess: Boolean
         get() = error == null
