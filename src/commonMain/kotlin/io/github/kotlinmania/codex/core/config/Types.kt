@@ -371,7 +371,7 @@ data class ShellEnvironmentPolicy(
     // / Environment variable names to exclude from the environment.
     val exclude: List<EnvironmentVariablePattern> = emptyList(),
     // / (key, value) pairs to insert in the environment.
-    val set: MutableMap<String, String> = mutableMapOf(),
+    val set: Map<String, String> = emptyMap(),
     // / Environment variable names to retain in the environment.
     val includeOnly: List<EnvironmentVariablePattern> = emptyList(),
     // / If true, the shell profile will be used to run the command.

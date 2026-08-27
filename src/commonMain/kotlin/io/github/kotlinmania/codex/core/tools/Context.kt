@@ -48,7 +48,7 @@ internal sealed class ToolOutput {
         val success: Boolean? = null,
     ) : ToolOutput()
 
-    data class Mcp(val result: McpResult<CallToolResult, String>) : ToolOutput()
+    data class Mcp(val result: McpResult) : ToolOutput()
 
     fun logPreview(): String =
         when (this) {

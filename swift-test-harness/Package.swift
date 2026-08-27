@@ -25,8 +25,10 @@ let package = Package(
                     "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
                     "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
                     "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib",
+                    "-L", "../build/SPMBuild/macosArm64/Debug/dd-a-files",
                     "-L", "../build/swift-test",
-                    "-lCodex",
+                    "-L", "../build/MergedLibraries/macos/Debug",
+                    "-lCodexLibrary",
                 ]),
             ]
         ),

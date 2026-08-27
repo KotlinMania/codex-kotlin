@@ -79,7 +79,7 @@ internal class OutputBufferState {
 }
 
 internal data class UnifiedExecOutput(
-        val output: StreamOutput<String>,
+        val output: StreamOutput,
         val hasMore: Boolean
 )
 

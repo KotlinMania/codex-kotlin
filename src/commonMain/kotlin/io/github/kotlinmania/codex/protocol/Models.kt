@@ -41,7 +41,7 @@ sealed class ResponseInputItem {
         @kotlinx.serialization.SerialName("mcp_tool_call_output")
         data class McpToolCallOutput(
                 @kotlinx.serialization.SerialName("call_id") val callId: String,
-                val result: McpResult<CallToolResult, String>
+                val result: McpResult
         ) : ResponseInputItem()
 
         @Serializable

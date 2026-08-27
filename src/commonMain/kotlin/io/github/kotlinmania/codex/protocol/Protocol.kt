@@ -645,7 +645,7 @@ data class McpToolCallEndEvent(
         @SerialName("call_id") val callId: String,
         val invocation: McpInvocation,
         val duration: String,
-        val result: McpResult<CallToolResult, String>
+        val result: McpResult
 ) {
     fun isSuccess(): Boolean = result.error == null && result.value?.isError != true
 }
@@ -1112,7 +1112,10 @@ data class McpResourceTemplate(
 )
 
 @Serializable
-data class McpResult<T, E>(val value: T? = null, val error: E? = null) {
+data class McpResult(
+    val value: CallToolResult? = null,
+    val error: String? = null,
+) {
     val isSuccess: Boolean
         get() = error == null
     val isFailure: Boolean

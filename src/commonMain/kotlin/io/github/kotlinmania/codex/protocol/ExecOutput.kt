@@ -6,28 +6,26 @@ import kotlin.time.Duration
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class StreamOutput<T>(
-    val text: T,
+data class StreamOutput(
+    val text: String,
     val truncatedAfterLines: Long? = null,
 ) {
     companion object {
-        fun of(text: String): StreamOutput<String> = StreamOutput(text = text)
+        fun of(text: String): StreamOutput = StreamOutput(text = text)
+        fun fromUtf8Lossy(bytes: ByteArray, truncatedAfterLines: Long? = null): StreamOutput =
+            StreamOutput(
+                text = bytesToStringSmart(bytes),
+                truncatedAfterLines = truncatedAfterLines,
+            )
     }
-}
-
-fun StreamOutput<ByteArray>.fromUtf8Lossy(): StreamOutput<String> {
-    return StreamOutput(
-        text = bytesToStringSmart(text),
-        truncatedAfterLines = truncatedAfterLines,
-    )
 }
 
 @Serializable
 data class ExecToolCallOutput(
     val exitCode: Int = 0,
-    val stdout: StreamOutput<String> = StreamOutput(text = ""),
-    val stderr: StreamOutput<String> = StreamOutput(text = ""),
-    val aggregatedOutput: StreamOutput<String> = StreamOutput(text = ""),
+    val stdout: StreamOutput = StreamOutput(text = ""),
+    val stderr: StreamOutput = StreamOutput(text = ""),
+    val aggregatedOutput: StreamOutput = StreamOutput(text = ""),
     val duration: Duration = Duration.ZERO,
     val timedOut: Boolean = false,
 ) {

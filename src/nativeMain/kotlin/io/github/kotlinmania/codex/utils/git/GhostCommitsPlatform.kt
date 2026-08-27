@@ -107,6 +107,7 @@ internal actual fun platformExecuteCommand(args: List<String>): Int {
             }
         }
 
-    val status = platform.posix.system(command)
+    val fp = popen(command, "r") ?: return -1
+    val status = pclose(fp)
     return extractExitCode(status)
 }

@@ -61,8 +61,8 @@ class ExecEnvTest {
         val policy =
             ShellEnvironmentPolicy(
                 ignoreDefaultExcludes = true,
+                set = mapOf("NEW_VAR" to "42"),
             )
-        policy.set["NEW_VAR"] = "42"
 
         val result = populateEnv(vars, policy)
 
@@ -111,8 +111,8 @@ class ExecEnvTest {
             ShellEnvironmentPolicy(
                 inherit = ShellEnvironmentPolicyInherit.None,
                 ignoreDefaultExcludes = true,
+                set = mapOf("ONLY_VAR" to "yes"),
             )
-        policy.set["ONLY_VAR"] = "yes"
 
         val result = populateEnv(vars, policy)
         val expected = mapOf("ONLY_VAR" to "yes")
