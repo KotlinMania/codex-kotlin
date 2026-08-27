@@ -10,8 +10,8 @@ import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path.Companion.toPath
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 
 /**
  * Handler for the viewImage tool. Attaches a local image file to the conversation.
@@ -46,10 +46,10 @@ class ViewImageHandler : ToolHandler {
                 }
 
         val absPath = invocation.turn.resolvePath(args.path)
-        val path = absPath.toPath()
+        val path = Path(absPath)
 
         // Check if file exists
-        if (!FileSystem.SYSTEM.exists(path)) {
+        if (!SystemFileSystem.exists(path)) {
             return Result.failure(
                     ToolError.Codex(
                             CodexErr.Fatal(
@@ -60,7 +60,7 @@ class ViewImageHandler : ToolHandler {
         }
 
         // Check if it a file (not a directory)
-        val metadata = FileSystem.SYSTEM.metadataOrNull(path)
+        val metadata = SystemFileSystem.metadataOrNull(path)
         if (metadata == null || !metadata.isRegularFile) {
             return Result.failure(
                     ToolError.Codex(CodexErr.Fatal("image path `$absPath` is not a file"))

@@ -3,7 +3,7 @@ package io.github.kotlinmania.codex.core.tools.runtimes
 
 import io.github.kotlinmania.codex.core.Exec
 import io.github.kotlinmania.codex.core.ExecExpiration
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StdoutStream
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
@@ -167,7 +167,7 @@ class ApplyPatchRuntime(private val processExecutor: Exec) :
         ): Result<ExecToolCallOutput> {
                 val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
                 return when (result) {
-                        is CodexResult.Success -> Result.success(result.value)
+                        is CodexResult.Success<ExecToolCallOutput> -> Result.success(result.value)
                         is CodexResult.Failure -> Result.failure(result.error.toException())
                 }
         }

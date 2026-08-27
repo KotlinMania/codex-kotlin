@@ -1,9 +1,8 @@
-// port-lint: ignore
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.exec.sandbox
 
 import io.github.kotlinmania.codex.core.ExecExpiration
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied
 import io.github.kotlinmania.codex.exec.process.SandboxType

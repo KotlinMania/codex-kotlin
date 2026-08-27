@@ -1,7 +1,7 @@
 // port-lint: source protocol/src/exec_output.rs
 package io.github.kotlinmania.codex.protocol
 
-import io.github.kotlinmania.codex.utils.encoding.decodeSmartUtf8OrWindows1252
+import io.github.kotlinmania.codex.utils.encoding.bytesToStringSmart
 import kotlin.time.Duration
 import kotlinx.serialization.Serializable
 
@@ -17,7 +17,7 @@ data class StreamOutput<T>(
 
 fun StreamOutput<ByteArray>.fromUtf8Lossy(): StreamOutput<String> {
     return StreamOutput(
-        text = decodeSmartUtf8OrWindows1252(text),
+        text = bytesToStringSmart(text),
         truncatedAfterLines = truncatedAfterLines,
     )
 }

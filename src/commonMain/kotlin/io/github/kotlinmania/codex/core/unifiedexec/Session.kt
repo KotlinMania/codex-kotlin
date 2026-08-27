@@ -1,8 +1,8 @@
 // port-lint: source core/src/unifiedExec/session.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.StreamOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied

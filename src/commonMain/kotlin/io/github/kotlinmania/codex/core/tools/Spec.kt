@@ -121,6 +121,10 @@ sealed class AdditionalProperties {
     
     @Serializable
     data class Schema(val schema: JsonSchema) : AdditionalProperties()
+
+    companion object {
+        fun from(value: kotlin.Boolean): AdditionalProperties = Boolean(value)
+    }
 }
 
 fun createExecCommandTool(): ToolSpec {

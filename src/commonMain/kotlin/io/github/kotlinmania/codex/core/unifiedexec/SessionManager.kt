@@ -1,6 +1,7 @@
 // port-lint: source core/src/unifiedExec/sessionManager.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
+import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.session.Session as CodexSession
