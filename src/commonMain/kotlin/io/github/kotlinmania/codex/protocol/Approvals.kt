@@ -30,7 +30,8 @@ enum class SandboxRiskLevel {
 
 @Serializable
 data class SandboxCommandAssessment(
-    val description: String,
+    @SerialName("description")
+    val descriptionText: String,
     @SerialName("risk_level")
     val riskLevel: SandboxRiskLevel
 )

@@ -149,7 +149,7 @@ data class ModelProviderInfo(
 
         val headers = buildHeaderMap()
         val retry = ApiRetryConfig(
-            maxAttempts = requestMaxRetries(),
+            maxAttempts = effectiveRequestMaxRetries(),
             baseDelay = 200.milliseconds,
             retry429 = false,
             retry5xx = true,
@@ -190,11 +190,11 @@ data class ModelProviderInfo(
     }
 
     /** Effective maximum number of request retries for this provider. */
-    fun requestMaxRetries(): Long =
+    fun effectiveRequestMaxRetries(): Long =
         (requestMaxRetries ?: DEFAULT_REQUEST_MAX_RETRIES).coerceAtMost(MAX_REQUEST_MAX_RETRIES)
 
     /** Effective maximum number of stream reconnection attempts for this provider. */
-    fun streamMaxRetries(): Long =
+    fun effectiveStreamMaxRetries(): Long =
         (streamMaxRetries ?: DEFAULT_STREAM_MAX_RETRIES).coerceAtMost(MAX_STREAM_MAX_RETRIES)
 
     /** Effective idle timeout for streaming responses. */
