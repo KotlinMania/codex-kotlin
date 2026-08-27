@@ -239,15 +239,14 @@ class ReadFileHandler : ToolHandler {
         return out.map { "L${it.number}: ${it.display}" }
     }
 
-    /** Collect all lines from a file into LineRecord objects. */
     private fun collectFileLines(filePath: String): List<LineRecord> {
-        val path = filePath.toPath()
+        val path = Path(filePath)
         val lines = mutableListOf<LineRecord>()
         var number = 0
 
-        fileSystem.source(path).buffer().use { source ->
+        SystemFileSystem.source(path).buffered().use { source ->
             while (true) {
-                val raw = source.readUtf8Line() ?: break
+                val raw = source.readLine() ?: break
                 number++
                 val indent = measureIndent(raw)
                 val display = formatLine(raw)
