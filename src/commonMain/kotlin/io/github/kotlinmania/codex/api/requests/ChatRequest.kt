@@ -6,13 +6,13 @@ import io.ktor.client.request.*
 import kotlinx.serialization.json.*
 
 /** Assembled request body plus header configuration for Chat Completions streaming calls. */
-data class ChatRequest(
+internal data class ChatRequest(
     val body: JsonElement,
     val configureHeaders: HttpRequestBuilder.() -> Unit,
 )
 
 /** Builder for ChatRequest. */
-class ChatRequestBuilder(
+internal class ChatRequestBuilder(
     private val model: String,
     private val instructions: String,
     private val input: List<io.github.kotlinmania.codex.protocol.ResponseItem>,

@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonElement
 /**
  * Canonical prompt input for Chat and Responses endpoints.
  */
-data class Prompt(
+internal data class Prompt(
     val instructions: String,
     val input: List<ResponseItem>,
     val tools: List<JsonElement>,
@@ -20,7 +20,7 @@ data class Prompt(
 )
 
 /** Canonical input payload for the compaction endpoint. */
-data class CompactionInput(
+internal data class CompactionInput(
     val model: String,
     val input: List<ResponseItem>,
     val instructions: String,
@@ -30,16 +30,16 @@ data class CompactionInput(
 // See protocol/Models.kt for the full definition
 
 /** Reasoning config payload. */
-data class Reasoning(
+internal data class Reasoning(
     val effort: ReasoningEffort?,
     val summary: ReasoningSummary?,
 )
 
 /** Text formatting types used by OpenAI text controls. */
-enum class TextFormatType { JsonSchema, }
+internal enum class TextFormatType { JsonSchema, }
 
 /** Controls JSON formatted output. */
-data class TextFormat(
+internal data class TextFormat(
     val type: TextFormatType,
     val strict: Boolean,
     val schema: JsonElement,
@@ -47,15 +47,15 @@ data class TextFormat(
 )
 
 /** Controls the text field for Responses API. */
-data class TextControls(
+internal data class TextControls(
     val verbosity: OpenAiVerbosity?,
     val format: TextFormat?,
 )
 
 /** Verbosity mapping for OpenAI. */
-enum class OpenAiVerbosity { Low, Medium, High }
+internal enum class OpenAiVerbosity { Low, Medium, High }
 
-fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity =
+internal fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity =
     when (v) {
         Verbosity.Low -> OpenAiVerbosity.Low
         Verbosity.Medium -> OpenAiVerbosity.Medium
@@ -63,7 +63,7 @@ fun openAiVerbosityConfig(v: Verbosity): OpenAiVerbosity =
     }
 
 /** Responses API request payload. */
-data class ResponsesApiRequest(
+internal data class ResponsesApiRequest(
     val model: String,
     val instructions: String,
     val input: List<ResponseItem>,
@@ -79,7 +79,7 @@ data class ResponsesApiRequest(
 )
 
 /** Create text param controls from verbosity and optional output schema. */
-fun createTextParamForRequest(
+internal fun createTextParamForRequest(
     verbosity: Verbosity?,
     outputSchema: JsonElement?,
 ): TextControls? {
@@ -103,7 +103,7 @@ fun createTextParamForRequest(
  * Stream of response events.
  * Uses io.github.kotlinmania.codex.protocol.ResponseEvent.
  */
-interface ResponseStream {
+internal interface ResponseStream {
     /**
      * Receive the next event, or null if stream ended.
      * Uses the ResponseEvent from protocol package.

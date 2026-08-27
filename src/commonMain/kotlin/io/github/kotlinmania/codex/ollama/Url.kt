@@ -10,7 +10,7 @@ internal fun isOpenaiCompatibleBaseUrl(baseUrl: String): Boolean {
  * Convert a provider baseUrl into the native Ollama host root.
  * For example, "http://localhost:11434/v1" -> "http://localhost:11434".
  */
-fun baseUrlToHostRoot(baseUrl: String): String {
+internal fun baseUrlToHostRoot(baseUrl: String): String {
     val trimmed = baseUrl.trimEnd('/')
     return if (trimmed.endsWith("/v1")) {
         trimmed.removeSuffix("/v1").trimEnd('/')

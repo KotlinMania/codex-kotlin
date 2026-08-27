@@ -139,7 +139,7 @@ data class ModelProviderInfo(
         return headers
     }
 
-    fun toApiProvider(authMode: AuthMode?): ApiProvider {
+    internal fun toApiProvider(authMode: AuthMode?): ApiProvider {
         val defaultBaseUrl = if (authMode == AuthMode.ChatGPT) {
             "https://chatgpt.com/backend-api/codex"
         } else {

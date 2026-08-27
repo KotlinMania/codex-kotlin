@@ -8,13 +8,13 @@ import io.ktor.client.request.*
 import kotlinx.serialization.json.*
 
 /** Assembled request body plus header configuration for a Responses stream request. */
-data class ResponsesRequest(
+internal data class ResponsesRequest(
     val body: JsonElement,
     val configureHeaders: HttpRequestBuilder.() -> Unit,
 )
 
 /** Builder for ResponsesRequest. */
-class ResponsesRequestBuilder(
+internal class ResponsesRequestBuilder(
     private var model: String? = null,
     private var instructions: String? = null,
     private var input: List<io.github.kotlinmania.codex.protocol.ResponseItem>? = null,

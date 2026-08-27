@@ -6,14 +6,14 @@ import io.ktor.http.*
 import kotlin.time.Duration
 
 /** Wire-level APIs supported by a Provider. */
-enum class WireApi {
+internal enum class WireApi {
     Responses,
     Chat,
     Compact,
 }
 
 /** High-level retry configuration for a provider. */
-data class RetryConfig(
+internal data class RetryConfig(
     val maxAttempts: Long,
     val baseDelay: Duration,
     val retry429: Boolean,
@@ -22,7 +22,7 @@ data class RetryConfig(
 )
 
 /** HTTP endpoint configuration used to talk to a concrete API deployment. */
-data class Provider(
+internal data class Provider(
     val name: String,
     val baseUrl: String,
     val queryParams: Map<String, String>?,

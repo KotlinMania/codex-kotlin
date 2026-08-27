@@ -251,7 +251,7 @@ sealed class CodexErr {
     }
 
     companion object {
-        fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
+        internal fun from(err: CancelErr): CodexErr = TurnAborted(danglingArtifacts = emptyList())
     }
 
     fun toException(): CodexException = CodexException(this)
