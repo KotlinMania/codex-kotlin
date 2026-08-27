@@ -13,8 +13,10 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
-import okio.FileSystem
-import okio.Path.Companion.toPath
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readByteArray
+import kotlinx.io.buffered
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -64,9 +66,9 @@ sealed class ResponseInputItem {
                                                                 val path = item.path
                                                                 val bytes =
                                                                         try {
-                                                                                FileSystem.SYSTEM.read(path.toPath()) {
-                                                                                        readByteArray()
-                                                                                }
+                                                                            SystemFileSystem.source(Path(path)).buffered().use {
+                                                                                it.readByteArray()
+                                                                            }
                                                                         } catch (e: Exception) {
                                                                                 return@map localImageErrorPlaceholder(
                                                                                         path = path,

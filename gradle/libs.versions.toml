@@ -7,6 +7,8 @@ collectionsImmutable = "0.5.1"
 ratatui = "0.1.11"
 crossterm = "0.1.6"
 atomicfu = "0.27.0"
+kotlinxIo = "0.7.0"
+ktor = "3.1.1"
 androidKmp = "9.3.2"
 detekt = "1.23.8"
 ktlint = "14.2.0"
@@ -30,6 +32,8 @@ collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-im
 ratatui-kotlin = { module = "io.github.kotlinmania:ratatui-kotlin", version.ref = "ratatui" }
 crossterm-kotlin = { module = "io.github.kotlinmania:crossterm-kotlin", version.ref = "crossterm" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIo" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 kotlinx-benchmark-runtime = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "kotlinxBenchmark" }
 
 [bundles]
@@ -42,4 +46,6 @@ codex-commonMain = [
   "ratatui-kotlin",
   "crossterm-kotlin",
   "kotlinx-atomicfu",
+  "kotlinx-io-core",
+  "ktor-client-core",
 ]

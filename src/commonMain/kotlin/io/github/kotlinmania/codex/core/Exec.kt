@@ -4,37 +4,11 @@ package io.github.kotlinmania.codex.core
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.exec.process.SandboxType
-import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
-import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
-import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
-import io.github.kotlinmania.codex.exec.shell.ShellDetector
-import io.github.kotlinmania.codex.protocol.SandboxPolicy
-            // Convert to exception so caller try/catch will turn it into a failure CodexResult
-            throw io.github.kotlinmania.codex.core.CodexException(
-                    CodexErr.Sandbox(io.github.kotlinmania.codex.core.SandboxErr.Denied(execOutput))
-            )
-        }
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.StreamOutput
 
-        return execOutput
-    }
-
-    /** Platform-specific process creation */
-    private fun platformCreateProcess(
-            program: String,
-            args: List<String>,
-            cwd: String,
-            env: Map<String, String>
-    ): ProcessHandle {
-        // This will be implemented with expect/actual
-        return createPlatformProcess(program, args, cwd, env)
-    }
-
-    /** Platform-specific process group killing */
-    private fun platformKillChildProcessGroup(process: ProcessHandle) {
-        // This will be implemented with expect/actual
-        killPlatformChildProcessGroup(process)
-    }
-}
+typealias ExecToolCallOutput = io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+typealias StreamOutput<T> = io.github.kotlinmania.codex.protocol.StreamOutput<T>
 
 /** Check if execution likely failed due to sandbox restrictions */
 fun isLikelySandboxDenied(sandboxType: SandboxType, execOutput: ExecToolCallOutput): Boolean {

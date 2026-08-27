@@ -6,10 +6,9 @@ import io.github.kotlinmania.codex.protocol.ConversationPathResponseEvent
 import io.github.kotlinmania.codex.protocol.Event
 import io.github.kotlinmania.codex.protocol.HistoryEntry
 import io.github.kotlinmania.codex.protocol.Op
-import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.ReasoningEffort
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import okio.Path
+import kotlinx.io.files.Path
 
 /**
  * Application-level events used to coordinate UI actions.
