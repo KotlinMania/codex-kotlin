@@ -519,6 +519,12 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
     }
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
+    compilerOptions {
+        optIn.addAll(commonOptIns)
+    }
+}
+
 allOpen {
     annotation("org.openjdk.jmh.annotations.State")
     annotation("kotlinx.benchmark.State")
