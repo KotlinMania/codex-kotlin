@@ -7,12 +7,12 @@ import io.github.kotlinmania.codex.protocol.RateLimitWindow
 import io.ktor.http.*
 
 /** Rate limit error. */
-data class RateLimitError(
+internal data class RateLimitError(
     val message: String,
 )
 
 /** Parse Codex-specific rate limit headers into a snapshot. */
-fun parseRateLimit(headers: Headers): RateLimitSnapshot? {
+internal fun parseRateLimit(headers: Headers): RateLimitSnapshot? {
     val primary =
         parseRateLimitWindow(
             headers,

@@ -59,13 +59,13 @@ const val CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY"
  * Authentication mode for API access.
  * Mirrors codexAppServerProtocol::AuthMode
  */
-enum class AuthMode {
+internal enum class AuthMode {
     ApiKey,
     ChatGPT,
 }
 
 @ConsistentCopyVisibility
-data class CodexAuth internal constructor(
+internal data class CodexAuth internal constructor(
     val mode: AuthMode,
     internal val apiKey: String?,
     private val authDotJsonMutex: Mutex,
@@ -226,7 +226,7 @@ data class CodexAuth internal constructor(
  * Create a dummy ChatGPT auth for testing.
  */
 @OptIn(ExperimentalTime::class)
-fun createDummyChatGptAuthForTesting(): CodexAuth {
+internal fun createDummyChatGptAuthForTesting(): CodexAuth {
     val authDotJson =
         AuthDotJson(
             openaiApiKey = null,
@@ -253,7 +253,7 @@ fun createDummyChatGptAuthForTesting(): CodexAuth {
 /**
  * Create an auth from an API key.
  */
-fun codexAuthFromApiKey(apiKey: String): CodexAuth =
+internal fun codexAuthFromApiKey(apiKey: String): CodexAuth =
     codexAuthFromApiKey(apiKey, HttpClient())
 
 internal fun codexAuthFromApiKey(apiKey: String, client: HttpClient): CodexAuth =
@@ -269,7 +269,7 @@ internal fun codexAuthFromApiKey(apiKey: String, client: HttpClient): CodexAuth 
 /**
  * Loads the available auth information from auth storage.
  */
-fun codexAuthFromAuthStorage(
+internal fun codexAuthFromAuthStorage(
     codexHome: Path,
     authCredentialsStoreMode: AuthCredentialsStoreMode,
 ): Result<CodexAuth?> = loadAuth(codexHome, enableCodexApiKeyEnv = false, authCredentialsStoreMode)
@@ -877,7 +877,7 @@ private data class RefreshResponse(
  *
  * Mirrors the upstream AuthManager from core/src/auth.rs
  */
-class AuthManager private constructor(
+internal class AuthManager private constructor(
     private val codexHome: Path,
     private val enableCodexApiKeyEnv: Boolean,
     private val authCredentialsStoreMode: AuthCredentialsStoreMode,

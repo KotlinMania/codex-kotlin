@@ -4,7 +4,7 @@ package io.github.kotlinmania.codex.ollama
 import io.github.kotlinmania.codex.core.config.Config
 
 /** Default OSS model to use when `--oss` is passed without an explicit `-m`. */
-const val DEFAULT_OSS_MODEL: String = "gpt-oss:20b"
+internal const val DEFAULT_OSS_MODEL: String = "gpt-oss:20b"
 
 /**
  * Prepare the local OSS environment when `--oss` is selected.

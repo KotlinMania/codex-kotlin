@@ -1,5 +1,3 @@
-// port-lint: ignore
-// transliterated from upstream module root (async-utils crate)
 package io.github.kotlinmania.codex.utils.readiness
 
 import kotlinx.coroutines.CompletableDeferred
@@ -16,7 +14,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Ported from Rust async-utils CancelErr enum.
  */
-enum class CancelErr {
+internal enum class CancelErr {
     Cancelled
 }
 
@@ -29,7 +27,7 @@ enum class CancelErr {
  *
  * Ported from Rust async-utils OrCancelExt trait.
  */
-interface OrCancelExt<T> {
+internal interface OrCancelExt<T> {
     suspend fun orCancel(cancellation: Job): Result<T>
 }
 
@@ -42,7 +40,7 @@ interface OrCancelExt<T> {
  *
  * Ported from Rust OrCancelExt trait.
  */
-suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
+internal suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
     return select {
         onAwait { value ->
             Result.success(value)
@@ -56,17 +54,17 @@ suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
 /**
  * Exception wrapper for CancelErr to import with Result.failure.
  */
-class CancellationException(val error: CancelErr) : Exception("Operation cancelled")
+internal class CancellationException(val error: CancelErr) : Exception("Operation cancelled")
 
 /**
  * Opaque subscription token returned by `subscribe()`.
  */
-data class ReadinessToken(val id: Int)
+internal data class ReadinessToken(val id: Int)
 
 /**
  * Errors that can occur during readiness operations.
  */
-sealed class ReadinessError : Exception() {
+internal sealed class ReadinessError : Exception() {
     data object TokenLockFailed : ReadinessError() {
         override val message: String get() = "Failed to acquire readiness token lock"
     }
@@ -78,7 +76,7 @@ sealed class ReadinessError : Exception() {
 /**
  * Interface for readiness flag operations.
  */
-interface Readiness {
+internal interface Readiness {
     /**
      * Returns true if the flag is currently marked ready.
      * At least one token needs to be marked as ready before.
@@ -117,7 +115,7 @@ private val LOCK_TIMEOUT = 1000.milliseconds
  * flag is only considered ready when all tokens have been marked ready, or
  * when there are no subscribers.
  */
-class ReadinessFlag : Readiness {
+internal class ReadinessFlag : Readiness {
     // Ready state - thread safety provided by mutex synchronization
     private var ready: Boolean = false
 

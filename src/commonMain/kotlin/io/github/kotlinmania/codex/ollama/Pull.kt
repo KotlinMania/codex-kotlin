@@ -4,8 +4,8 @@ package io.github.kotlinmania.codex.ollama
 import io.github.kotlinmania.codex.utils.writeStderrInline
 import kotlin.time.TimeSource
 
-/** Events emitted while pulling a model from Ollama. */
-sealed class PullEvent {
+//** Events emitted while pulling a model from Ollama. */
+internal sealed class PullEvent {
     /** A human-readable status message (e.g., "verifying", "writing"). */
     data class Status(val status: String) : PullEvent()
 
@@ -27,7 +27,7 @@ sealed class PullEvent {
  * A simple observer for pull progress events. Implementations decide how to
  * render progress (CLI, TUI, logs, ...).
  */
-interface PullProgressReporter {
+internal interface PullProgressReporter {
     fun onEvent(event: PullEvent)
 }
 
@@ -37,7 +37,7 @@ private data class TotalAndCompleted(
 )
 
 /** A minimal CLI reporter that writes inline progress to stderr. */
-class CliProgressReporter private constructor(
+internal class CliProgressReporter private constructor(
     private var printedHeader: Boolean,
     private var lastLineLen: Int,
     private var lastCompletedSum: Long,
@@ -75,7 +75,7 @@ class CliProgressReporter private constructor(
                     if (!printedHeader) {
                         val gb = sumTotal.toDouble() / (1024.0 * 1024.0 * 1024.0)
                         val header = "Downloading model: total ${formatDouble(gb, 2)} GB\n"
-                        writeStderrInline("\r[2K$header")
+                        writeStderrInline("\r [2K$header")
                         printedHeader = true
                     }
 
@@ -129,7 +129,7 @@ class CliProgressReporter private constructor(
  * For now the TUI reporter delegates to the CLI reporter. This keeps UI and
  * CLI behavior aligned until a dedicated TUI integration is implemented.
  */
-class TuiProgressReporter(
+internal class TuiProgressReporter(
     private val inner: CliProgressReporter = CliProgressReporter.new(),
 ) : PullProgressReporter {
     override fun onEvent(event: PullEvent) {

@@ -8,7 +8,7 @@ import io.ktor.http.*
  *
  * Mirrors the upstream TransportError from codex-client/src/error.rs
  */
-sealed class TransportError : Exception() {
+internal sealed class TransportError : Exception() {
     /**
      * HTTP error with status code and optional response details.
      */
@@ -55,7 +55,7 @@ sealed class TransportError : Exception() {
  *
  * Mirrors the upstream StreamError from codex-client/src/error.rs
  */
-sealed class StreamError : Exception() {
+internal sealed class StreamError : Exception() {
     /**
      * Stream failed during processing.
      */

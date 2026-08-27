@@ -14,7 +14,7 @@ import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 import io.ktor.client.*
 
 /** Options for configuring ResponsesClient. */
-data class ResponsesOptions(
+internal data class ResponsesOptions(
     val reasoning: Reasoning? = null,
     val include: List<String> = emptyList(),
     val promptCacheKey: String? = null,

@@ -5,7 +5,7 @@ import io.ktor.http.*
 import kotlin.time.Duration
 
 /** Generic telemetry for SSE event streams. */
-interface SseTelemetry {
+internal interface SseTelemetry {
     /**
      * Called on each SSE poll with the result and duration.
      * @param hasData Whether data was received (false if timeout or no data)
@@ -15,7 +15,7 @@ interface SseTelemetry {
 }
 
 /** Telemetry for individual HTTP requests. */
-interface RequestTelemetry {
+internal interface RequestTelemetry {
     /**
      * Called after each request attempt.
      * @param attempt The attempt number (1-indexed)
@@ -30,7 +30,7 @@ interface RequestTelemetry {
  * Execute a request with retry and telemetry.
  * TODO: Implement full retry policy and telemetry integration with Ktor client.
  */
-suspend fun <T> runWithRequestTelemetry(
+internal suspend fun <T> runWithRequestTelemetry(
     telemetry: RequestTelemetry?,
     attempt: Int,
     block: suspend () -> T,

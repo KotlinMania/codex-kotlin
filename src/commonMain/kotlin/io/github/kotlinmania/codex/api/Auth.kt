@@ -11,7 +11,7 @@ import io.ktor.http.*
  * refresh or I/O should be handled by higher layers before requests
  * reach this interface.
  */
-interface AuthProvider {
+internal interface AuthProvider {
     fun bearerToken(): String?
 
     fun accountId(): String? = null
@@ -23,7 +23,7 @@ interface AuthProvider {
  * Mirrors Rust addAuthHeaders by injecting Authorization and ChatGPT-Account-ID
  * when available. Extension function on HttpRequestBuilder for idiomatic usage.
  */
-fun <A : AuthProvider> HttpRequestBuilder.addAuthHeaders(auth: A) {
+internal fun <A : AuthProvider> HttpRequestBuilder.addAuthHeaders(auth: A) {
     auth.bearerToken()?.let { token ->
         headers.append(HttpHeaders.Authorization, "Bearer $token")
     }

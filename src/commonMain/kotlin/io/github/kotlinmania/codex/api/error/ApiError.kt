@@ -10,7 +10,7 @@ import kotlin.time.Duration
  *
  * Mirrors the upstream ApiError from codex-api/src/error.rs
  */
-sealed class ApiError : Exception() {
+internal sealed class ApiError : Exception() {
     /**
      * Transport-level error (network, timeout, retry limit, etc.).
      * Maps from TransportError.

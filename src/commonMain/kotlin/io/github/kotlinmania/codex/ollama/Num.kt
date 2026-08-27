@@ -1,4 +1,3 @@
-// port-lint: ignore
 package io.github.kotlinmania.codex.ollama
 
 import kotlin.math.pow

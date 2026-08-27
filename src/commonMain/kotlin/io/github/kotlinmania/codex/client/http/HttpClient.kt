@@ -199,7 +199,7 @@ data class ResponsesPrompt(
 /**
  * Options for /responses requests.
  */
-data class ResponsesOptions(
+internal data class ResponsesOptions(
     val reasoning: ReasoningConfig? = null,
     val include: List<String> = emptyList(),
     val promptCacheKey: String? = null,
@@ -212,7 +212,7 @@ data class ResponsesOptions(
  * Reasoning configuration for the API.
  * Renamed from Reasoning to avoid conflict with ResponseItem.Reasoning
  */
-data class ReasoningConfig(
+internal data class ReasoningConfig(
     val effort: String? = null,
     val summary: Boolean = true,
 )
@@ -220,7 +220,7 @@ data class ReasoningConfig(
 /**
  * Text output options.
  */
-data class TextOptions(
+internal data class TextOptions(
     val verbosity: String? = null,
 )
 
@@ -275,7 +275,7 @@ internal class StreamingClient<A : io.github.kotlinmania.codex.client.auth.AuthP
  *
  * Ported from Rust codex-api/src/provider/mod.rs Provider.
  */
-data class Provider(
+internal data class Provider(
     val baseUrl: String,
     val streamIdleTimeout: Long = 30_000L, // 30 seconds default
     val retry: RetryPolicy = RetryPolicy(),
@@ -284,7 +284,7 @@ data class Provider(
 /**
  * Retry policy configuration.
  */
-data class RetryPolicy(
+internal data class RetryPolicy(
     val maxRetries: Int = 3,
     val initialBackoffMs: Long = 1000L,
     val maxBackoffMs: Long = 16000L,
@@ -295,7 +295,7 @@ data class RetryPolicy(
  *
  * Ported from Rust codex-client RequestTelemetry trait.
  */
-interface RequestTelemetry {
+internal interface RequestTelemetry {
     fun onRequestStart(method: String, path: String)
 
     fun onRequestEnd(statusCode: Int, durationMs: Long)
@@ -308,7 +308,7 @@ interface RequestTelemetry {
  *
  * Ported from Rust codex-api/src/telemetry.rs SseTelemetry trait.
  */
-interface SseTelemetry {
+internal interface SseTelemetry {
     fun onEventReceived(eventType: String)
 
     fun onStreamStart()

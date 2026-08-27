@@ -4,28 +4,28 @@ package io.github.kotlinmania.codex.api
 // Re-exports are modeled as typealiases or wrapper functions in Kotlin to mirror Rust's high-level API structure.
 
 /** Re-export from telemetry */
-typealias RequestTelemetry = io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
+internal typealias RequestTelemetry = io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 
 /** Re-export from telemetry */
-typealias SseTelemetry = io.github.kotlinmania.codex.api.telemetry.SseTelemetry
+internal typealias SseTelemetry = io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 
 /** Re-export from common */
-typealias CompactionInput = io.github.kotlinmania.codex.api.common.CompactionInput
+internal typealias CompactionInput = io.github.kotlinmania.codex.api.common.CompactionInput
 
 /** Re-export from common */
-typealias Prompt = io.github.kotlinmania.codex.api.common.Prompt
+internal typealias Prompt = io.github.kotlinmania.codex.api.common.Prompt
 
 /** Re-export from protocol via common */
-typealias ResponseEvent = io.github.kotlinmania.codex.protocol.ResponseEvent
+internal typealias ResponseEvent = io.github.kotlinmania.codex.protocol.ResponseEvent
 
 /** Re-export from common */
-typealias ResponseStream = io.github.kotlinmania.codex.api.common.ResponseStream
+internal typealias ResponseStream = io.github.kotlinmania.codex.api.common.ResponseStream
 
 /** Re-export from common */
-typealias ResponsesApiRequest = io.github.kotlinmania.codex.api.common.ResponsesApiRequest
+internal typealias ResponsesApiRequest = io.github.kotlinmania.codex.api.common.ResponsesApiRequest
 
 /** Re-export wrapper for createTextParamForRequest */
-fun createTextParamForRequest(
+internal fun createTextParamForRequest(
     verbosity: io.github.kotlinmania.codex.protocol.Verbosity?,
     outputSchema: kotlinx.serialization.json.JsonElement?,
 ) = io.github.kotlinmania.codex.api.common
@@ -41,27 +41,27 @@ internal typealias CompactClient<A> = io.github.kotlinmania.codex.api.endpoint.C
 internal typealias ResponsesClient<A> = io.github.kotlinmania.codex.api.endpoint.ResponsesClient<A>
 
 /** Re-export from endpoint */
-typealias ResponsesOptions = io.github.kotlinmania.codex.api.endpoint.ResponsesOptions
+internal typealias ResponsesOptions = io.github.kotlinmania.codex.api.endpoint.ResponsesOptions
 
 /** Re-export from error */
-typealias ApiError = io.github.kotlinmania.codex.api.error.ApiError
+internal typealias ApiError = io.github.kotlinmania.codex.api.error.ApiError
 
 /** Re-export from provider */
-typealias Provider = io.github.kotlinmania.codex.api.provider.Provider
+internal typealias Provider = io.github.kotlinmania.codex.api.provider.Provider
 
 /** Re-export from provider */
-typealias WireApi = io.github.kotlinmania.codex.api.provider.WireApi
+internal typealias WireApi = io.github.kotlinmania.codex.api.provider.WireApi
 
 /** Re-export from requests */
-typealias ChatRequest = io.github.kotlinmania.codex.api.requests.ChatRequest
+internal typealias ChatRequest = io.github.kotlinmania.codex.api.requests.ChatRequest
 
 /** Re-export from requests */
-typealias ChatRequestBuilder = io.github.kotlinmania.codex.api.requests.ChatRequestBuilder
+internal typealias ChatRequestBuilder = io.github.kotlinmania.codex.api.requests.ChatRequestBuilder
 
 /** Re-export from requests */
-typealias ResponsesRequest = io.github.kotlinmania.codex.api.requests.ResponsesRequest
+internal typealias ResponsesRequest = io.github.kotlinmania.codex.api.requests.ResponsesRequest
 
 /** Re-export from requests */
-typealias ResponsesRequestBuilder = io.github.kotlinmania.codex.api.requests.ResponsesRequestBuilder
+internal typealias ResponsesRequestBuilder = io.github.kotlinmania.codex.api.requests.ResponsesRequestBuilder
 
 // TODO: streamFromFixture once SSE testing utils are ported

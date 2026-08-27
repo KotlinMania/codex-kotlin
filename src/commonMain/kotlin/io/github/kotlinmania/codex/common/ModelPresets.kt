@@ -259,7 +259,7 @@ private val PRESETS: List<ModelPreset> by lazy {
     )
 }
 
-fun builtinModelPresets(authMode: AuthMode?): List<ModelPreset> =
+internal fun builtinModelPresets(authMode: AuthMode?): List<ModelPreset> =
     PRESETS.filter { preset ->
         when (authMode) {
             AuthMode.ApiKey -> preset.showInPicker && preset.id != "gpt-5.1-codex-max"
