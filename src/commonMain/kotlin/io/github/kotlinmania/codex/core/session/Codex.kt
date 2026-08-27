@@ -2596,7 +2596,7 @@ sealed class ToolSpec {
     /**
      * A function tool with schema-defined parameters.
      */
-    data class Function(val tool: ResponsesApiTool) : ToolSpec()
+    internal data class Function(val tool: ResponsesApiTool) : ToolSpec()
 
     /**
      * A local shell tool (no parameters needed).
@@ -2611,7 +2611,7 @@ sealed class ToolSpec {
     /**
      * A freeform/custom tool with format specification.
      */
-    data class Freeform(val tool: FreeformTool) : ToolSpec()
+    internal data class Freeform(val tool: FreeformTool) : ToolSpec()
 
     /**
      * Get the name of this tool.
@@ -2627,7 +2627,7 @@ sealed class ToolSpec {
 /**
  * Freeform tool definition (matches Rust FreeformTool in clientCommon.rs).
  */
-data class FreeformTool(
+internal data class FreeformTool(
     val name: String,
     val description: String,
     val format: FreeformToolFormat
@@ -2636,7 +2636,7 @@ data class FreeformTool(
 /**
  * Format specification for freeform tools.
  */
-data class FreeformToolFormat(
+internal data class FreeformToolFormat(
     val type: String,
     val syntax: String,
     val definition: String
@@ -2646,7 +2646,7 @@ data class FreeformToolFormat(
  * A tool for the OpenAI Responses API.
  * Helper class for serializing Function tools.
  */
-data class ResponsesApiTool(
+internal data class ResponsesApiTool(
     val name: String,
     val description: String,
     val strict: Boolean = false,

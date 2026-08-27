@@ -302,7 +302,7 @@ internal sealed class ToolEmitter {
     }
 }
 
-data class ExecCommandInput(
+internal data class ExecCommandInput(
     val command: List<String>,
     val cwd: String,
     val parsedCmd: List<ParsedCommand>,
@@ -311,7 +311,7 @@ data class ExecCommandInput(
     val processId: String?
 )
 
-data class ExecCommandResult(
+internal data class ExecCommandResult(
     val stdout: String,
     val stderr: String,
     val aggregatedOutput: String,

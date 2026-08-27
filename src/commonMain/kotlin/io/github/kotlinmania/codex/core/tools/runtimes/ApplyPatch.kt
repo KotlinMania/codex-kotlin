@@ -25,9 +25,9 @@ import io.github.kotlinmania.codex.protocol.ReviewDecision
 import kotlin.time.Duration.Companion.milliseconds
 
 // Constants
-const val CODEX_APPLY_PATCH_ARG1 = "--codex-run-as-apply-patch"
+internal const val CODEX_APPLY_PATCH_ARG1 = "--codex-run-as-apply-patch"
 
-data class ApplyPatchRequest(
+internal data class ApplyPatchRequest(
         val patch: String,
         val cwd: String,
         val timeoutMs: Long?,
@@ -37,7 +37,7 @@ data class ApplyPatchRequest(
         override fun sandboxRetryData(): SandboxRetryData? = null
 }
 
-data class ApprovalKey(val patch: String, val cwd: String)
+internal data class ApprovalKey(val patch: String, val cwd: String)
 
 internal class ApplyPatchRuntime(private val processExecutor: Exec) :
         ToolRuntime<ApplyPatchRequest, ExecToolCallOutput>,

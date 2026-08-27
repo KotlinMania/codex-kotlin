@@ -22,7 +22,7 @@ import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSession
 import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSessionManager
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 
-data class UnifiedExecRequest(
+internal data class UnifiedExecRequest(
         val command: List<String>,
         val cwd: String,
         val env: Map<String, String>,
@@ -35,7 +35,7 @@ data class UnifiedExecRequest(
     }
 }
 
-data class UnifiedExecApprovalKey(
+internal data class UnifiedExecApprovalKey(
         val command: List<String>,
         val cwd: String,
         val escalated: Boolean

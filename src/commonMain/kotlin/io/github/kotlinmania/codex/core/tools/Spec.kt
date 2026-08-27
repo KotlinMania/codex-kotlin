@@ -45,7 +45,7 @@ enum class ConfigShellToolType {
     ShellCommand
 }
 
-data class ToolsConfig(
+internal data class ToolsConfig(
     val shellType: ConfigShellToolType,
     val applyPatchToolType: ApplyPatchToolType?,
     val webSearchRequest: Boolean,
@@ -53,7 +53,7 @@ data class ToolsConfig(
     val experimentalSupportedTools: List<String>
 )
 
-fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
+internal fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
     val modelFamily = params.modelFamily
     val features = params.features
 
@@ -84,13 +84,13 @@ fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
     )
 }
 
-data class ToolsConfigParams(
+internal data class ToolsConfigParams(
     val modelFamily: ModelFamily,
     val features: Features
 )
 
 @Serializable
-sealed class JsonSchema {
+internal sealed class JsonSchema {
     @Serializable
     data class Boolean(val description: kotlin.String? = null) : JsonSchema()
 
@@ -115,7 +115,7 @@ sealed class JsonSchema {
 }
 
 @Serializable
-sealed class AdditionalProperties {
+internal sealed class AdditionalProperties {
     @Serializable
     data class Boolean(val value: kotlin.Boolean) : AdditionalProperties()
     
@@ -127,7 +127,7 @@ sealed class AdditionalProperties {
     }
 }
 
-fun createExecCommandTool(): ToolSpec {
+internal fun createExecCommandTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["cmd"] = JsonSchema.String(description = "Shell command to execute.")
     properties["workdir"] = JsonSchema.String(description = "Optional working directory to run the command in; defaults to the turn cwd.")
@@ -150,7 +150,7 @@ fun createExecCommandTool(): ToolSpec {
     ))
 }
 
-fun createWriteStdinTool(): ToolSpec {
+internal fun createWriteStdinTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["session_id"] = JsonSchema.Number(description = "Identifier of the running unified exec session.")
     properties["chars"] = JsonSchema.String(description = "Bytes to write to stdin (may be empty to poll).")
@@ -169,7 +169,7 @@ fun createWriteStdinTool(): ToolSpec {
     ))
 }
 
-fun createShellTool(): ToolSpec {
+internal fun createShellTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["command"] = JsonSchema.Array(
         items = JsonSchema.String(),
@@ -197,7 +197,7 @@ fun createShellTool(): ToolSpec {
     ))
 }
 
-fun createShellCommandTool(): ToolSpec {
+internal fun createShellCommandTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["command"] = JsonSchema.String(description = "The shell script to execute in the user's default shell")
     properties["workdir"] = JsonSchema.String(description = "The working directory to execute the command in")
@@ -220,7 +220,7 @@ fun createShellCommandTool(): ToolSpec {
     ))
 }
 
-fun createViewImageTool(): ToolSpec {
+internal fun createViewImageTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["path"] = JsonSchema.String(description = "Local filesystem path to an image file")
 
@@ -236,7 +236,7 @@ fun createViewImageTool(): ToolSpec {
     ))
 }
 
-fun createTestSyncTool(): ToolSpec {
+internal fun createTestSyncTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["sleep_before_ms"] = JsonSchema.Number(description = "Optional delay in milliseconds before any other action")
     properties["sleep_after_ms"] = JsonSchema.Number(description = "Optional delay in milliseconds after completing the barrier")
@@ -264,7 +264,7 @@ fun createTestSyncTool(): ToolSpec {
     ))
 }
 
-fun createGrepFilesTool(): ToolSpec {
+internal fun createGrepFilesTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["pattern"] = JsonSchema.String(description = "Regular expression pattern to search for.")
     properties["include"] = JsonSchema.String(description = "Optional glob that limits which files are searched (e.g. \"*.rs\" or \"*.{ts,tsx}\").")
@@ -283,7 +283,7 @@ fun createGrepFilesTool(): ToolSpec {
     ))
 }
 
-fun createReadFileTool(): ToolSpec {
+internal fun createReadFileTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["file_path"] = JsonSchema.String(description = "Absolute path to the file")
     properties["offset"] = JsonSchema.Number(description = "The line number to start reading from. Must be 1 or greater.")
@@ -315,7 +315,7 @@ fun createReadFileTool(): ToolSpec {
     ))
 }
 
-fun createListDirTool(): ToolSpec {
+internal fun createListDirTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["dir_path"] = JsonSchema.String(description = "Absolute path to the directory to list.")
     properties["offset"] = JsonSchema.Number(description = "The entry number to start listing from. Must be 1 or greater.")
@@ -334,7 +334,7 @@ fun createListDirTool(): ToolSpec {
     ))
 }
 
-fun createListMcpResourcesTool(): ToolSpec {
+internal fun createListMcpResourcesTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["server"] = JsonSchema.String(description = "Optional MCP server name. When omitted, lists resources from every configured server.")
     properties["cursor"] = JsonSchema.String(description = "Opaque cursor returned by a previous list_mcp_resources call for the same server.")
@@ -351,7 +351,7 @@ fun createListMcpResourcesTool(): ToolSpec {
     ))
 }
 
-fun createListMcpResourceTemplatesTool(): ToolSpec {
+internal fun createListMcpResourceTemplatesTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["server"] = JsonSchema.String(description = "Optional MCP server name. When omitted, lists resource templates from all configured servers.")
     properties["cursor"] = JsonSchema.String(description = "Opaque cursor returned by a previous list_mcp_resource_templates call for the same server.")
@@ -368,7 +368,7 @@ fun createListMcpResourceTemplatesTool(): ToolSpec {
     ))
 }
 
-fun createReadMcpResourceTool(): ToolSpec {
+internal fun createReadMcpResourceTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["server"] = JsonSchema.String(description = "MCP server name exactly as configured. Must match the 'server' field returned by list_mcp_resources.")
     properties["uri"] = JsonSchema.String(description = "Resource URI to read. Must be one of the URIs returned by list_mcp_resources.")
@@ -501,7 +501,7 @@ internal fun buildSpecs(
     return builder
 }
 
-fun mcpToolToOpenAiTool(
+internal fun mcpToolToOpenAiTool(
     fullyQualifiedName: String,
     tool: io.github.kotlinmania.codex.protocol.McpTool
 ): ResponsesApiTool {
@@ -533,7 +533,7 @@ fun mcpToolToOpenAiTool(
 }
 
 // Placeholder for converting generic JSON to our JsonSchema type
-fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
+internal fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
     if (element !is JsonObject) {
         // Fallback or error. For now, treat as empty object or string?
         // If it a primitive, it might be a simplified schema?
