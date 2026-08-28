@@ -109,11 +109,9 @@ data class LegacyFeatureUsage(
 /**
  * Holds the effective set of enabled features.
  */
-class Features private constructor(
-    private val enabled: MutableSet<Feature>,
-    private val legacyUsages: MutableSet<LegacyFeatureUsage>
-) {
-    constructor() : this(mutableSetOf(), mutableSetOf())
+class Features {
+    private val enabled: MutableSet<Feature> = mutableSetOf()
+    private val legacyUsages: MutableSet<LegacyFeatureUsage> = mutableSetOf()
 
     /**
      * Check if a feature is enabled.
@@ -190,7 +188,12 @@ class Features private constructor(
     /**
      * Copy this features instance.
      */
-    fun copy(): Features = Features(enabled.toMutableSet(), legacyUsages.toMutableSet())
+    fun copy(): Features {
+        val copy = Features()
+        copy.enabled.addAll(enabled)
+        copy.legacyUsages.addAll(legacyUsages)
+        return copy
+    }
 
     companion object {
         /**
