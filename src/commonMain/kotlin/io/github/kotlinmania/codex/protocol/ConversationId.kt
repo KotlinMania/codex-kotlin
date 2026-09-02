@@ -46,7 +46,7 @@ data class ConversationId(
 }
 
 @OptIn(ExperimentalUuidApi::class)
-object ConversationIdSerializer : KSerializer<ConversationId> {
+internal object ConversationIdSerializer : KSerializer<ConversationId> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ConversationId", PrimitiveKind.STRING)
 

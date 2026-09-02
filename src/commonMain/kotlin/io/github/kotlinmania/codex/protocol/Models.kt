@@ -472,7 +472,7 @@ data class FunctionCallOutputPayload(
  * Custom serializer for FunctionCallOutputPayload. Serializes as plain string when contentItems is
  * null, otherwise as array. Deserializes from either plain string or array of content items.
  */
-object FunctionCallOutputPayloadSerializer : KSerializer<FunctionCallOutputPayload> {
+internal object FunctionCallOutputPayloadSerializer : KSerializer<FunctionCallOutputPayload> {
         override val descriptor: SerialDescriptor =
                 PrimitiveSerialDescriptor("FunctionCallOutputPayload", PrimitiveKind.STRING)
 

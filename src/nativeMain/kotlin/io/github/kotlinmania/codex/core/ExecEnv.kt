@@ -16,7 +16,7 @@ import platform.posix.getenv
 // / The derivation follows the algorithm documented in the struct-level comment
 // / for [ShellEnvironmentPolicy].
 @OptIn(ExperimentalForeignApi::class)
-fun createEnv(policy: ShellEnvironmentPolicy): MutableMap<String, String> = populateEnv(currentEnvVars(), policy)
+fun createEnv(policy: ShellEnvironmentPolicy): Map<String, String> = populateEnv(currentEnvVars(), policy)
 
 @OptIn(ExperimentalForeignApi::class)
 private fun currentEnvVars(): List<Pair<String, String>> {
@@ -49,7 +49,7 @@ private fun currentEnvVars(): List<Pair<String, String>> {
 internal fun populateEnv(
     vars: Iterable<Pair<String, String>>,
     policy: ShellEnvironmentPolicy,
-): MutableMap<String, String> {
+): Map<String, String> {
     // Step 1 – determine the starting set of variables based on the
     // `inherit` strategy.
     val envMap: MutableMap<String, String> =
