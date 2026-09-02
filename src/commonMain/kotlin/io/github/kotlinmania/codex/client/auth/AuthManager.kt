@@ -379,14 +379,15 @@ interface AuthProvider {
  * @param headers Mutable map of headers to add to
  * @return The headers map with auth headers added
  */
-fun <T : AuthProvider> addAuthHeaders(auth: T, headers: MutableMap<String, String>): MutableMap<String, String> {
+fun <T : AuthProvider> addAuthHeaders(auth: T, headers: Map<String, String> = emptyMap()): Map<String, String> {
+    val result = headers.toMutableMap()
     auth.bearerToken()?.let { token ->
-        headers["Authorization"] = "Bearer $token"
+        result["Authorization"] = "Bearer $token"
     }
     auth.accountId()?.let { accountId ->
-        headers["ChatGPT-Account-ID"] = accountId
+        result["ChatGPT-Account-ID"] = accountId
     }
-    return headers
+    return result
 }
 
 /**
