@@ -76,6 +76,8 @@ Icon?
 # Unwanted package managers
 .yarn/
 yarn.lock
+!kotlin-js-store/**
+
 
 # release
 package.json-e
