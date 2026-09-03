@@ -10,8 +10,8 @@ atomicfu = "0.33.0"
 kotlinxIo = "0.9.1"
 ktor = "3.5.2"
 androidKmp = "9.4.0"
-detekt = "1.23.8"
-ktlint = "14.2.0"
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 kotlinxBenchmark = "0.4.19"
 
 [plugins]
