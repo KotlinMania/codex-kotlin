@@ -7,8 +7,8 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -20,14 +20,13 @@ import kotlinx.serialization.json.Json
  * Ported from Rust codex-rs/core/src/tools/handlers/listDir.rs
  */
 internal class ListDirHandler : ToolHandler {
-
     override val kind: ToolKind = ToolKind.Function
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
             return Result.failure(
-                FunctionCallError.Fatal("list_dir handler received unsupported payload")
+                FunctionCallError.Fatal("list_dir handler received unsupported payload"),
             )
         }
 
@@ -36,33 +35,33 @@ internal class ListDirHandler : ToolHandler {
                 LIST_DIR_JSON.decodeFromString<ListDirArgs>(payload.arguments)
             } catch (e: Exception) {
                 return Result.failure(
-                    FunctionCallError.Fatal("failed to parse function arguments: ${e.message}")
+                    FunctionCallError.Fatal("failed to parse function arguments: ${e.message}"),
                 )
             }
 
         // Validate arguments
         if (args.offset == 0) {
             return Result.failure(
-                FunctionCallError.RespondToModel("offset must be a 1-indexed entry number")
+                FunctionCallError.RespondToModel("offset must be a 1-indexed entry number"),
             )
         }
 
         if (args.limit == 0) {
             return Result.failure(
-                FunctionCallError.RespondToModel("limit must be greater than zero")
+                FunctionCallError.RespondToModel("limit must be greater than zero"),
             )
         }
 
         if (args.depth == 0) {
             return Result.failure(
-                FunctionCallError.RespondToModel("depth must be greater than zero")
+                FunctionCallError.RespondToModel("depth must be greater than zero"),
             )
         }
 
         val dirPath = args.dirPath
         if (!dirPath.startsWith("/") && !dirPath.matches(Regex("^[A-Za-z]:.*"))) {
             return Result.failure(
-                FunctionCallError.RespondToModel("dir_path must be an absolute path")
+                FunctionCallError.RespondToModel("dir_path must be an absolute path"),
             )
         }
 
@@ -75,12 +74,12 @@ internal class ListDirHandler : ToolHandler {
             Result.success(
                 ToolOutput.Function(
                     content = output.joinToString("\n"),
-                    success = true
-                )
+                    success = true,
+                ),
             )
         } catch (e: Exception) {
             Result.failure(
-                FunctionCallError.RespondToModel("failed to read directory: ${e.message}")
+                FunctionCallError.RespondToModel("failed to read directory: ${e.message}"),
             )
         }
     }
@@ -95,7 +94,7 @@ private data class ListDirArgs(
     val dirPath: String,
     val offset: Int = 1,
     val limit: Int = 25,
-    val depth: Int = 2
+    val depth: Int = 2,
 )
 
 /**
@@ -105,7 +104,7 @@ private data class DirEntry(
     val name: String,
     val displayName: String,
     val depth: Int,
-    val kind: DirEntryKind
+    val kind: DirEntryKind,
 )
 
 /**
@@ -115,16 +114,17 @@ private enum class DirEntryKind {
     Directory,
     File,
     Symlink,
-    Other
+    Other,
 }
 
 private const val MAX_ENTRY_LENGTH = 500
 private const val INDENTATION_SPACES = 2
 
-private val LIST_DIR_JSON = Json {
-    ignoreUnknownKeys = true
-    isLenient = true
-}
+private val LIST_DIR_JSON =
+    Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
 /**
  * List directory entries with pagination.
@@ -163,7 +163,7 @@ private fun collectEntries(
     dirPath: Path,
     relativePrefix: Path,
     depth: Int,
-    entries: MutableList<DirEntry>
+    entries: MutableList<DirEntry>,
 ) {
     val queue = ArrayDeque<Triple<Path, Path, Int>>()
     queue.addLast(Triple(dirPath, relativePrefix, depth))
@@ -177,27 +177,35 @@ private fun collectEntries(
             SystemFileSystem.list(currentDir).forEach { entryPath ->
                 val metadata = SystemFileSystem.metadataOrNull(entryPath)
                 val fileName = entryPath.name
-                val relativePath = if (prefix.toString().isEmpty()) {
-                    Path(fileName)
-                } else {
-                    Path(prefix.toString() + "/" + fileName)
-                }
+                val relativePath =
+                    if (prefix.toString().isEmpty()) {
+                        Path(fileName)
+                    } else {
+                        Path(prefix.toString() + "/" + fileName)
+                    }
 
                 val displayName = formatEntryComponent(fileName)
-                val displayDepth = prefix.toString().split("/").filter { it.isNotEmpty() }.size
+                val displayDepth =
+                    prefix
+                        .toString()
+                        .split("/")
+                        .filter { it.isNotEmpty() }
+                        .size
                 val sortKey = formatEntryName(relativePath)
-                val kind = when {
-                    metadata?.isDirectory == true -> DirEntryKind.Directory
-                    metadata?.isRegularFile == true -> DirEntryKind.File
-                    else -> DirEntryKind.Other
-                }
+                val kind =
+                    when {
+                        metadata?.isDirectory == true -> DirEntryKind.Directory
+                        metadata?.isRegularFile == true -> DirEntryKind.File
+                        else -> DirEntryKind.Other
+                    }
 
-                val entry = DirEntry(
-                    name = sortKey,
-                    displayName = displayName,
-                    depth = displayDepth,
-                    kind = kind
-                )
+                val entry =
+                    DirEntry(
+                        name = sortKey,
+                        displayName = displayName,
+                        depth = displayDepth,
+                        kind = kind,
+                    )
 
                 dirEntries.add(Pair(entryPath, entry))
 
@@ -231,24 +239,24 @@ private fun formatEntryName(path: Path): String {
 /**
  * Format a single entry component (file/dir name).
  */
-private fun formatEntryComponent(name: String): String {
-    return if (name.length > MAX_ENTRY_LENGTH) {
+private fun formatEntryComponent(name: String): String =
+    if (name.length > MAX_ENTRY_LENGTH) {
         name.take(MAX_ENTRY_LENGTH)
     } else {
         name
     }
-}
 
 /**
  * Format a single entry for display.
  */
 private fun formatEntryLine(entry: DirEntry): String {
     val indent = " ".repeat(entry.depth * INDENTATION_SPACES)
-    val prefix = when (entry.kind) {
-        DirEntryKind.Directory -> "$indent[DIR] "
-        DirEntryKind.File -> "$indent[FILE] "
-        DirEntryKind.Symlink -> "$indent[LINK] "
-        DirEntryKind.Other -> "$indent[OTHER] "
-    }
+    val prefix =
+        when (entry.kind) {
+            DirEntryKind.Directory -> "$indent[DIR] "
+            DirEntryKind.File -> "$indent[FILE] "
+            DirEntryKind.Symlink -> "$indent[LINK] "
+            DirEntryKind.Other -> "$indent[OTHER] "
+        }
     return "$prefix${entry.displayName}"
 }

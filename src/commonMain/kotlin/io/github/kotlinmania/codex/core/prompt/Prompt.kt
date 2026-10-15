@@ -14,28 +14,22 @@ import kotlinx.serialization.json.JsonElement
 data class Prompt(
     /** Conversation context input items. */
     val input: List<ResponseItem> = emptyList(),
-
     /**
      * Tools available to the model, including additional tools sourced from
      * external MCP servers.
      */
     val tools: List<ToolSpec> = emptyList(),
-
     /** Whether parallel tool calls are permitted for this prompt. */
     val parallelToolCalls: Boolean = false,
-
     /** Optional override for the built-in BASE_INSTRUCTIONS. */
     val baseInstructionsOverride: String? = null,
-
     /** Optional output schema for the model response. */
-    val outputSchema: JsonElement? = null
+    val outputSchema: JsonElement? = null,
 ) {
     fun getFullInstructions(modelFamily: ModelFamily): String {
         val base = baseInstructionsOverride ?: modelFamily.baseInstructions
         return base
     }
 
-    fun getFormattedInput(): List<ResponseItem> {
-        return input
-    }
+    fun getFormattedInput(): List<ResponseItem> = input
 }

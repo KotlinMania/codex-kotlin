@@ -2,7 +2,9 @@
 package io.github.kotlinmania.codex.tui
 
 /** Commands that can be invoked by starting a message with a leading slash. */
-internal enum class SlashCommand(val command: String) {
+internal enum class SlashCommand(
+    val command: String,
+) {
     // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
     // more frequently used commands should be listed first.
     Model("model"),
@@ -21,40 +23,44 @@ internal enum class SlashCommand(val command: String) {
     Exit("exit"),
     Feedback("feedback"),
     Rollout("rollout"),
-    TestApproval("test-approval");
+    TestApproval("test-approval"),
+    ;
 
     /** User-visible description shown in the popup. */
-    fun description(): String = when (this) {
-        Feedback -> "send logs to maintainers"
-        New -> "start a new chat during a conversation"
-        Init -> "create an AGENTS.md file with instructions for Codex"
-        Compact -> "summarize conversation to prevent hitting the context limit"
-        Review -> "review my current changes and find issues"
-        Undo -> "ask Codex to undo a turn"
-        Quit, Exit -> "exit Codex"
-        Diff -> "show git diff (including untracked files)"
-        Mention -> "mention a file"
-        Status -> "show current session configuration and token usage"
-        Model -> "choose what model and reasoning effort to use"
-        Approvals -> "choose what Codex can do without approval"
-        Mcp -> "list configured MCP tools"
-        Logout -> "log out of Codex"
-        Rollout -> "print the rollout file path"
-        TestApproval -> "test approval request"
-    }
+    fun description(): String =
+        when (this) {
+            Feedback -> "send logs to maintainers"
+            New -> "start a new chat during a conversation"
+            Init -> "create an AGENTS.md file with instructions for Codex"
+            Compact -> "summarize conversation to prevent hitting the context limit"
+            Review -> "review my current changes and find issues"
+            Undo -> "ask Codex to undo a turn"
+            Quit, Exit -> "exit Codex"
+            Diff -> "show git diff (including untracked files)"
+            Mention -> "mention a file"
+            Status -> "show current session configuration and token usage"
+            Model -> "choose what model and reasoning effort to use"
+            Approvals -> "choose what Codex can do without approval"
+            Mcp -> "list configured MCP tools"
+            Logout -> "log out of Codex"
+            Rollout -> "print the rollout file path"
+            TestApproval -> "test approval request"
+        }
 
     /** Whether this command can be run while a task is in progress. */
-    fun availableDuringTask(): Boolean = when (this) {
-        New, Init, Compact, Undo, Model, Approvals, Review, Logout -> false
-        Diff, Mention, Status, Mcp, Feedback, Quit, Exit -> true
-        Rollout -> true
-        TestApproval -> true
-    }
+    fun availableDuringTask(): Boolean =
+        when (this) {
+            New, Init, Compact, Undo, Model, Approvals, Review, Logout -> false
+            Diff, Mention, Status, Mcp, Feedback, Quit, Exit -> true
+            Rollout -> true
+            TestApproval -> true
+        }
 
-    private fun isVisible(): Boolean = when (this) {
-        Rollout, TestApproval -> DEBUG_ASSERTIONS
-        else -> true
-    }
+    private fun isVisible(): Boolean =
+        when (this) {
+            Rollout, TestApproval -> DEBUG_ASSERTIONS
+            else -> true
+        }
 
     companion object {
         /**

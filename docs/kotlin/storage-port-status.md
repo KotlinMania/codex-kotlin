@@ -10,7 +10,7 @@ The Kotlin implementation maintains a 1:1 structural parity with the Rust source
 |-----------|--------|----------------------|
 | `AuthCredentialsStoreMode` | ✅ Complete | Mapped to Rust enum variants. |
 | `AuthStorageBackend` | ✅ Complete | Interface for storage strategy. |
-| `FileAuthStorage` | ✅ Complete | Uses `kotlinx.io` for filesystem operations. |
+| `FileAuthStorage` | ✅ Complete | Uses `km-io` (`io.github.kotlinmania.io`) for filesystem operations. |
 | `KeychainAuthStorage` | ✅ Structural | Implements logic with delegation to `KeychainStore`. |
 | `AutoAuthStorage` | ✅ Complete | Handles keychain-first with file fallback. |
 | `KeychainStore` | ✅ Complete | Interface for platform-specific extensions. |

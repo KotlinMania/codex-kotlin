@@ -1,23 +1,18 @@
 // port-lint: source core/src/tools/spec.rs
 package io.github.kotlinmania.codex.core.tools
 
-import io.github.kotlinmania.codex.core.session.FreeformTool
-import io.github.kotlinmania.codex.core.session.FreeformToolFormat
-import io.github.kotlinmania.codex.core.session.ResponsesApiTool
-import io.github.kotlinmania.codex.core.session.ToolSpec
 import io.github.kotlinmania.codex.core.features.Feature
 import io.github.kotlinmania.codex.core.features.Features
 import io.github.kotlinmania.codex.core.model.ApplyPatchToolType
 import io.github.kotlinmania.codex.core.model.ModelFamily
-import io.github.kotlinmania.codex.core.tools.handlers.APPLY_PATCH_LARK_GRAMMAR
+import io.github.kotlinmania.codex.core.session.ResponsesApiTool
+import io.github.kotlinmania.codex.core.session.ToolSpec
 import io.github.kotlinmania.codex.core.tools.handlers.ApplyPatchHandler
-import io.github.kotlinmania.codex.core.tools.handlers.PLAN_TOOL
-import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchFreeformTool
-import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchJsonTool
 import io.github.kotlinmania.codex.core.tools.handlers.GrepFilesHandler
 import io.github.kotlinmania.codex.core.tools.handlers.ListDirHandler
 import io.github.kotlinmania.codex.core.tools.handlers.McpHandler
 import io.github.kotlinmania.codex.core.tools.handlers.McpResourceHandler
+import io.github.kotlinmania.codex.core.tools.handlers.PLAN_TOOL
 import io.github.kotlinmania.codex.core.tools.handlers.PlanHandler
 import io.github.kotlinmania.codex.core.tools.handlers.ReadFileHandler
 import io.github.kotlinmania.codex.core.tools.handlers.ShellCommandHandler
@@ -25,6 +20,8 @@ import io.github.kotlinmania.codex.core.tools.handlers.ShellHandler
 import io.github.kotlinmania.codex.core.tools.handlers.TestSyncHandler
 import io.github.kotlinmania.codex.core.tools.handlers.UnifiedExecHandler
 import io.github.kotlinmania.codex.core.tools.handlers.ViewImageHandler
+import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchFreeformTool
+import io.github.kotlinmania.codex.core.tools.handlers.createApplyPatchJsonTool
 import io.github.kotlinmania.codex.protocol.McpTool
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -32,17 +29,17 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 
 enum class ConfigShellToolType {
     Default,
     Local,
     UnifiedExec,
     Disabled,
-    ShellCommand
+    ShellCommand,
 }
 
 internal data class ToolsConfig(
@@ -50,7 +47,7 @@ internal data class ToolsConfig(
     val applyPatchToolType: ApplyPatchToolType?,
     val webSearchRequest: Boolean,
     val includeViewImageTool: Boolean,
-    val experimentalSupportedTools: List<String>
+    val experimentalSupportedTools: List<String>,
 )
 
 internal fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
@@ -61,66 +58,78 @@ internal fun newToolsConfig(params: ToolsConfigParams): ToolsConfig {
     val includeWebSearchRequest = features.enabled(Feature.WebSearchRequest)
     val includeViewImageTool = features.enabled(Feature.ViewImageTool)
 
-    val shellType = if (!features.enabled(Feature.ShellTool)) {
-        ConfigShellToolType.Disabled
-    } else if (features.enabled(Feature.UnifiedExec)) {
-        ConfigShellToolType.UnifiedExec
-    } else {
-        modelFamily.shellType
-    }
+    val shellType =
+        if (!features.enabled(Feature.ShellTool)) {
+            ConfigShellToolType.Disabled
+        } else if (features.enabled(Feature.UnifiedExec)) {
+            ConfigShellToolType.UnifiedExec
+        } else {
+            modelFamily.shellType
+        }
 
-    val applyPatchToolType = when (modelFamily.applyPatchToolType) {
-        ApplyPatchToolType.Freeform -> ApplyPatchToolType.Freeform
-        ApplyPatchToolType.Function -> ApplyPatchToolType.Function
-        null -> if (includeApplyPatchTool) ApplyPatchToolType.Freeform else null
-    }
+    val applyPatchToolType =
+        when (modelFamily.applyPatchToolType) {
+            ApplyPatchToolType.Freeform -> ApplyPatchToolType.Freeform
+            ApplyPatchToolType.Function -> ApplyPatchToolType.Function
+            null -> if (includeApplyPatchTool) ApplyPatchToolType.Freeform else null
+        }
 
     return ToolsConfig(
         shellType = shellType,
         applyPatchToolType = applyPatchToolType,
         webSearchRequest = includeWebSearchRequest,
         includeViewImageTool = includeViewImageTool,
-        experimentalSupportedTools = modelFamily.experimentalSupportedTools
+        experimentalSupportedTools = modelFamily.experimentalSupportedTools,
     )
 }
 
 internal data class ToolsConfigParams(
     val modelFamily: ModelFamily,
-    val features: Features
+    val features: Features,
 )
 
 @Serializable
 internal sealed class JsonSchema {
     @Serializable
-    data class Boolean(val description: kotlin.String? = null) : JsonSchema()
+    data class Boolean(
+        val description: kotlin.String? = null,
+    ) : JsonSchema()
 
     @Serializable
-    data class String(val description: kotlin.String? = null) : JsonSchema()
+    data class String(
+        val description: kotlin.String? = null,
+    ) : JsonSchema()
 
     @Serializable
-    data class Number(val description: kotlin.String? = null) : JsonSchema()
+    data class Number(
+        val description: kotlin.String? = null,
+    ) : JsonSchema()
 
     @Serializable
     data class Array(
         val items: JsonSchema,
-        val description: kotlin.String? = null
+        val description: kotlin.String? = null,
     ) : JsonSchema()
 
     @Serializable
     data class Object(
         val properties: Map<kotlin.String, JsonSchema>,
         val required: List<kotlin.String>? = null,
-        val additionalProperties: AdditionalProperties? = null
+        val additionalProperties: AdditionalProperties? = null,
     ) : JsonSchema()
 }
 
 @Serializable
 internal sealed class AdditionalProperties {
     @Serializable
-    data class Boolean(val value: kotlin.Boolean) : AdditionalProperties()
-    
+    data class Boolean(
+        val value: kotlin.Boolean,
+    ) : AdditionalProperties()
+
     @Serializable
-    data class Schema(val schema: JsonSchema) : AdditionalProperties()
+    data class Schema(
+        val schema: JsonSchema,
+    ) : AdditionalProperties()
 
     companion object {
         fun from(value: kotlin.Boolean): AdditionalProperties = Boolean(value)
@@ -138,16 +147,19 @@ internal fun createExecCommandTool(): ToolSpec {
     properties["with_escalated_permissions"] = JsonSchema.Boolean(description = "Whether to request escalated permissions. Set to true if command needs to be run without sandbox restrictions")
     properties["justification"] = JsonSchema.String(description = "Only set if with_escalated_permissions is true. 1-sentence explanation of why we want to run this command.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "exec_command",
-        description = "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("cmd"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "exec_command",
+            description = "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("cmd"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createWriteStdinTool(): ToolSpec {
@@ -157,24 +169,28 @@ internal fun createWriteStdinTool(): ToolSpec {
     properties["yield_time_ms"] = JsonSchema.Number(description = "How long to wait (in milliseconds) for output before yielding.")
     properties["max_output_tokens"] = JsonSchema.Number(description = "Maximum number of tokens to return. Excess output will be truncated.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "write_stdin",
-        description = "Writes characters to an existing unified exec session and returns recent output.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("session_id"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "write_stdin",
+            description = "Writes characters to an existing unified exec session and returns recent output.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("session_id"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createShellTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
-    properties["command"] = JsonSchema.Array(
-        items = JsonSchema.String(),
-        description = "The command to execute"
-    )
+    properties["command"] =
+        JsonSchema.Array(
+            items = JsonSchema.String(),
+            description = "The command to execute",
+        )
     properties["workdir"] = JsonSchema.String(description = "The working directory to execute the command in")
     properties["timeout_ms"] = JsonSchema.Number(description = "The timeout for the command in milliseconds")
     properties["with_escalated_permissions"] = JsonSchema.Boolean(description = "Whether to request escalated permissions. Set to true if command needs to be run without sandbox restrictions")
@@ -185,16 +201,19 @@ internal fun createShellTool(): ToolSpec {
 - The arguments to `shell` will be passed to execvp(). Most terminal commands should be prefixed with ["bash", "-lc"].
 - Always set the `workdir` param when using the shell function. Do not use `cd` unless absolutely necessary."""
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "shell",
-        description = description,
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("command"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "shell",
+            description = description,
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("command"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createShellCommandTool(): ToolSpec {
@@ -208,32 +227,38 @@ internal fun createShellCommandTool(): ToolSpec {
     val description = """Runs a shell command and returns its output.
 - Always set the `workdir` param when using the shell_command function. Do not use `cd` unless absolutely necessary."""
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "shell_command",
-        description = description,
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("command"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "shell_command",
+            description = description,
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("command"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createViewImageTool(): ToolSpec {
     val properties = mutableMapOf<kotlin.String, JsonSchema>()
     properties["path"] = JsonSchema.String(description = "Local filesystem path to an image file")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "view_image",
-        description = "Attach a local image (by filesystem path) to the conversation context for this turn.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("path"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "view_image",
+            description = "Attach a local image (by filesystem path) to the conversation context for this turn.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("path"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createTestSyncTool(): ToolSpec {
@@ -246,22 +271,26 @@ internal fun createTestSyncTool(): ToolSpec {
     barrierProperties["participants"] = JsonSchema.Number(description = "Number of tool calls that must arrive before the barrier opens")
     barrierProperties["timeout_ms"] = JsonSchema.Number(description = "Maximum time in milliseconds to wait at the barrier")
 
-    properties["barrier"] = JsonSchema.Object(
-        properties = barrierProperties,
-        required = listOf("id", "participants"),
-        additionalProperties = AdditionalProperties.Boolean(false)
-    )
-
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "test_sync_tool",
-        description = "Internal synchronization helper used by Codex integration tests.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = null,
-            additionalProperties = AdditionalProperties.Boolean(false)
+    properties["barrier"] =
+        JsonSchema.Object(
+            properties = barrierProperties,
+            required = listOf("id", "participants"),
+            additionalProperties = AdditionalProperties.Boolean(false),
         )
-    ))
+
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "test_sync_tool",
+            description = "Internal synchronization helper used by Codex integration tests.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = null,
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createGrepFilesTool(): ToolSpec {
@@ -271,16 +300,19 @@ internal fun createGrepFilesTool(): ToolSpec {
     properties["path"] = JsonSchema.String(description = "Directory or file path to search. Defaults to the session's working directory.")
     properties["limit"] = JsonSchema.Number(description = "Maximum number of file paths to return (defaults to 100).")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "grep_files",
-        description = "Finds files whose contents match the pattern and lists them by modification time.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("pattern"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "grep_files",
+            description = "Finds files whose contents match the pattern and lists them by modification time.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("pattern"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createReadFileTool(): ToolSpec {
@@ -297,22 +329,26 @@ internal fun createReadFileTool(): ToolSpec {
     indentationProperties["include_header"] = JsonSchema.Boolean(description = "Include doc comments or attributes directly above the selected block.")
     indentationProperties["max_lines"] = JsonSchema.Number(description = "Hard cap on the number of lines returned when using indentation mode.")
 
-    properties["indentation"] = JsonSchema.Object(
-        properties = indentationProperties,
-        required = null,
-        additionalProperties = AdditionalProperties.Boolean(false)
-    )
-
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "read_file",
-        description = "Reads a local file with 1-indexed line numbers, supporting slice and indentation-aware block modes.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("file_path"),
-            additionalProperties = AdditionalProperties.Boolean(false)
+    properties["indentation"] =
+        JsonSchema.Object(
+            properties = indentationProperties,
+            required = null,
+            additionalProperties = AdditionalProperties.Boolean(false),
         )
-    ))
+
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "read_file",
+            description = "Reads a local file with 1-indexed line numbers, supporting slice and indentation-aware block modes.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("file_path"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createListDirTool(): ToolSpec {
@@ -322,16 +358,19 @@ internal fun createListDirTool(): ToolSpec {
     properties["limit"] = JsonSchema.Number(description = "The maximum number of entries to return.")
     properties["depth"] = JsonSchema.Number(description = "The maximum directory depth to traverse. Must be 1 or greater.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "list_dir",
-        description = "Lists entries in a local directory with 1-indexed entry numbers and simple type labels.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("dir_path"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "list_dir",
+            description = "Lists entries in a local directory with 1-indexed entry numbers and simple type labels.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("dir_path"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createListMcpResourcesTool(): ToolSpec {
@@ -339,16 +378,19 @@ internal fun createListMcpResourcesTool(): ToolSpec {
     properties["server"] = JsonSchema.String(description = "Optional MCP server name. When omitted, lists resources from every configured server.")
     properties["cursor"] = JsonSchema.String(description = "Opaque cursor returned by a previous list_mcp_resources call for the same server.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "list_mcp_resources",
-        description = "Lists resources provided by MCP servers. Resources allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information. Prefer resources over web search when possible.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = null,
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "list_mcp_resources",
+            description = "Lists resources provided by MCP servers. Resources allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information. Prefer resources over web search when possible.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = null,
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createListMcpResourceTemplatesTool(): ToolSpec {
@@ -356,16 +398,19 @@ internal fun createListMcpResourceTemplatesTool(): ToolSpec {
     properties["server"] = JsonSchema.String(description = "Optional MCP server name. When omitted, lists resource templates from all configured servers.")
     properties["cursor"] = JsonSchema.String(description = "Opaque cursor returned by a previous list_mcp_resource_templates call for the same server.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "list_mcp_resource_templates",
-        description = "Lists resource templates provided by MCP servers. Parameterized resource templates allow servers to share data that takes parameters and provides context to language models, such as files, database schemas, or application-specific information. Prefer resource templates over web search when possible.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = null,
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "list_mcp_resource_templates",
+            description = "Lists resource templates provided by MCP servers. Parameterized resource templates allow servers to share data that takes parameters and provides context to language models, such as files, database schemas, or application-specific information. Prefer resource templates over web search when possible.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = null,
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun createReadMcpResourceTool(): ToolSpec {
@@ -373,21 +418,24 @@ internal fun createReadMcpResourceTool(): ToolSpec {
     properties["server"] = JsonSchema.String(description = "MCP server name exactly as configured. Must match the 'server' field returned by list_mcp_resources.")
     properties["uri"] = JsonSchema.String(description = "Resource URI to read. Must be one of the URIs returned by list_mcp_resources.")
 
-    return ToolSpec.Function(ResponsesApiTool(
-        name = "read_mcp_resource",
-        description = "Read a specific resource from an MCP server given the server name and resource URI.",
-        strict = false,
-        parameters = JsonSchema.Object(
-            properties = properties,
-            required = listOf("server", "uri"),
-            additionalProperties = AdditionalProperties.Boolean(false)
-        )
-    ))
+    return ToolSpec.Function(
+        ResponsesApiTool(
+            name = "read_mcp_resource",
+            description = "Read a specific resource from an MCP server given the server name and resource URI.",
+            strict = false,
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("server", "uri"),
+                    additionalProperties = AdditionalProperties.Boolean(false),
+                ),
+        ),
+    )
 }
 
 internal fun buildSpecs(
     config: ToolsConfig,
-    mcpTools: Map<String, McpTool>?
+    mcpTools: Map<String, McpTool>?,
 ): ToolRegistryBuilder {
     val builder = ToolRegistryBuilder()
 
@@ -503,7 +551,7 @@ internal fun buildSpecs(
 
 internal fun mcpToolToOpenAiTool(
     fullyQualifiedName: String,
-    tool: io.github.kotlinmania.codex.protocol.McpTool
+    tool: io.github.kotlinmania.codex.protocol.McpTool,
 ): ResponsesApiTool {
     val description = tool.descriptionText ?: ""
     val inputSchema = tool.inputSchema
@@ -511,16 +559,17 @@ internal fun mcpToolToOpenAiTool(
     // Build a JsonObject mirroring the MCP tool input schema so we can reuse the
     // existing JSON-to-JsonSchema converter. This mirrors the upstream `sanitizeJsonSchema`
     // approach where the schema is walked as serdeJson::Value.
-    val schemaJson = kotlinx.serialization.json.buildJsonObject {
-        put("type", JsonPrimitive(inputSchema.type))
-        inputSchema.properties?.let { put("properties", it) }
-        inputSchema.required?.let { req ->
-            put(
-                "required",
-                kotlinx.serialization.json.buildJsonArray { req.forEach { add(JsonPrimitive(it)) } }
-            )
+    val schemaJson =
+        kotlinx.serialization.json.buildJsonObject {
+            put("type", JsonPrimitive(inputSchema.type))
+            inputSchema.properties?.let { put("properties", it) }
+            inputSchema.required?.let { req ->
+                put(
+                    "required",
+                    kotlinx.serialization.json.buildJsonArray { req.forEach { add(JsonPrimitive(it)) } },
+                )
+            }
         }
-    }
 
     val parameters = convertJsonElementToJsonSchema(schemaJson)
 
@@ -528,7 +577,7 @@ internal fun mcpToolToOpenAiTool(
         name = fullyQualifiedName,
         description = description,
         strict = false,
-        parameters = parameters
+        parameters = parameters,
     )
 }
 
@@ -546,35 +595,38 @@ internal fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
 
     return when (type) {
         "object" -> {
-            val properties = element["properties"]?.jsonObject?.mapValues { (_, v) ->
-                convertJsonElementToJsonSchema(v)
-            } ?: emptyMap()
+            val properties =
+                element["properties"]?.jsonObject?.mapValues { (_, v) ->
+                    convertJsonElementToJsonSchema(v)
+                } ?: emptyMap()
 
             val required = element["required"]?.jsonArray?.map { it.jsonPrimitive.content }
 
-            val additionalProperties = element["additionalProperties"]?.let { ap ->
-                when {
-                    ap is JsonPrimitive && ap.booleanOrNull != null -> 
-                        AdditionalProperties.Boolean(ap.boolean)
-                    ap is JsonObject -> 
-                        AdditionalProperties.Schema(convertJsonElementToJsonSchema(ap))
-                    else -> null
+            val additionalProperties =
+                element["additionalProperties"]?.let { ap ->
+                    when {
+                        ap is JsonPrimitive && ap.booleanOrNull != null ->
+                            AdditionalProperties.Boolean(ap.boolean)
+                        ap is JsonObject ->
+                            AdditionalProperties.Schema(convertJsonElementToJsonSchema(ap))
+                        else -> null
+                    }
                 }
-            }
 
             JsonSchema.Object(
                 properties = properties,
                 required = required,
-                additionalProperties = additionalProperties
+                additionalProperties = additionalProperties,
             )
         }
         "array" -> {
-            val items = element["items"]?.let { convertJsonElementToJsonSchema(it) }
-                ?: JsonSchema.String() // Default to string if items missing? Or Object?
-            
+            val items =
+                element["items"]?.let { convertJsonElementToJsonSchema(it) }
+                    ?: JsonSchema.String() // Default to string if items missing? Or Object?
+
             JsonSchema.Array(
                 items = items,
-                description = description
+                description = description,
             )
         }
         "string" -> JsonSchema.String(description)
@@ -583,9 +635,10 @@ internal fun convertJsonElementToJsonSchema(element: JsonElement): JsonSchema {
         else -> {
             // Infer type from properties
             if (element.containsKey("properties")) {
-                val properties = element["properties"]?.jsonObject?.mapValues { (_, v) ->
-                    convertJsonElementToJsonSchema(v)
-                } ?: emptyMap()
+                val properties =
+                    element["properties"]?.jsonObject?.mapValues { (_, v) ->
+                        convertJsonElementToJsonSchema(v)
+                    } ?: emptyMap()
                 val required = element["required"]?.jsonArray?.map { it.jsonPrimitive.content }
                 JsonSchema.Object(properties, required)
             } else {

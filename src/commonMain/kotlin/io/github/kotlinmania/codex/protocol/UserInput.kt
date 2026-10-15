@@ -10,7 +10,7 @@ sealed class UserInput {
     @Serializable
     @SerialName("text")
     data class Text(
-        val text: String
+        val text: String,
     ) : UserInput()
 
     /** Pre‑encoded data: URI image. */
@@ -18,7 +18,7 @@ sealed class UserInput {
     @SerialName("image")
     data class Image(
         @SerialName("image_url")
-        val imageUrl: String
+        val imageUrl: String,
     ) : UserInput()
 
     /**
@@ -28,6 +28,6 @@ sealed class UserInput {
     @Serializable
     @SerialName("local_image")
     data class LocalImage(
-        val path: String
+        val path: String,
     ) : UserInput()
 }

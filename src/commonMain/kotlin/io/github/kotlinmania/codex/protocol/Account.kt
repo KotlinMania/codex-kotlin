@@ -33,5 +33,5 @@ enum class PlanType {
     Edu,
 
     @SerialName("unknown")
-    Unknown
+    Unknown,
 }

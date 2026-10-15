@@ -38,11 +38,12 @@ fun formatReviewFindingsBlock(
         }
 
         val bodyLines = item.body.lines()
-        val trimmed = if (bodyLines.isNotEmpty() && bodyLines.last().isEmpty()) {
-            bodyLines.dropLast(1)
-        } else {
-            bodyLines
-        }
+        val trimmed =
+            if (bodyLines.isNotEmpty() && bodyLines.last().isEmpty()) {
+                bodyLines.dropLast(1)
+            } else {
+                bodyLines
+            }
         for (bodyLine in trimmed) {
             lines.add("  $bodyLine")
         }

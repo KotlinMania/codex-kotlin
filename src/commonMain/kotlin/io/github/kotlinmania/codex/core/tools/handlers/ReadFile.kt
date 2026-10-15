@@ -7,14 +7,14 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
-import kotlin.text.iterator
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readLine
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readLine
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.text.iterator
 
 /**
  * Handler for the readFile tool. Reads file contents with support for slice mode and
@@ -23,75 +23,74 @@ import kotlinx.serialization.json.Json
  * Ported from Rust codex-rs/core/src/tools/handlers/readFile.rs
  */
 internal class ReadFileHandler : ToolHandler {
-
     override val kind: ToolKind = ToolKind.Function
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
             return Result.failure(
-                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                            CodexErr.Fatal("read_file handler received unsupported payload")
-                    )
+                io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                    CodexErr.Fatal("read_file handler received unsupported payload"),
+                ),
             )
         }
 
         val args =
-                try {
-                    READ_FILE_JSON.decodeFromString<ReadFileArgs>(payload.arguments)
-                } catch (e: Exception) {
-                    return Result.failure(
-                            io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                                    CodexErr.Fatal(
-                                            "failed to parse function arguments: ${e.message}"
-                                    )
-                            )
-                    )
-                }
+            try {
+                READ_FILE_JSON.decodeFromString<ReadFileArgs>(payload.arguments)
+            } catch (e: Exception) {
+                return Result.failure(
+                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                        CodexErr.Fatal(
+                            "failed to parse function arguments: ${e.message}",
+                        ),
+                    ),
+                )
+            }
 
         // Validate arguments
         if (args.offset == 0) {
             return Result.failure(
-                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                            CodexErr.Fatal("offset must be a 1-indexed line number")
-                    )
+                io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                    CodexErr.Fatal("offset must be a 1-indexed line number"),
+                ),
             )
         }
 
         if (args.limit == 0) {
             return Result.failure(
-                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                            CodexErr.Fatal("limit must be greater than zero")
-                    )
+                io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                    CodexErr.Fatal("limit must be greater than zero"),
+                ),
             )
         }
 
         val filePath = args.filePath
         if (!filePath.startsWith("/") && !filePath.matches(Regex("^[A-Za-z]:.*"))) {
             return Result.failure(
-                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                            CodexErr.Fatal("file_path must be an absolute path")
-                    )
+                io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                    CodexErr.Fatal("file_path must be an absolute path"),
+                ),
             )
         }
 
         return try {
             val content =
-                    when (args.mode) {
-                        ReadMode.Slice -> readSlice(filePath, args.offset, args.limit)
-                        ReadMode.Indentation -> {
-                            val indentArgs = args.indentation ?: IndentationArgs()
-                            readIndentationBlock(filePath, args.offset, args.limit, indentArgs)
-                        }
+                when (args.mode) {
+                    ReadMode.Slice -> readSlice(filePath, args.offset, args.limit)
+                    ReadMode.Indentation -> {
+                        val indentArgs = args.indentation ?: IndentationArgs()
+                        readIndentationBlock(filePath, args.offset, args.limit, indentArgs)
                     }
+                }
             Result.success(
-                    ToolOutput.Function(content = content.joinToString("\n"), success = true)
+                ToolOutput.Function(content = content.joinToString("\n"), success = true),
             )
         } catch (e: Exception) {
             Result.failure(
-                    io.github.kotlinmania.codex.core.tools.ToolError.Codex(
-                            CodexErr.Fatal("failed to read file: ${e.message}")
-                    )
+                io.github.kotlinmania.codex.core.tools.ToolError.Codex(
+                    CodexErr.Fatal("failed to read file: ${e.message}"),
+                ),
             )
         }
     }
@@ -123,10 +122,10 @@ internal class ReadFileHandler : ToolHandler {
 
     /** Read an indentation-aware block from a file. */
     internal fun readIndentationBlock(
-            filePath: String,
-            offset: Int,
-            limit: Int,
-            options: IndentationArgs
+        filePath: String,
+        offset: Int,
+        limit: Int,
+        options: IndentationArgs,
     ): List<String> {
         val anchorLine = options.anchorLine ?: offset
         if (anchorLine == 0) {
@@ -150,11 +149,11 @@ internal class ReadFileHandler : ToolHandler {
 
         // Compute min indent based on maxLevels
         val minIndent =
-                if (options.maxLevels == 0) {
-                    0
-                } else {
-                    maxOf(0, anchorIndent - options.maxLevels * TAB_WIDTH)
-                }
+            if (options.maxLevels == 0) {
+                0
+            } else {
+                maxOf(0, anchorIndent - options.maxLevels * TAB_WIDTH)
+            }
 
         // Cap requested lines
         val finalLimit = minOf(limit, guardLimit, allLines.size)
@@ -306,36 +305,39 @@ internal class ReadFileHandler : ToolHandler {
 /** Arguments for the readFile tool. */
 @Serializable
 private data class ReadFileArgs(
-        @SerialName("file_path") val filePath: String,
-        val offset: Int = 1,
-        val limit: Int = 2000,
-        val mode: ReadMode = ReadMode.Slice,
-        val indentation: IndentationArgs? = null
+    @SerialName("file_path") val filePath: String,
+    val offset: Int = 1,
+    val limit: Int = 2000,
+    val mode: ReadMode = ReadMode.Slice,
+    val indentation: IndentationArgs? = null,
 )
 
 /** Read mode for the readFile tool. */
 @Serializable
 enum class ReadMode {
-    @SerialName("slice") Slice,
-    @SerialName("indentation") Indentation
+    @SerialName("slice")
+    Slice,
+
+    @SerialName("indentation")
+    Indentation,
 }
 
 /** Arguments for indentation-aware reading. */
 @Serializable
 data class IndentationArgs(
-        @SerialName("anchor_line") val anchorLine: Int? = null,
-        @SerialName("max_levels") val maxLevels: Int = 0,
-        @SerialName("include_siblings") val includeSiblings: Boolean = false,
-        @SerialName("include_header") val includeHeader: Boolean = true,
-        @SerialName("max_lines") val maxLines: Int? = null
+    @SerialName("anchor_line") val anchorLine: Int? = null,
+    @SerialName("max_levels") val maxLevels: Int = 0,
+    @SerialName("include_siblings") val includeSiblings: Boolean = false,
+    @SerialName("include_header") val includeHeader: Boolean = true,
+    @SerialName("max_lines") val maxLines: Int? = null,
 )
 
 /** Internal representation of a line with metadata. */
 private data class LineRecord(
-        val number: Int,
-        val raw: String,
-        val display: String,
-        val indent: Int
+    val number: Int,
+    val raw: String,
+    val display: String,
+    val indent: Int,
 ) {
     fun trimmed(): String = raw.trimStart()
 
@@ -350,9 +352,10 @@ private data class LineRecord(
 private const val MAX_LINE_LENGTH = 500
 private const val TAB_WIDTH = 4
 
-private val READ_FILE_JSON = Json {
-    ignoreUnknownKeys = true
-    isLenient = true
-}
+private val READ_FILE_JSON =
+    Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
 private val READ_FILE_COMMENT_PREFIXES = listOf("#", "//", "--")

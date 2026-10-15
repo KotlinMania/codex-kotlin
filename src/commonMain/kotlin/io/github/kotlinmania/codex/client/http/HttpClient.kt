@@ -8,12 +8,17 @@ import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.core.UnexpectedResponseError
 import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
-import io.ktor.client.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
@@ -23,19 +28,6 @@ import kotlinx.serialization.json.Json
  * Handles POST to /responses endpoint and streaming SSE responses.
  *
  * Maps to the upstream backend-client and ModelClient functionality.
- *
- * TODO: Port from Rust codex-rs/core/src/client.rs and codex-rs/backend-client/:
- * - [ ] ModelClient trait with full streaming response handling
- * - [ ] Prompt construction with developer/base/user instructions
- * - [ ] Tool specification serialization for API
- * - [ ] Model provider detection (Anthropic, OpenAI, local OSS)
- * - [ ] WireApi enum (Anthropic, OpenAI, Google, Bedrock)
- * - [ ] Rate limit parsing from response headers
- * - [ ] Context window detection per model
- * - [ ] Exponential backoff with jitter for retries
- * - [ ] OpenTelemetry integration for tracing
- * - [ ] Response event parsing (AgentMessage, ToolCall, Reasoning, etc.)
- * - [ ] ModelProviderInfo for provider-specific configuration
  */
 internal class CodexHttpClient(
     private val baseUrl: String,

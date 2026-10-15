@@ -3,7 +3,6 @@ package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.session.TurnContext
-import io.github.kotlinmania.codex.protocol.CallToolResult
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputContentItem
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.McpResult
@@ -21,10 +20,22 @@ internal data class ToolInvocation(
 )
 
 internal sealed class ToolPayload {
-    data class Function(val arguments: String) : ToolPayload()
-    data class Custom(val input: String) : ToolPayload()
-    data class LocalShell(val params: ShellToolCallParams) : ToolPayload()
-    data class UnifiedExec(val arguments: String) : ToolPayload()
+    data class Function(
+        val arguments: String,
+    ) : ToolPayload()
+
+    data class Custom(
+        val input: String,
+    ) : ToolPayload()
+
+    data class LocalShell(
+        val params: ShellToolCallParams,
+    ) : ToolPayload()
+
+    data class UnifiedExec(
+        val arguments: String,
+    ) : ToolPayload()
+
     data class Mcp(
         val server: String,
         val tool: String,
@@ -48,7 +59,9 @@ internal sealed class ToolOutput {
         val success: Boolean? = null,
     ) : ToolOutput()
 
-    data class Mcp(val result: McpResult) : ToolOutput()
+    data class Mcp(
+        val result: McpResult,
+    ) : ToolOutput()
 
     fun logPreview(): String =
         when (this) {
@@ -73,11 +86,12 @@ internal sealed class ToolOutput {
                 } else {
                     ResponseInputItem.FunctionCallOutput(
                         callId = callId,
-                        output = FunctionCallOutputPayload(
-                            content = content,
-                            contentItems = contentItems,
-                            success = success,
-                        ),
+                        output =
+                            FunctionCallOutputPayload(
+                                content = content,
+                                contentItems = contentItems,
+                                success = success,
+                            ),
                     )
                 }
             }
@@ -115,7 +129,8 @@ internal fun telemetryPreview(content: String): String {
     }
 
     if (preview.length < truncatedSlice.length &&
-        truncatedSlice.encodeToByteArray()
+        truncatedSlice
+            .encodeToByteArray()
             .getOrNull(preview.toString().encodeToByteArray().size) == '\n'.code.toByte()
     ) {
         preview.append('\n')
@@ -128,4 +143,3 @@ internal fun telemetryPreview(content: String): String {
 
     return preview.toString()
 }
-

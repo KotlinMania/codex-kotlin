@@ -19,14 +19,14 @@ internal suspend fun ensureOssReady(config: Config) {
     val ollamaClient = OllamaClient.tryFromOssProvider(config)
 
     // If the model is not present locally, pull it.
-    val models = try {
-        ollamaClient.fetchModels()
-    } catch (_: Exception) {
-        emptyList()
-    }
+    val models =
+        try {
+            ollamaClient.fetchModels()
+        } catch (_: Exception) {
+            emptyList()
+        }
     if (models.none { m -> m == model }) {
         val reporter = CliProgressReporter.new()
         ollamaClient.pullWithReporter(model, reporter)
     }
 }
-

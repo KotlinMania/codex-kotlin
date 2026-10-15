@@ -8,12 +8,23 @@ import io.github.kotlinmania.codex.api.provider.Provider
 import io.github.kotlinmania.codex.api.provider.WireApi
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.protocol.ResponseItem
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 
 /** Client for the compaction endpoint. */
 internal class CompactClient<A : AuthProvider>(

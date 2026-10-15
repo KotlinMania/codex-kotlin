@@ -3,17 +3,16 @@ package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.Session
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
-import kotlin.time.TimeSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.time.TimeSource
 
 /**
  * A ReadWriteMutex that allows multiple readers or a single writer. Matches tokio::sync::RwLock
@@ -58,10 +57,10 @@ internal class ReadWriteMutex {
 }
 
 internal class ToolCallRuntime(
-        private val router: ToolRouter,
-        private val session: Session,
-        private val turnContext: TurnContext,
-        private val tracker: SharedTurnDiffTracker
+    private val router: ToolRouter,
+    private val session: Session,
+    private val turnContext: TurnContext,
+    private val tracker: SharedTurnDiffTracker,
 ) {
     private val parallelExecution = ReadWriteMutex()
 
@@ -73,29 +72,30 @@ internal class ToolCallRuntime(
             coroutineScope {
                 var result: Result<ResponseInputItem>? = null
 
-                val job = launch {
-                    if (supportsParallel) {
-                        parallelExecution.read {
-                            result =
+                val job =
+                    launch {
+                        if (supportsParallel) {
+                            parallelExecution.read {
+                                result =
                                     router.dispatchToolCall(
-                                            session,
-                                            turnContext,
-                                            tracker,
-                                            call.copy()
+                                        session,
+                                        turnContext,
+                                        tracker,
+                                        call.copy(),
                                     )
-                        }
-                    } else {
-                        parallelExecution.write {
-                            result =
+                            }
+                        } else {
+                            parallelExecution.write {
+                                result =
                                     router.dispatchToolCall(
-                                            session,
-                                            turnContext,
-                                            tracker,
-                                            call.copy()
+                                        session,
+                                        turnContext,
+                                        tracker,
+                                        call.copy(),
                                     )
+                            }
                         }
                     }
-                }
 
                 if (cancellationJob != null) {
                     select<Unit> {
@@ -113,42 +113,41 @@ internal class ToolCallRuntime(
                 }
 
                 result
-                        ?: Result.failure(
-                                CodexErr.Fatal("Tool execution failed to produce result").toException()
-                        )
+                    ?: Result.failure(
+                        CodexErr.Fatal("Tool execution failed to produce result").toException(),
+                    )
             }
         } catch (e: Exception) {
             Result.failure(CodexErr.Fatal("tool task failed to receive: ${e.message}").toException())
         }
     }
 
-    private fun abortedResponse(call: ToolCall, secs: Float): ResponseInputItem {
-        return when (val payload = call.payload) {
+    private fun abortedResponse(call: ToolCall, secs: Float): ResponseInputItem =
+        when (val payload = call.payload) {
             is ToolPayload.Custom ->
-                    ResponseInputItem.CustomToolCallOutput(
-                            callId = call.callId,
-                            output = abortMessage(call, secs)
-                    )
+                ResponseInputItem.CustomToolCallOutput(
+                    callId = call.callId,
+                    output = abortMessage(call, secs),
+                )
             is ToolPayload.Mcp ->
-                    ResponseInputItem.McpToolCallOutput(
-                            callId = call.callId,
-                            result =
-                                    io.github.kotlinmania.codex.protocol.McpResult(
-                                            value = null,
-                                            error = abortMessage(call, secs)
-                                    )
-                    )
+                ResponseInputItem.McpToolCallOutput(
+                    callId = call.callId,
+                    result =
+                        io.github.kotlinmania.codex.protocol.McpResult(
+                            value = null,
+                            error = abortMessage(call, secs),
+                        ),
+                )
             else ->
-                    ResponseInputItem.FunctionCallOutput(
-                            callId = call.callId,
-                            output =
-                                    FunctionCallOutputPayload(
-                                            content = abortMessage(call, secs),
-                                            success = false // Default
-                                    )
-                    )
+                ResponseInputItem.FunctionCallOutput(
+                    callId = call.callId,
+                    output =
+                        FunctionCallOutputPayload(
+                            content = abortMessage(call, secs),
+                            success = false, // Default
+                        ),
+                )
         }
-    }
 
     private fun abortMessage(call: ToolCall, secs: Float): String {
         val formattedSecs = ((secs * 10).toInt() / 10.0).toString()

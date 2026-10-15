@@ -2,8 +2,8 @@
 package io.github.kotlinmania.codex.exec.shell
 
 import io.github.kotlinmania.codex.utils.Environment
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
 
 /**
  * Shell types supported by the system
@@ -13,7 +13,7 @@ enum class ShellType {
     Bash,
     PowerShell,
     Sh,
-    Cmd
+    Cmd,
 }
 
 /**
@@ -21,24 +21,25 @@ enum class ShellType {
  */
 data class Shell(
     val shellType: ShellType,
-    val shellPath: String
+    val shellPath: String,
 ) {
     /**
      * Get the shell name
      */
-    fun name(): String = when (shellType) {
-        ShellType.Zsh -> "zsh"
-        ShellType.Bash -> "bash"
-        ShellType.PowerShell -> "powershell"
-        ShellType.Sh -> "sh"
-        ShellType.Cmd -> "cmd"
-    }
+    fun name(): String =
+        when (shellType) {
+            ShellType.Zsh -> "zsh"
+            ShellType.Bash -> "bash"
+            ShellType.PowerShell -> "powershell"
+            ShellType.Sh -> "sh"
+            ShellType.Cmd -> "cmd"
+        }
 
     /**
      * Derive execution arguments for running a command in this shell
      */
-    fun deriveExecArgs(command: String, useLoginShell: Boolean): List<String> {
-        return when (shellType) {
+    fun deriveExecArgs(command: String, useLoginShell: Boolean): List<String> =
+        when (shellType) {
             ShellType.Zsh, ShellType.Bash, ShellType.Sh -> {
                 val arg = if (useLoginShell) "-lc" else "-c"
                 listOf(shellPath, arg, command)
@@ -56,7 +57,6 @@ data class Shell(
                 listOf(shellPath, "/c", command)
             }
         }
-    }
 }
 
 /**
@@ -83,23 +83,25 @@ class ShellDetector {
     /**
      * Get shell by type with optional path
      */
-    fun getShell(shellType: ShellType, path: String? = null): Shell? {
-        return when (shellType) {
+    fun getShell(shellType: ShellType, path: String? = null): Shell? =
+        when (shellType) {
             ShellType.Zsh -> getZshShell(path)
             ShellType.Bash -> getBashShell(path)
             ShellType.PowerShell -> getPowerShellShell(path)
             ShellType.Sh -> getShShell(path)
             ShellType.Cmd -> getCmdShell(path)
         }
-    }
 
     /**
      * Detect shell type from path
      */
     fun detectShellType(shellPath: String): ShellType? {
-        val fileName = shellPath.substringAfterLast('/').substringAfterLast('\\')
-            .removeSuffix(".exe")
-            .lowercase()
+        val fileName =
+            shellPath
+                .substringAfterLast('/')
+                .substringAfterLast('\\')
+                .removeSuffix(".exe")
+                .lowercase()
 
         return when (fileName) {
             "zsh" -> ShellType.Zsh
@@ -123,9 +125,7 @@ class ShellDetector {
     /**
      * Get user shell path from system
      */
-    private fun getUserShellPath(): String? {
-        return platformGetUserShellPath()
-    }
+    private fun getUserShellPath(): String? = platformGetUserShellPath()
 
     /**
      * Get default shell from path with fallbacks
@@ -135,21 +135,23 @@ class ShellDetector {
             return getShell(ShellType.PowerShell) ?: ultimateFallbackShell()
         }
 
-        val userDefaultShell = userShellPath?.let { path ->
-            detectShellType(path)?.let { shellType ->
-                getShell(shellType)
+        val userDefaultShell =
+            userShellPath?.let { path ->
+                detectShellType(path)?.let { shellType ->
+                    getShell(shellType)
+                }
             }
-        }
 
-        val shellWithFallback = if (isMacOS()) {
-            userDefaultShell
-                ?: getShell(ShellType.Zsh)
-                ?: getShell(ShellType.Bash)
-        } else {
-            userDefaultShell
-                ?: getShell(ShellType.Bash)
-                ?: getShell(ShellType.Zsh)
-        }
+        val shellWithFallback =
+            if (isMacOS()) {
+                userDefaultShell
+                    ?: getShell(ShellType.Zsh)
+                    ?: getShell(ShellType.Bash)
+            } else {
+                userDefaultShell
+                    ?: getShell(ShellType.Bash)
+                    ?: getShell(ShellType.Zsh)
+            }
 
         return shellWithFallback ?: ultimateFallbackShell()
     }
@@ -182,19 +184,21 @@ class ShellDetector {
      * Get PowerShell shell
      */
     private fun getPowerShellShell(path: String?): Shell? {
-        val pwshPath = getShellPath(
-            ShellType.PowerShell,
-            path,
-            "pwsh",
-            listOf("/usr/local/bin/pwsh")
-        )
-        val powershellPath = getShellPath(
-            ShellType.PowerShell,
-            path,
-            "powershell",
-            listOf(DEFAULT_POWERSHELL_PATH)
-        )
-        
+        val pwshPath =
+            getShellPath(
+                ShellType.PowerShell,
+                path,
+                "pwsh",
+                listOf("/usr/local/bin/pwsh"),
+            )
+        val powershellPath =
+            getShellPath(
+                ShellType.PowerShell,
+                path,
+                "powershell",
+                listOf(DEFAULT_POWERSHELL_PATH),
+            )
+
         val shellPath = pwshPath ?: powershellPath
         return shellPath?.let { Shell(ShellType.PowerShell, it) }
     }
@@ -214,7 +218,7 @@ class ShellDetector {
         shellType: ShellType,
         providedPath: String?,
         binaryName: String,
-        fallbackPaths: List<String>
+        fallbackPaths: List<String>,
     ): String? {
         // If exact provided path exists, import it
         if (providedPath != null && fileExists(providedPath)) {
@@ -246,44 +250,36 @@ class ShellDetector {
     /**
      * Ultimate fallback shell
      */
-    private fun ultimateFallbackShell(): Shell {
-        return if (isWindows()) {
+    private fun ultimateFallbackShell(): Shell =
+        if (isWindows()) {
             Shell(ShellType.Cmd, DEFAULT_CMD_PATH)
         } else {
             Shell(ShellType.Sh, DEFAULT_SH_PATH)
         }
-    }
 
     /**
      * Check if file exists
      */
-    private fun fileExists(path: String): Boolean {
-        return platformFileExists(path)
-    }
+    private fun fileExists(path: String): Boolean = platformFileExists(path)
 
     /**
      * Find executable in PATH
      */
-    private fun findInPath(binaryName: String): String? {
-        return platformFindInPath(binaryName)
-    }
+    private fun findInPath(binaryName: String): String? = platformFindInPath(binaryName)
 
     /**
      * Check if running on Windows
      */
-    private fun isWindows(): Boolean {
-        return platformIsWindows()
-    }
+    private fun isWindows(): Boolean = platformIsWindows()
 
     /**
      * Check if running on macOS
      */
-    private fun isMacOS(): Boolean {
-        return platformIsMacOS()
-    }
+    private fun isMacOS(): Boolean = platformIsMacOS()
 }
 
 private fun platformGetUserShellPath(): String? = Environment.SHELL
+
 private fun platformFileExists(path: String): Boolean = SystemFileSystem.exists(Path(path))
 
 /**
@@ -294,19 +290,24 @@ private fun platformFileExists(path: String): Boolean = SystemFileSystem.exists(
 private fun platformFindInPath(binaryName: String): String? {
     val pathEnv = Environment.PATH ?: return null
     val sep = if (platformIsWindows()) ';' else ':'
-    val candidates = if (platformIsWindows()) {
-        // On Windows, append PATHEXT-style suffixes; if binaryName already has an
-        // extension we still try the bare form first.
-        val exts = (Environment.get("PATHEXT") ?: ".COM;.EXE;.BAT;.CMD").split(';')
-        listOf(binaryName) + exts.filter { it.isNotEmpty() }.map { binaryName + it }
-    } else {
-        listOf(binaryName)
-    }
+    val candidates =
+        if (platformIsWindows()) {
+            // On Windows, append PATHEXT-style suffixes; if binaryName already has an
+            // extension we still try the bare form first.
+            val exts = (Environment.get("PATHEXT") ?: ".COM;.EXE;.BAT;.CMD").split(';')
+            listOf(binaryName) + exts.filter { it.isNotEmpty() }.map { binaryName + it }
+        } else {
+            listOf(binaryName)
+        }
     for (dir in pathEnv.split(sep)) {
         if (dir.isEmpty()) continue
         for (candidate in candidates) {
-            val full = if (dir.endsWith('/') || dir.endsWith('\\')) dir + candidate
-                       else "$dir/$candidate"
+            val full =
+                if (dir.endsWith('/') || dir.endsWith('\\')) {
+                    dir + candidate
+                } else {
+                    "$dir/$candidate"
+                }
             if (platformFileExists(full)) return full
         }
     }
@@ -314,4 +315,5 @@ private fun platformFindInPath(binaryName: String): String? {
 }
 
 private fun platformIsWindows(): Boolean = false
+
 private fun platformIsMacOS(): Boolean = true

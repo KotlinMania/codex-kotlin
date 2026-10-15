@@ -1,8 +1,8 @@
 // port-lint: source auth.rs
 package io.github.kotlinmania.codex.api
 
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.http.HttpHeaders
 
 /**
  * Provides bearer and account identity information for API requests.

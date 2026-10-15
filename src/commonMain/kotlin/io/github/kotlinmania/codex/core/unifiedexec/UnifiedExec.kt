@@ -1,13 +1,14 @@
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.unifiedexec
 
-import io.github.kotlinmania.codex.core.session.Session as CodexSession
 import io.github.kotlinmania.codex.core.session.TurnContext
 import kotlin.time.Duration
+import io.github.kotlinmania.codex.core.session.Session as CodexSession
 
 const val MIN_YIELD_TIME_MS: Long = 250
 const val MAX_YIELD_TIME_MS: Long = 30_000
 const val DEFAULT_MAX_OUTPUT_TOKENS: Int = 10_000
+
 // const val UNIFIED_EXEC_OUTPUT_MAX_BYTES: Int = 1024 * 1024 // Defined in Session.kt or shared
 // const val UNIFIED_EXEC_OUTPUT_MAX_TOKENS: Int = UNIFIED_EXEC_OUTPUT_MAX_BYTES / 4 // Defined in Session.kt or shared
 const val MAX_UNIFIED_EXEC_SESSIONS: Int = 64
@@ -15,7 +16,7 @@ const val MAX_UNIFIED_EXEC_SESSIONS: Int = 64
 internal data class UnifiedExecContext(
     val session: CodexSession,
     val turn: TurnContext,
-    val callId: String
+    val callId: String,
 )
 
 data class ExecCommandRequest(
@@ -25,7 +26,7 @@ data class ExecCommandRequest(
     val maxOutputTokens: Int?,
     val workdir: String?, // PathBuf -> String
     val withEscalatedPermissions: Boolean?,
-    val justification: String?
+    val justification: String?,
 )
 
 data class WriteStdinRequest(
@@ -33,7 +34,7 @@ data class WriteStdinRequest(
     val processId: String,
     val input: String,
     val yieldTimeMs: Long,
-    val maxOutputTokens: Int?
+    val maxOutputTokens: Int?,
 )
 
 data class UnifiedExecResponse(
@@ -44,16 +45,12 @@ data class UnifiedExecResponse(
     val processId: String?,
     val exitCode: Int?,
     val originalTokenCount: Int?,
-    val sessionCommand: List<String>?
+    val sessionCommand: List<String>?,
 )
 
-fun clampYieldTime(yieldTimeMs: Long): Long {
-    return yieldTimeMs.coerceIn(MIN_YIELD_TIME_MS, MAX_YIELD_TIME_MS)
-}
+fun clampYieldTime(yieldTimeMs: Long): Long = yieldTimeMs.coerceIn(MIN_YIELD_TIME_MS, MAX_YIELD_TIME_MS)
 
-fun resolveMaxTokens(maxTokens: Int?): Int {
-    return maxTokens ?: DEFAULT_MAX_OUTPUT_TOKENS
-}
+fun resolveMaxTokens(maxTokens: Int?): Int = maxTokens ?: DEFAULT_MAX_OUTPUT_TOKENS
 
 fun generateChunkId(): String {
     // Simple random hex string generation

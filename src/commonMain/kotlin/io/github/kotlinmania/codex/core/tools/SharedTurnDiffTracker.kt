@@ -1,8 +1,8 @@
 // port-lint: source core/src/tools/context.rs
 package io.github.kotlinmania.codex.core.tools
 
-import io.github.kotlinmania.codex.core.session.TurnDiffTracker
 import io.github.kotlinmania.codex.core.session.ChangedFile
+import io.github.kotlinmania.codex.core.session.TurnDiffTracker
 import io.github.kotlinmania.codex.protocol.FileChange
 
 /**
@@ -15,20 +15,13 @@ internal class SharedTurnDiffTracker {
         tracker.onPatchBegin(changes)
     }
 
-    suspend fun computeUnifiedDiff(): String {
-        return tracker.computeUnifiedDiff()
-    }
+    suspend fun computeUnifiedDiff(): String = tracker.computeUnifiedDiff()
 
-    suspend fun getChangedFiles(): List<ChangedFile> {
-        return tracker.getChangedFiles()
-    }
+    suspend fun getChangedFiles(): List<ChangedFile> = tracker.getChangedFiles()
 
     suspend fun clear() {
         tracker.clear()
     }
 
-    suspend fun hasChanges(): Boolean {
-        return tracker.hasChanges()
-    }
+    suspend fun hasChanges(): Boolean = tracker.hasChanges()
 }
-

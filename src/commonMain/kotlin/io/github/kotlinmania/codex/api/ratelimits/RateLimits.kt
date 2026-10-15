@@ -4,7 +4,7 @@ package io.github.kotlinmania.codex.api.ratelimits
 import io.github.kotlinmania.codex.protocol.CreditsSnapshot
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.RateLimitWindow
-import io.ktor.http.*
+import io.ktor.http.Headers
 
 /** Rate limit error. */
 internal data class RateLimitError(

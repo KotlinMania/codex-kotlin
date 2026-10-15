@@ -4,7 +4,6 @@ package io.github.kotlinmania.codex.exec.sandbox
 import io.github.kotlinmania.codex.protocol.SandboxCommandAssessment
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.protocol.SandboxRiskLevel
-import io.github.kotlinmania.codex.protocol.SandboxRiskLevel.*
 
 /** Assess the risk of a command. Mirrors the upstream assessCommand from sandboxing/assessment.rs */
 fun assessCommand(command: List<String>, policy: SandboxPolicy): SandboxCommandAssessment {
@@ -14,7 +13,7 @@ fun assessCommand(command: List<String>, policy: SandboxPolicy): SandboxCommandA
 
     // High risk commands
     val highRisk =
-            setOf("rm", "dd", "mkfs", "fdisk", "mount", "umount", "chown", "chmod", "sudo", "su")
+        setOf("rm", "dd", "mkfs", "fdisk", "mount", "umount", "chown", "chmod", "sudo", "su")
 
     // Medium risk commands
     val mediumRisk = setOf("mv", "cp", "ln", "kill", "pkill", "killall", "shutdown", "reboot")

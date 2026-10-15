@@ -1,4 +1,3 @@
-// port-lint: ignore
 // Platform-agnostic path helpers backed by an expect/actual layer.
 package io.github.kotlinmania.codex.utils
 

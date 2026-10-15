@@ -1,23 +1,18 @@
 // port-lint: source error.rs
 package io.github.kotlinmania.codex.core
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
-import io.github.kotlinmania.codex.core.KnownPlan
-import io.github.kotlinmania.codex.core.PlanType
-import io.github.kotlinmania.codex.core.ProcessedResponseItem
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.truncateText
 import io.github.kotlinmania.codex.protocol.CodexErrorInfo
 import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ErrorEvent
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
-import io.github.kotlinmania.codex.utils.readiness.CancelErr
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /** Limit UI error messages to a reasonable size while keeping useful context. */
 private const val ERROR_MESSAGE_UI_MAX_BYTES: Int = 2 * 1024 // 4 KiB
@@ -249,8 +244,6 @@ sealed class CodexErr {
         val any: Any = this
         return any as? T
     }
-
-
 
     fun toException(): CodexException = CodexException(this)
 

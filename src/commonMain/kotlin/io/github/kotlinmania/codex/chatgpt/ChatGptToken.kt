@@ -5,7 +5,7 @@ import io.github.kotlinmania.codex.core.CodexAuth
 import io.github.kotlinmania.codex.core.TokenData
 import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
 import io.github.kotlinmania.codex.core.codexAuthFromAuthStorage
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 
 @kotlin.concurrent.Volatile
 private var chatgptToken: TokenData? = null

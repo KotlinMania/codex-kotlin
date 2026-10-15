@@ -49,5 +49,6 @@ fun Environment.getOrDefault(name: String, default: String): String = get(name) 
  * @return The value of the environment variable
  * @throws IllegalStateException if the variable is not set
  */
-fun Environment.require(name: String): String = get(name)
-    ?: error("Required environment variable '$name' is not set")
+fun Environment.require(name: String): String =
+    get(name)
+        ?: error("Required environment variable '$name' is not set")

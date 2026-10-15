@@ -17,22 +17,24 @@ fun buildCommandSpec(
     env: Map<String, String>,
     expiration: ExecExpiration,
     withEscalatedPermissions: Boolean?,
-    justification: String?
+    justification: String?,
 ): Result<CommandSpec> {
     if (command.isEmpty()) {
         return Result.failure(ToolErrorException(ToolError.Rejected("command args are empty")))
     }
-    
+
     val program = command.first()
     val args = command.drop(1)
-    
-    return Result.success(CommandSpec(
-        program = program,
-        args = args,
-        cwd = cwd,
-        env = env,
-        expiration = expiration,
-        withEscalatedPermissions = withEscalatedPermissions,
-        justification = justification
-    ))
+
+    return Result.success(
+        CommandSpec(
+            program = program,
+            args = args,
+            cwd = cwd,
+            env = env,
+            expiration = expiration,
+            withEscalatedPermissions = withEscalatedPermissions,
+            justification = justification,
+        ),
+    )
 }

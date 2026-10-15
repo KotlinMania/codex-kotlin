@@ -14,13 +14,13 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readString
+import io.github.kotlinmania.io.writeString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
-import kotlinx.io.writeString
 
 /**
  * Handler for the applyPatch tool. Applies unified diff patches to files.
@@ -28,44 +28,41 @@ import kotlinx.io.writeString
  * Ported from Rust codex-rs/core/src/tools/handlers/applyPatch.rs
  */
 internal class ApplyPatchHandler : ToolHandler {
-
     override val kind: ToolKind = ToolKind.Function
 
-    override fun matchesKind(payload: ToolPayload): Boolean {
-        return payload is ToolPayload.Function || payload is ToolPayload.Custom
-    }
+    override fun matchesKind(payload: ToolPayload): Boolean = payload is ToolPayload.Function || payload is ToolPayload.Custom
 
     override fun isMutating(invocation: ToolInvocation): Boolean = true
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val patchInput =
-                when (val payload = invocation.payload) {
-                    is ToolPayload.Function -> {
-                        val args =
-                                try {
-                                    Support.json.decodeFromString<ApplyPatchArgs>(payload.arguments)
-                                } catch (e: Exception) {
-                                    return Result.failure(
-                                            ToolError.Codex(
-                                                    CodexErr.Fatal(
-                                                            "failed to parse function arguments: ${e.message}"
-                                                    )
-                                            )
-                                    )
-                                }
-                        args.input
-                    }
-                    is ToolPayload.Custom -> payload.input
-                    else -> {
-                        return Result.failure(
+            when (val payload = invocation.payload) {
+                is ToolPayload.Function -> {
+                    val args =
+                        try {
+                            Support.json.decodeFromString<ApplyPatchArgs>(payload.arguments)
+                        } catch (e: Exception) {
+                            return Result.failure(
                                 ToolError.Codex(
-                                        CodexErr.Fatal(
-                                                "apply_patch handler received unsupported payload"
-                                        )
-                                )
-                        )
-                    }
+                                    CodexErr.Fatal(
+                                        "failed to parse function arguments: ${e.message}",
+                                    ),
+                                ),
+                            )
+                        }
+                    args.input
                 }
+                is ToolPayload.Custom -> payload.input
+                else -> {
+                    return Result.failure(
+                        ToolError.Codex(
+                            CodexErr.Fatal(
+                                "apply_patch handler received unsupported payload",
+                            ),
+                        ),
+                    )
+                }
+            }
 
         val cwd = invocation.turn.cwd
 
@@ -78,10 +75,11 @@ internal class ApplyPatchHandler : ToolHandler {
     }
 
     private object Support {
-        val json = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
+        val json =
+            Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }
 
         private const val BEGIN_PATCH = "*** Begin Patch"
         private const val END_PATCH = "*** End Patch"
@@ -96,14 +94,14 @@ internal class ApplyPatchHandler : ToolHandler {
         fun applyPatch(patchInput: String, cwd: String): Result<String> {
             val lines = patchInput.lines()
             val operations =
-                    parsePatch(lines)
-                            ?: return Result.failure(
-                                    ToolError.Codex(
-                                            CodexErr.Fatal(
-                                                    "Failed to parse patch: invalid format"
-                                            )
-                                    )
-                            )
+                parsePatch(lines)
+                    ?: return Result.failure(
+                        ToolError.Codex(
+                            CodexErr.Fatal(
+                                "Failed to parse patch: invalid format",
+                            ),
+                        ),
+                    )
 
             val results = mutableListOf<String>()
 
@@ -123,11 +121,11 @@ internal class ApplyPatchHandler : ToolHandler {
                         val result = updateFile(op.path, op.newPath, op.hunks, cwd)
                         if (result.isFailure) return result.map { "" }
                         val msg =
-                                if (op.newPath != null) {
-                                    "Updated and moved file: ${op.path} -> ${op.newPath}"
-                                } else {
-                                    "Updated file: ${op.path}"
-                                }
+                            if (op.newPath != null) {
+                                "Updated and moved file: ${op.path} -> ${op.newPath}"
+                            } else {
+                                "Updated file: ${op.path}"
+                            }
                         results.add(msg)
                     }
                 }
@@ -184,16 +182,17 @@ internal class ApplyPatchHandler : ToolHandler {
                                 i++
                                 val hunkLines = mutableListOf<HunkLine>()
                                 while (i < patchLines.size &&
-                                        !patchLines[i].startsWith(HUNK_MARKER) &&
-                                        !patchLines[i].startsWith("*** ")) {
+                                    !patchLines[i].startsWith(HUNK_MARKER) &&
+                                    !patchLines[i].startsWith("*** ")
+                                ) {
                                     val hunkLine = patchLines[i]
                                     when {
                                         hunkLine.startsWith(" ") ->
-                                                hunkLines.add(HunkLine.Context(hunkLine.drop(1)))
+                                            hunkLines.add(HunkLine.Context(hunkLine.drop(1)))
                                         hunkLine.startsWith("-") ->
-                                                hunkLines.add(HunkLine.Remove(hunkLine.drop(1)))
+                                            hunkLines.add(HunkLine.Remove(hunkLine.drop(1)))
                                         hunkLine.startsWith("+") ->
-                                                hunkLines.add(HunkLine.Add(hunkLine.drop(1)))
+                                            hunkLines.add(HunkLine.Add(hunkLine.drop(1)))
                                         hunkLine == END_OF_FILE_MARKER -> {
                                             // Skip end of file marker
                                         }
@@ -219,8 +218,8 @@ internal class ApplyPatchHandler : ToolHandler {
         }
 
         /** Add a new file. */
-        private fun addFile(path: String, content: String, cwd: String): Result<Unit> {
-            return try {
+        private fun addFile(path: String, content: String, cwd: String): Result<Unit> =
+            try {
                 val fullPath = Path(resolvePath(path, cwd))
 
                 // Create parent directories if needed
@@ -234,41 +233,39 @@ internal class ApplyPatchHandler : ToolHandler {
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
-                        ToolError.Codex(CodexErr.Fatal("Failed to add file $path: ${e.message}"))
+                    ToolError.Codex(CodexErr.Fatal("Failed to add file $path: ${e.message}")),
                 )
             }
-        }
 
         /** Delete a file. */
-        private fun deleteFile(path: String, cwd: String): Result<Unit> {
-            return try {
+        private fun deleteFile(path: String, cwd: String): Result<Unit> =
+            try {
                 val fullPath = Path(resolvePath(path, cwd))
                 SystemFileSystem.delete(fullPath)
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
-                        ToolError.Codex(
-                                CodexErr.Fatal("Failed to delete file $path: ${e.message}")
-                        )
+                    ToolError.Codex(
+                        CodexErr.Fatal("Failed to delete file $path: ${e.message}"),
+                    ),
                 )
             }
-        }
 
         /** Update a file by applying hunks. */
         private fun updateFile(
-                path: String,
-                newPath: String?,
-                hunks: List<Hunk>,
-                cwd: String
-        ): Result<Unit> {
-            return try {
+            path: String,
+            newPath: String?,
+            hunks: List<Hunk>,
+            cwd: String,
+        ): Result<Unit> =
+            try {
                 val fullPath = Path(resolvePath(path, cwd))
 
                 // Read existing content
                 val existingContent =
-                        SystemFileSystem.source(fullPath).buffered().use { source ->
-                            source.readString()
-                        }
+                    SystemFileSystem.source(fullPath).buffered().use { source ->
+                        source.readString()
+                    }
                 val existingLines = existingContent.lines().toMutableList()
 
                 // Apply hunks
@@ -280,12 +277,12 @@ internal class ApplyPatchHandler : ToolHandler {
 
                 // Handle move if specified
                 val targetPath =
-                        if (newPath != null) {
-                            SystemFileSystem.delete(fullPath)
-                            Path(resolvePath(newPath, cwd))
-                        } else {
-                            fullPath
-                        }
+                    if (newPath != null) {
+                        SystemFileSystem.delete(fullPath)
+                        Path(resolvePath(newPath, cwd))
+                    } else {
+                        fullPath
+                    }
 
                 // Create parent directories if needed (for move)
                 targetPath.parent?.let { parent ->
@@ -301,12 +298,11 @@ internal class ApplyPatchHandler : ToolHandler {
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(
-                        ToolError.Codex(
-                                CodexErr.Fatal("Failed to update file $path: ${e.message}")
-                        )
+                    ToolError.Codex(
+                        CodexErr.Fatal("Failed to update file $path: ${e.message}"),
+                    ),
                 )
             }
-        }
 
         /** Apply a single hunk to file lines. Uses context lines to find the correct location. */
         private fun applyHunk(lines: MutableList<String>, hunk: Hunk) {
@@ -316,13 +312,13 @@ internal class ApplyPatchHandler : ToolHandler {
 
             // Try to find the location by matching context/remove lines
             val searchPattern =
-                    (contextLines.take(3) + removeLines).map {
-                        when (it) {
-                            is HunkLine.Context -> it.text
-                            is HunkLine.Remove -> it.text
-                            else -> ""
-                        }
+                (contextLines.take(3) + removeLines).map {
+                    when (it) {
+                        is HunkLine.Context -> it.text
+                        is HunkLine.Remove -> it.text
+                        else -> ""
                     }
+                }
 
             var matchIndex = -1
             if (searchPattern.isNotEmpty()) {
@@ -361,8 +357,8 @@ internal class ApplyPatchHandler : ToolHandler {
         }
 
         /** Resolve a relative path against the working directory. */
-        private fun resolvePath(path: String, cwd: String): String {
-            return if (path.startsWith("/") || path.matches(Regex("^[A-Za-z]:.*"))) {
+        private fun resolvePath(path: String, cwd: String): String =
+            if (path.startsWith("/") || path.matches(Regex("^[A-Za-z]:.*"))) {
                 path
             } else {
                 if (cwd.endsWith("/") || cwd.endsWith("\\")) {
@@ -371,77 +367,100 @@ internal class ApplyPatchHandler : ToolHandler {
                     "$cwd/$path"
                 }
             }
-        }
     }
 }
 
 /** Arguments for the applyPatch tool. */
-@Serializable private data class ApplyPatchArgs(val input: String)
+@Serializable private data class ApplyPatchArgs(
+    val input: String,
+)
 
 /** File operations parsed from a patch. */
 private sealed class FileOperation {
-    data class AddFile(val path: String, val content: String) : FileOperation()
-    data class DeleteFile(val path: String) : FileOperation()
-    data class UpdateFile(val path: String, val newPath: String?, val hunks: List<Hunk>) :
-            FileOperation()
+    data class AddFile(
+        val path: String,
+        val content: String,
+    ) : FileOperation()
+
+    data class DeleteFile(
+        val path: String,
+    ) : FileOperation()
+
+    data class UpdateFile(
+        val path: String,
+        val newPath: String?,
+        val hunks: List<Hunk>,
+    ) : FileOperation()
 }
 
 /** A hunk within an update operation. */
-private data class Hunk(val header: String?, val lines: List<HunkLine>)
+private data class Hunk(
+    val header: String?,
+    val lines: List<HunkLine>,
+)
 
 /** Individual lines within a hunk. */
 private sealed class HunkLine {
-    data class Context(val text: String) : HunkLine()
-    data class Remove(val text: String) : HunkLine()
-    data class Add(val text: String) : HunkLine()
+    data class Context(
+        val text: String,
+    ) : HunkLine()
+
+    data class Remove(
+        val text: String,
+    ) : HunkLine()
+
+    data class Add(
+        val text: String,
+    ) : HunkLine()
 }
 
 /** Lark grammar for the applyPatch freeform tool. Mirrors codex-rs/core/src/tools/handlers/toolApplyPatch.lark */
 const val APPLY_PATCH_LARK_GRAMMAR: String =
     "start: begin_patch hunk+ end_patch\n" +
-    "begin_patch: \"*** Begin Patch\" LF\n" +
-    "end_patch: \"*** End Patch\" LF?\n" +
-    "\n" +
-    "hunk: add_hunk | delete_hunk | update_hunk\n" +
-    "add_hunk: \"*** Add File: \" filename LF add_line+\n" +
-    "delete_hunk: \"*** Delete File: \" filename LF\n" +
-    "update_hunk: \"*** Update File: \" filename LF change_move? change?\n" +
-    "\n" +
-    "filename: /(.+)/\n" +
-    "add_line: \"+\" /(.*)/ LF -> line\n" +
-    "\n" +
-    "change_move: \"*** Move to: \" filename LF\n" +
-    "change: (change_context | change_line)+ eof_line?\n" +
-    "change_context: (\"@@\" | \"@@ \" /(.+)/) LF\n" +
-    "change_line: (\"+\" | \"-\" | \" \") /(.*)/ LF\n" +
-    "eof_line: \"*** End of File\" LF\n" +
-    "\n" +
-    "%import common.LF\n"
+        "begin_patch: \"*** Begin Patch\" LF\n" +
+        "end_patch: \"*** End Patch\" LF?\n" +
+        "\n" +
+        "hunk: add_hunk | delete_hunk | update_hunk\n" +
+        "add_hunk: \"*** Add File: \" filename LF add_line+\n" +
+        "delete_hunk: \"*** Delete File: \" filename LF\n" +
+        "update_hunk: \"*** Update File: \" filename LF change_move? change?\n" +
+        "\n" +
+        "filename: /(.+)/\n" +
+        "add_line: \"+\" /(.*)/ LF -> line\n" +
+        "\n" +
+        "change_move: \"*** Move to: \" filename LF\n" +
+        "change: (change_context | change_line)+ eof_line?\n" +
+        "change_context: (\"@@\" | \"@@ \" /(.+)/) LF\n" +
+        "change_line: (\"+\" | \"-\" | \" \") /(.*)/ LF\n" +
+        "eof_line: \"*** End of File\" LF\n" +
+        "\n" +
+        "%import common.LF\n"
 
 /**
  * Returns a custom tool that can be used to edit files. Well-suited for GPT-5 models.
  * https://platform.openai.com/docs/guides/function-calling#custom-tools
  */
-internal fun createApplyPatchFreeformTool(): ToolSpec {
-    return ToolSpec.Freeform(
+internal fun createApplyPatchFreeformTool(): ToolSpec =
+    ToolSpec.Freeform(
         FreeformTool(
             name = "apply_patch",
             description = "Use the `apply_patch` tool to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.",
-            format = FreeformToolFormat(
-                type = "grammar",
-                syntax = "lark",
-                definition = APPLY_PATCH_LARK_GRAMMAR
-            )
-        )
+            format =
+                FreeformToolFormat(
+                    type = "grammar",
+                    syntax = "lark",
+                    definition = APPLY_PATCH_LARK_GRAMMAR,
+                ),
+        ),
     )
-}
 
 /** Returns a json tool that can be used to edit files. Should only be used with gpt-oss models. */
 internal fun createApplyPatchJsonTool(): ToolSpec {
     val properties = mutableMapOf<String, JsonSchema>()
-    properties["input"] = JsonSchema.String(
-        description = "The entire contents of the apply_patch command"
-    )
+    properties["input"] =
+        JsonSchema.String(
+            description = "The entire contents of the apply_patch command",
+        )
 
     return ToolSpec.Function(
         ResponsesApiTool(
@@ -515,11 +534,12 @@ It is important to remember:
 - File references can only be relative, NEVER ABSOLUTE.
 """,
             strict = false,
-            parameters = JsonSchema.Object(
-                properties = properties,
-                required = listOf("input"),
-                additionalProperties = AdditionalProperties.from(false)
-            )
-        )
+            parameters =
+                JsonSchema.Object(
+                    properties = properties,
+                    required = listOf("input"),
+                    additionalProperties = AdditionalProperties.from(false),
+                ),
+        ),
     )
 }

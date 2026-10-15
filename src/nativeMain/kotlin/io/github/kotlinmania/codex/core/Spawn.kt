@@ -3,7 +3,8 @@ package io.github.kotlinmania.codex.core
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.utils.Environment
 import kotlinx.cinterop.ExperimentalForeignApi
-import platform.posix.*
+import platform.posix.F_OK
+import platform.posix.access
 import kotlin.experimental.ExperimentalNativeApi
 
 actual class ProcessHandle(
@@ -12,10 +13,15 @@ actual class ProcessHandle(
     actual val stderr: ByteArray? = null,
 ) {
     actual suspend fun onAwait(): Int = 0
+
     actual fun readStdout(buffer: ByteArray): Int = -1
+
     actual fun readStderr(buffer: ByteArray): Int = -1
+
     actual fun close() {}
+
     actual fun kill() {}
+
     actual fun isAlive(): Boolean = false
 }
 
@@ -23,7 +29,7 @@ actual fun createPlatformProcess(
     program: String,
     args: List<String>,
     cwd: String,
-    env: Map<String, String>
+    env: Map<String, String>,
 ): ProcessHandle = ProcessHandle(pid = 0)
 
 actual fun killPlatformChildProcessGroup(process: ProcessHandle) {}
@@ -53,6 +59,7 @@ actual fun platformIsMacOS(): Boolean = Platform.osFamily == OsFamily.MACOSX
 actual fun platformGetSandbox(): SandboxType? = null
 
 actual fun platformGetMacosDirParams(): List<Pair<String, String>> = emptyList()
+
 actual fun platformExitProcess(code: Int): Nothing {
     kotlin.system.exitProcess(code)
 }

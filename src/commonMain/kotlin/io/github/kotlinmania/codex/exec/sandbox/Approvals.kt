@@ -2,7 +2,6 @@
 package io.github.kotlinmania.codex.exec.sandbox
 
 import io.github.kotlinmania.codex.protocol.ReviewDecision
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -20,11 +19,12 @@ class ApprovalStore {
      * @return The cached decision, or null if not found
      */
     inline fun <reified K : Any> get(key: K): ReviewDecision? {
-        val serialized = try {
-            Json.encodeToString(key)
-        } catch (e: Exception) {
-            return null
-        }
+        val serialized =
+            try {
+                Json.encodeToString(key)
+            } catch (e: Exception) {
+                return null
+            }
         return map[serialized]
     }
 
@@ -34,11 +34,12 @@ class ApprovalStore {
      * @param value The approval decision to cache
      */
     inline fun <reified K : Any> put(key: K, value: ReviewDecision) {
-        val serialized = try {
-            Json.encodeToString(key)
-        } catch (e: Exception) {
-            return
-        }
+        val serialized =
+            try {
+                Json.encodeToString(key)
+            } catch (e: Exception) {
+                return
+            }
         map[serialized] = value
     }
 }
@@ -52,19 +53,25 @@ sealed class ApprovalRequirement {
      * No approval required for this tool call.
      * @param bypassSandbox If true, the first attempt should skip sandboxing
      */
-    data class Skip(val bypassSandbox: Boolean) : ApprovalRequirement()
+    data class Skip(
+        val bypassSandbox: Boolean,
+    ) : ApprovalRequirement()
 
     /**
      * Approval required for this tool call.
      * @param reason Optional explanation for why approval is needed
      */
-    data class NeedsApproval(val reason: String?) : ApprovalRequirement()
+    data class NeedsApproval(
+        val reason: String?,
+    ) : ApprovalRequirement()
 
     /**
      * Execution forbidden for this tool call.
      * @param reason Explanation for why execution is forbidden
      */
-    data class Forbidden(val reason: String) : ApprovalRequirement()
+    data class Forbidden(
+        val reason: String,
+    ) : ApprovalRequirement()
 }
 
 /**
@@ -73,7 +80,7 @@ sealed class ApprovalRequirement {
  */
 data class SandboxCommandAssessment(
     val safe: Boolean,
-    val reason: String?
+    val reason: String?,
 )
 
 /**
@@ -81,8 +88,13 @@ data class SandboxCommandAssessment(
  * Mirrors the upstream ToolError enum from tools/sandboxing.rs
  */
 sealed class ToolError {
-    data class Rejected(val message: String) : ToolError()
-    data class Codex(val error: Exception) : ToolError()
+    data class Rejected(
+        val message: String,
+    ) : ToolError()
+
+    data class Codex(
+        val error: Exception,
+    ) : ToolError()
 }
 
 /**
@@ -91,5 +103,5 @@ sealed class ToolError {
  */
 data class SandboxRetryData(
     val command: List<String>,
-    val cwd: String
+    val cwd: String,
 )

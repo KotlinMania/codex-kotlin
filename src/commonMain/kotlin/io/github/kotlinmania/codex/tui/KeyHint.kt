@@ -17,49 +17,39 @@ internal data class KeyBinding(
     val key: KeyCode,
     val modifiers: KeyModifiers,
 ) {
-    fun isPress(event: KeyEvent): Boolean {
-        return key == event.code &&
+    fun isPress(event: KeyEvent): Boolean =
+        key == event.code &&
             modifiers == event.modifiers &&
             (event.kind == KeyEventKind.Press || event.kind == KeyEventKind.Repeat)
-    }
 
     fun toSpan(): Span {
         val modStr = modifiersToString(modifiers)
-        val keyStr = when (key) {
-            KeyCode.Enter -> "enter"
-            KeyCode.Up -> "↑"
-            KeyCode.Down -> "↓"
-            KeyCode.Left -> "←"
-            KeyCode.Right -> "→"
-            KeyCode.PageUp -> "pgup"
-            KeyCode.PageDown -> "pgdn"
-            else -> key.toString().lowercase()
-        }
+        val keyStr =
+            when (key) {
+                KeyCode.Enter -> "enter"
+                KeyCode.Up -> "↑"
+                KeyCode.Down -> "↓"
+                KeyCode.Left -> "←"
+                KeyCode.Right -> "→"
+                KeyCode.PageUp -> "pgup"
+                KeyCode.PageDown -> "pgdn"
+                else -> key.toString().lowercase()
+            }
         return Span.styled("$modStr$keyStr", keyHintStyle())
     }
 
     companion object {
-        fun new(key: KeyCode, modifiers: KeyModifiers): KeyBinding {
-            return KeyBinding(key = key, modifiers = modifiers)
-        }
+        fun new(key: KeyCode, modifiers: KeyModifiers): KeyBinding = KeyBinding(key = key, modifiers = modifiers)
     }
 }
 
-internal fun plain(key: KeyCode): KeyBinding {
-    return KeyBinding(key = key, modifiers = KeyModifiers.NONE)
-}
+internal fun plain(key: KeyCode): KeyBinding = KeyBinding(key = key, modifiers = KeyModifiers.NONE)
 
-internal fun alt(key: KeyCode): KeyBinding {
-    return KeyBinding(key = key, modifiers = KeyModifiers.ALT)
-}
+internal fun alt(key: KeyCode): KeyBinding = KeyBinding(key = key, modifiers = KeyModifiers.ALT)
 
-internal fun shift(key: KeyCode): KeyBinding {
-    return KeyBinding(key = key, modifiers = KeyModifiers.SHIFT)
-}
+internal fun shift(key: KeyCode): KeyBinding = KeyBinding(key = key, modifiers = KeyModifiers.SHIFT)
 
-internal fun ctrl(key: KeyCode): KeyBinding {
-    return KeyBinding(key = key, modifiers = KeyModifiers.CONTROL)
-}
+internal fun ctrl(key: KeyCode): KeyBinding = KeyBinding(key = key, modifiers = KeyModifiers.CONTROL)
 
 private fun modifiersToString(modifiers: KeyModifiers): String {
     val result = StringBuilder()
@@ -75,14 +65,8 @@ private fun modifiersToString(modifiers: KeyModifiers): String {
     return result.toString()
 }
 
-private fun keyHintStyle(): Style {
-    return Style(addModifier = Modifier.DIM)
-}
+private fun keyHintStyle(): Style = Style(addModifier = Modifier.DIM)
 
-internal fun hasCtrlOrAlt(mods: KeyModifiers): Boolean {
-    return (mods.contains(KeyModifiers.CONTROL) || mods.contains(KeyModifiers.ALT)) && !isAltgr(mods)
-}
+internal fun hasCtrlOrAlt(mods: KeyModifiers): Boolean = (mods.contains(KeyModifiers.CONTROL) || mods.contains(KeyModifiers.ALT)) && !isAltgr(mods)
 
-internal fun isAltgr(mods: KeyModifiers): Boolean {
-    return mods.contains(KeyModifiers.ALT) && mods.contains(KeyModifiers.CONTROL)
-}
+internal fun isAltgr(mods: KeyModifiers): Boolean = mods.contains(KeyModifiers.ALT) && mods.contains(KeyModifiers.CONTROL)

@@ -4,10 +4,12 @@ package io.github.kotlinmania.codex.ollama
 import io.github.kotlinmania.codex.utils.writeStderrInline
 import kotlin.time.TimeSource
 
-//** Events emitted while pulling a model from Ollama. */
+// ** Events emitted while pulling a model from Ollama. */
 internal sealed class PullEvent {
     /** A human-readable status message (e.g., "verifying", "writing"). */
-    data class Status(val status: String) : PullEvent()
+    data class Status(
+        val status: String,
+    ) : PullEvent()
 
     /** Byte-level progress update for a specific layer digest. */
     data class ChunkProgress(
@@ -20,7 +22,9 @@ internal sealed class PullEvent {
     data object Success : PullEvent()
 
     /** Error event with a message. */
-    data class Error(val message: String) : PullEvent()
+    data class Error(
+        val message: String,
+    ) : PullEvent()
 }
 
 /**
@@ -67,9 +71,10 @@ internal class CliProgressReporter private constructor(
                     entry.completed = event.completed
                 }
 
-                val (sumTotal, sumCompleted) = totalsByDigest.values.fold(0L to 0L) { acc, tc ->
-                    (acc.first + tc.total) to (acc.second + tc.completed)
-                }
+                val (sumTotal, sumCompleted) =
+                    totalsByDigest.values.fold(0L to 0L) { acc, tc ->
+                        (acc.first + tc.total) to (acc.second + tc.completed)
+                    }
 
                 if (sumTotal > 0) {
                     if (!printedHeader) {
@@ -79,8 +84,9 @@ internal class CliProgressReporter private constructor(
                         printedHeader = true
                     }
 
-                    val dt = (lastInstant.elapsedNow().inWholeNanoseconds.toDouble() / 1e9)
-                        .coerceAtLeast(0.001)
+                    val dt =
+                        (lastInstant.elapsedNow().inWholeNanoseconds.toDouble() / 1e9)
+                            .coerceAtLeast(0.001)
                     val dbytes = (sumCompleted - lastCompletedSum).coerceAtLeast(0).toDouble()
                     val speedMbS = dbytes / (1024.0 * 1024.0) / dt
                     lastCompletedSum = sumCompleted
@@ -109,19 +115,16 @@ internal class CliProgressReporter private constructor(
     }
 
     companion object {
-        fun default(): CliProgressReporter {
-            return new()
-        }
+        fun default(): CliProgressReporter = new()
 
-        fun new(): CliProgressReporter {
-            return CliProgressReporter(
+        fun new(): CliProgressReporter =
+            CliProgressReporter(
                 printedHeader = false,
                 lastLineLen = 0,
                 lastCompletedSum = 0,
                 lastInstant = TimeSource.Monotonic.markNow(),
                 totalsByDigest = HashMap(),
             )
-        }
     }
 }
 

@@ -10,12 +10,12 @@ import kotlinx.coroutines.flow.first
  * Similar to tokio::sync::Notify in Rust.
  */
 class Notify {
-    private val _flow =
-            MutableSharedFlow<Unit>(
-                    replay = 0,
-                    extraBufferCapacity = 1,
-                    onBufferOverflow = BufferOverflow.DROP_OLDEST
-            )
+    private val flow =
+        MutableSharedFlow<Unit>(
+            replay = 0,
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
     /**
      * Wakes up all coroutines currently waiting on [notified].
@@ -25,11 +25,11 @@ class Notify {
      * unless Permit is used). Actually, tokio Notify has a "notified" flag.
      */
     fun notifyWaiters() {
-        _flow.tryEmit(Unit)
+        flow.tryEmit(Unit)
     }
 
     /** Waits for a notification. */
     suspend fun notified() {
-        _flow.first()
+        flow.first()
     }
 }

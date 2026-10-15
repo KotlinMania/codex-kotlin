@@ -194,18 +194,20 @@ fun createSeatbeltCommandArgs(
             }
         }
 
-    val fileReadPolicy = if (sandboxPolicy.hasFullDiskReadAccess()) {
-        "; allow read-only file operations\n(allow file-read*)"
-    } else {
-        ""
-    }
+    val fileReadPolicy =
+        if (sandboxPolicy.hasFullDiskReadAccess()) {
+            "; allow read-only file operations\n(allow file-read*)"
+        } else {
+            ""
+        }
 
     // TODO(mbolin): applyPatch calls must also honor the SandboxPolicy.
-    val networkPolicy = if (sandboxPolicy.hasFullNetworkAccess()) {
-        MACOS_SEATBELT_NETWORK_POLICY
-    } else {
-        ""
-    }
+    val networkPolicy =
+        if (sandboxPolicy.hasFullNetworkAccess()) {
+            MACOS_SEATBELT_NETWORK_POLICY
+        } else {
+            ""
+        }
 
     val fullPolicy =
         "$MACOS_SEATBELT_BASE_POLICY\n$fileReadPolicy\n$fileWritePolicy\n$networkPolicy"

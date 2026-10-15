@@ -4,8 +4,12 @@ package io.github.kotlinmania.codex.api.requests
 import io.github.kotlinmania.codex.api.common.Reasoning
 import io.github.kotlinmania.codex.api.common.TextControls
 import io.github.kotlinmania.codex.api.provider.Provider
-import io.ktor.client.request.*
-import kotlinx.serialization.json.*
+import io.ktor.client.request.HttpRequestBuilder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /** Assembled request body plus header configuration for a Responses stream request. */
 internal data class ResponsesRequest(

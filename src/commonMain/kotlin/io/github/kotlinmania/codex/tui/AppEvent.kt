@@ -9,7 +9,7 @@ import io.github.kotlinmania.codex.protocol.Op
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.ReasoningEffort
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 
 /**
  * Application-level events used to coordinate UI actions.
@@ -19,7 +19,9 @@ import kotlinx.io.files.Path
  * pickers, persisting configuration, or shutting down the agent.
  */
 internal sealed class AppEvent {
-    data class CodexEvent(val event: Event) : AppEvent()
+    data class CodexEvent(
+        val event: Event,
+    ) : AppEvent()
 
     /** Start a new session. */
     data object NewSession : AppEvent()
@@ -28,34 +30,48 @@ internal sealed class AppEvent {
     data object ClearUi : AppEvent()
 
     /** Clear the current context, start a fresh session, and submit an initial user message. */
-    data class ClearUiAndSubmitUserMessage(val text: String) : AppEvent()
+    data class ClearUiAndSubmitUserMessage(
+        val text: String,
+    ) : AppEvent()
 
     /** Open the resume picker inside the running TUI session. */
     data object OpenResumePicker : AppEvent()
 
     /** Resume a thread by UUID or thread name inside the running TUI session. */
-    data class ResumeSessionByIdOrName(val value: String) : AppEvent()
+    data class ResumeSessionByIdOrName(
+        val value: String,
+    ) : AppEvent()
 
     /** Fork the current session into a new thread. */
     data object ForkCurrentSession : AppEvent()
 
     /** Request application exit using the requested shutdown behavior. */
-    data class Exit(val mode: ExitMode) : AppEvent()
+    data class Exit(
+        val mode: ExitMode,
+    ) : AppEvent()
 
     /** Request account logout, then exit after it succeeds. */
     data object Logout : AppEvent()
 
     /** Request application exit due to a fatal error. */
-    data class FatalExitRequest(val message: String) : AppEvent()
+    data class FatalExitRequest(
+        val message: String,
+    ) : AppEvent()
 
     /** Forward an operation to the agent without passing channels through widget layers. */
-    data class CodexOp(val op: Op) : AppEvent()
+    data class CodexOp(
+        val op: Op,
+    ) : AppEvent()
 
     /** Kick off an asynchronous file search for the given query. */
-    data class StartFileSearch(val query: String) : AppEvent()
+    data class StartFileSearch(
+        val query: String,
+    ) : AppEvent()
 
     /** Refresh account rate limits in the background. */
-    data class RefreshRateLimits(val origin: RateLimitRefreshOrigin) : AppEvent()
+    data class RefreshRateLimits(
+        val origin: RateLimitRefreshOrigin,
+    ) : AppEvent()
 
     /** Result of refreshing account rate limits. */
     data class RateLimitsLoaded(
@@ -64,10 +80,14 @@ internal sealed class AppEvent {
     ) : AppEvent()
 
     /** Result of refreshing a single rate-limit snapshot. */
-    data class RateLimitSnapshotFetched(val snapshot: RateLimitSnapshot) : AppEvent()
+    data class RateLimitSnapshotFetched(
+        val snapshot: RateLimitSnapshot,
+    ) : AppEvent()
 
     /** Result of computing a diff command. */
-    data class DiffResult(val diff: String) : AppEvent()
+    data class DiffResult(
+        val diff: String,
+    ) : AppEvent()
 
     data object StartCommitAnimation : AppEvent()
 
@@ -76,10 +96,14 @@ internal sealed class AppEvent {
     data object CommitTick : AppEvent()
 
     /** Update the current reasoning effort in the running app and widget. */
-    data class UpdateReasoningEffort(val effort: ReasoningEffort?) : AppEvent()
+    data class UpdateReasoningEffort(
+        val effort: ReasoningEffort?,
+    ) : AppEvent()
 
     /** Update the current model slug in the running app and widget. */
-    data class UpdateModel(val model: String) : AppEvent()
+    data class UpdateModel(
+        val model: String,
+    ) : AppEvent()
 
     /** Persist the selected model and reasoning effort to the appropriate config. */
     data class PersistModelSelection(
@@ -106,19 +130,29 @@ internal sealed class AppEvent {
     data object EnableWindowsSandboxForAgentMode : AppEvent()
 
     /** Update the current approval policy in the running app and widget. */
-    data class UpdateAskForApprovalPolicy(val policy: AskForApproval) : AppEvent()
+    data class UpdateAskForApprovalPolicy(
+        val policy: AskForApproval,
+    ) : AppEvent()
 
     /** Update the current sandbox policy in the running app and widget. */
-    data class UpdateSandboxPolicy(val policy: SandboxPolicy) : AppEvent()
+    data class UpdateSandboxPolicy(
+        val policy: SandboxPolicy,
+    ) : AppEvent()
 
     /** Update whether the full access warning prompt has been acknowledged. */
-    data class UpdateFullAccessWarningAcknowledged(val acknowledged: Boolean) : AppEvent()
+    data class UpdateFullAccessWarningAcknowledged(
+        val acknowledged: Boolean,
+    ) : AppEvent()
 
     /** Update whether the world-writable directories warning has been acknowledged. */
-    data class UpdateWorldWritableWarningAcknowledged(val acknowledged: Boolean) : AppEvent()
+    data class UpdateWorldWritableWarningAcknowledged(
+        val acknowledged: Boolean,
+    ) : AppEvent()
 
     /** Update whether the rate limit switch prompt has been hidden for the session. */
-    data class UpdateRateLimitSwitchPromptHidden(val hidden: Boolean) : AppEvent()
+    data class UpdateRateLimitSwitchPromptHidden(
+        val hidden: Boolean,
+    ) : AppEvent()
 
     /** Persist the acknowledgement flag for the full access warning prompt. */
     data object PersistFullAccessWarningAcknowledged : AppEvent()
@@ -142,13 +176,19 @@ internal sealed class AppEvent {
     data object OpenApprovalsPopup : AppEvent()
 
     /** Forwarded conversation history snapshot from the current conversation. */
-    data class ConversationHistory(val event: ConversationPathResponseEvent) : AppEvent()
+    data class ConversationHistory(
+        val event: ConversationPathResponseEvent,
+    ) : AppEvent()
 
     /** Open the branch picker option from the review popup. */
-    data class OpenReviewBranchPicker(val path: Path) : AppEvent()
+    data class OpenReviewBranchPicker(
+        val path: Path,
+    ) : AppEvent()
 
     /** Open the commit picker option from the review popup. */
-    data class OpenReviewCommitPicker(val path: Path) : AppEvent()
+    data class OpenReviewCommitPicker(
+        val path: Path,
+    ) : AppEvent()
 
     /** Open the custom prompt option from the review popup. */
     data object OpenReviewCustomPrompt : AppEvent()
@@ -168,7 +208,9 @@ internal sealed class AppEvent {
     ) : AppEvent()
 
     /** Open the device picker for a realtime microphone or speaker. */
-    data class OpenRealtimeAudioDeviceSelection(val kind: RealtimeAudioDeviceKind) : AppEvent()
+    data class OpenRealtimeAudioDeviceSelection(
+        val kind: RealtimeAudioDeviceKind,
+    ) : AppEvent()
 
     /** Persist the selected realtime microphone or speaker to top-level config. */
     data class PersistRealtimeAudioDeviceSelection(
@@ -177,10 +219,14 @@ internal sealed class AppEvent {
     ) : AppEvent()
 
     /** Restart the selected realtime microphone or speaker locally. */
-    data class RestartRealtimeAudioDevice(val kind: RealtimeAudioDeviceKind) : AppEvent()
+    data class RestartRealtimeAudioDevice(
+        val kind: RealtimeAudioDeviceKind,
+    ) : AppEvent()
 
     /** Deliver a history lookup response to the UI layer. */
-    data class HistoryLookup(val event: HistoryLookupResponse) : AppEvent()
+    data class HistoryLookup(
+        val event: HistoryLookupResponse,
+    ) : AppEvent()
 
     /** Open set/remove actions for the selected keymap action. */
     data class OpenKeymapActionMenu(
@@ -224,7 +270,8 @@ internal sealed class AppEvent {
 
 internal enum class RealtimeAudioDeviceKind {
     Microphone,
-    Speaker;
+    Speaker,
+    ;
 
     fun title(): String =
         when (this) {
@@ -258,7 +305,9 @@ internal enum class WindowsSandboxEnableMode {
 internal sealed class RateLimitRefreshOrigin {
     data object StartupPrefetch : RateLimitRefreshOrigin()
 
-    data class StatusCommand(val requestId: Long) : RateLimitRefreshOrigin()
+    data class StatusCommand(
+        val requestId: Long,
+    ) : RateLimitRefreshOrigin()
 }
 
 internal sealed class KeymapEditIntent {
@@ -266,7 +315,9 @@ internal sealed class KeymapEditIntent {
 
     data object AddAlternate : KeymapEditIntent()
 
-    data class ReplaceOne(val oldKey: String) : KeymapEditIntent()
+    data class ReplaceOne(
+        val oldKey: String,
+    ) : KeymapEditIntent()
 }
 
 /** The exit strategy requested by the UI layer. */

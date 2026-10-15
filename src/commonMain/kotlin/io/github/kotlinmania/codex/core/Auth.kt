@@ -6,20 +6,27 @@ import io.github.kotlinmania.codex.core.auth.AuthStorageBackend
 import io.github.kotlinmania.codex.core.auth.FileAuthStorage
 import io.github.kotlinmania.codex.core.auth.createAuthStorage
 import io.github.kotlinmania.codex.core.config.Config
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.github.kotlinmania.codex.utils.Base64Util
 import io.github.kotlinmania.codex.utils.Environment
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+import io.github.kotlinmania.io.files.Path
+import io.ktor.client.HttpClient
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.io.files.Path
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
@@ -804,7 +811,6 @@ private fun parseAuthRefreshErrorMessage(body: String): String {
  *
  * Reference: codex-rs/core/src/tokenData.rs - parseIdToken()
  */
-@OptIn(ExperimentalEncodingApi::class)
 private fun parseIdToken(jwt: String): Result<IdTokenInfo> =
     try {
         val parts = jwt.split('.')
@@ -812,8 +818,7 @@ private fun parseIdToken(jwt: String): Result<IdTokenInfo> =
             Result.failure(Exception("Invalid JWT format"))
         } else {
             val payloadBase64 = parts[1]
-            val padded = payloadBase64.padEnd((payloadBase64.length + 3) / 4 * 4, '=')
-            val decodedBytes = Base64.UrlSafe.decode(padded)
+            val decodedBytes = Base64Util.decodeUrlSafeNoPad(payloadBase64)
             val jsonStr = decodedBytes.decodeToString()
             val json = authJson.parseToJsonElement(jsonStr).jsonObject
 

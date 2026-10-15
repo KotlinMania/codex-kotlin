@@ -3,36 +3,44 @@
 package io.github.kotlinmania.codex.core
 
 import io.github.kotlinmania.codex.exec.process.SandboxType
-import java.io.File
-import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.InputStream
 
 actual class ProcessHandle(
     private val process: Process,
 ) {
-    actual val pid: Int get() = try { process.pid().toInt() } catch (_: Throwable) { 0 }
+    actual val pid: Int get() =
+        try {
+            process.pid().toInt()
+        } catch (_: Throwable) {
+            0
+        }
     actual val stdout: ByteArray? get() = null
     actual val stderr: ByteArray? get() = null
 
     private val stdoutStream: InputStream = process.inputStream
     private val stderrStream: InputStream = process.errorStream
 
-    actual suspend fun onAwait(): Int = withContext(Dispatchers.IO) {
-        process.waitFor()
-    }
+    actual suspend fun onAwait(): Int =
+        withContext(Dispatchers.IO) {
+            process.waitFor()
+        }
 
-    actual fun readStdout(buffer: ByteArray): Int {
-        return stdoutStream.read(buffer)
-    }
+    actual fun readStdout(buffer: ByteArray): Int = stdoutStream.read(buffer)
 
-    actual fun readStderr(buffer: ByteArray): Int {
-        return stderrStream.read(buffer)
-    }
+    actual fun readStderr(buffer: ByteArray): Int = stderrStream.read(buffer)
 
     actual fun close() {
-        try { stdoutStream.close() } catch (_: Throwable) {}
-        try { stderrStream.close() } catch (_: Throwable) {}
+        try {
+            stdoutStream.close()
+        } catch (_: Throwable) {
+        }
+        try {
+            stderrStream.close()
+        } catch (_: Throwable) {
+        }
     }
 
     actual fun kill() {
@@ -46,7 +54,7 @@ actual fun createPlatformProcess(
     program: String,
     args: List<String>,
     cwd: String,
-    env: Map<String, String>
+    env: Map<String, String>,
 ): ProcessHandle {
     val cmd = listOf(program) + args
     val builder = ProcessBuilder(cmd)

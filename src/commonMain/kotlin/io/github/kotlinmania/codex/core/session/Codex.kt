@@ -3,121 +3,109 @@ package io.github.kotlinmania.codex.core.session
 
 import io.github.kotlinmania.codex.client.auth.AuthManager
 import io.github.kotlinmania.codex.client.auth.AuthMode
+import io.github.kotlinmania.codex.core.CodexErr
+import io.github.kotlinmania.codex.core.CodexResult
+import io.github.kotlinmania.codex.core.Exec
+import io.github.kotlinmania.codex.core.ExecExpiration
+import io.github.kotlinmania.codex.core.ExecParams
+import io.github.kotlinmania.codex.core.ProcessedResponseItem
+import io.github.kotlinmania.codex.core.ToolCallProcessor
 import io.github.kotlinmania.codex.core.context.ContextManager
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.truncateText
-import io.github.kotlinmania.codex.core.CodexErr
-import io.github.kotlinmania.codex.core.CodexResult
-import kotlinx.io.*
-import kotlinx.io.files.*
 import io.github.kotlinmania.codex.core.features.Feature
 import io.github.kotlinmania.codex.core.features.Features
-import io.github.kotlinmania.codex.core.ProcessedResponseItem
-import io.github.kotlinmania.codex.core.ToolCallProcessor
-import io.github.kotlinmania.codex.core.tools.JsonSchema
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
-import io.github.kotlinmania.codex.core.tools.ToolCall
-import io.github.kotlinmania.codex.core.tools.ToolCallRuntime
-import io.github.kotlinmania.codex.core.tools.ToolRegistry
-import io.github.kotlinmania.codex.core.tools.ToolRouter
-import io.github.kotlinmania.codex.core.tools.newToolsConfig
-import io.github.kotlinmania.codex.core.model.ApplyPatchToolType
 import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.core.model.ModelProviderInfo
 import io.github.kotlinmania.codex.core.model.deriveDefaultModelFamily
+import io.github.kotlinmania.codex.core.tools.JsonSchema
+import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
+import io.github.kotlinmania.codex.core.tools.ToolCallRuntime
+import io.github.kotlinmania.codex.core.tools.ToolRouter
+import io.github.kotlinmania.codex.core.tools.newToolsConfig
 import io.github.kotlinmania.codex.exec.sandbox.ApprovalStore
-import io.github.kotlinmania.codex.protocol.SandboxCommandAssessment
-import io.github.kotlinmania.codex.protocol.SandboxRiskLevel
 import io.github.kotlinmania.codex.exec.shell.Shell
 import io.github.kotlinmania.codex.exec.shell.ShellDetector
 import io.github.kotlinmania.codex.mcp.connection.McpConnectionManager
 import io.github.kotlinmania.codex.mcp.connection.McpServerConfig
-import io.github.kotlinmania.codex.protocol.ResponseEvent
-import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
-import io.github.kotlinmania.codex.protocol.AskForApproval
+import io.github.kotlinmania.codex.protocol.AgentMessageContentDeltaEvent
+import io.github.kotlinmania.codex.protocol.AgentReasoningSectionBreakEvent
 import io.github.kotlinmania.codex.protocol.ApplyPatchApprovalRequestEvent
+import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.BackgroundEventEvent
+import io.github.kotlinmania.codex.protocol.CodexErrorInfo
+import io.github.kotlinmania.codex.protocol.ContentItem
+import io.github.kotlinmania.codex.protocol.ContextCompactedEvent
+import io.github.kotlinmania.codex.protocol.ConversationId
+import io.github.kotlinmania.codex.protocol.CustomPrompt
+import io.github.kotlinmania.codex.protocol.ElicitationAction
+import io.github.kotlinmania.codex.protocol.ErrorEvent
 import io.github.kotlinmania.codex.protocol.Event
 import io.github.kotlinmania.codex.protocol.EventMsg
 import io.github.kotlinmania.codex.protocol.ExecApprovalRequestEvent
+import io.github.kotlinmania.codex.protocol.ExecCommandBeginEvent
+import io.github.kotlinmania.codex.protocol.ExecCommandEndEvent
+import io.github.kotlinmania.codex.protocol.ExecCommandSource
+import io.github.kotlinmania.codex.protocol.ExitedReviewModeEvent
+import io.github.kotlinmania.codex.protocol.FileChange
+import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
+import io.github.kotlinmania.codex.protocol.GetHistoryEntryResponseEvent
+import io.github.kotlinmania.codex.protocol.InitialHistory
 import io.github.kotlinmania.codex.protocol.ItemCompletedEvent
 import io.github.kotlinmania.codex.protocol.ItemStartedEvent
+import io.github.kotlinmania.codex.protocol.ListCustomPromptsResponseEvent
+import io.github.kotlinmania.codex.protocol.McpListToolsResponseEvent
 import io.github.kotlinmania.codex.protocol.Op
+import io.github.kotlinmania.codex.protocol.ParsedCommand
+import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.RawResponseItemEvent
+import io.github.kotlinmania.codex.protocol.ReasoningContentDeltaEvent
+import io.github.kotlinmania.codex.protocol.ReasoningEffort
+import io.github.kotlinmania.codex.protocol.ReasoningItem
+import io.github.kotlinmania.codex.protocol.ReasoningItemContent
+import io.github.kotlinmania.codex.protocol.ReasoningItemReasoningSummary
+import io.github.kotlinmania.codex.protocol.ReasoningRawContentDeltaEvent
+import io.github.kotlinmania.codex.protocol.ReasoningSummary
+import io.github.kotlinmania.codex.protocol.ResponseEvent
+import io.github.kotlinmania.codex.protocol.ResponseInputItem
+import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.ReviewDecision
+import io.github.kotlinmania.codex.protocol.ReviewFinding
+import io.github.kotlinmania.codex.protocol.ReviewOutputEvent
+import io.github.kotlinmania.codex.protocol.ReviewRequest
+import io.github.kotlinmania.codex.protocol.RolloutItem
+import io.github.kotlinmania.codex.protocol.SandboxCommandAssessment
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
+import io.github.kotlinmania.codex.protocol.SessionConfiguredEvent
+import io.github.kotlinmania.codex.protocol.SessionSource
 import io.github.kotlinmania.codex.protocol.StreamErrorEvent
 import io.github.kotlinmania.codex.protocol.Submission
 import io.github.kotlinmania.codex.protocol.TaskCompleteEvent
 import io.github.kotlinmania.codex.protocol.TaskStartedEvent
 import io.github.kotlinmania.codex.protocol.TokenCountEvent
+import io.github.kotlinmania.codex.protocol.TokenUsage
+import io.github.kotlinmania.codex.protocol.TokenUsageInfo
 import io.github.kotlinmania.codex.protocol.TurnAbortReason
 import io.github.kotlinmania.codex.protocol.TurnAbortedEvent
+import io.github.kotlinmania.codex.protocol.TurnContextItem
+import io.github.kotlinmania.codex.protocol.TurnDiffEvent
 import io.github.kotlinmania.codex.protocol.TurnItem
 import io.github.kotlinmania.codex.protocol.UndoCompletedEvent
 import io.github.kotlinmania.codex.protocol.UndoStartedEvent
-import io.github.kotlinmania.codex.protocol.CodexErrorInfo
-import io.github.kotlinmania.codex.protocol.ErrorEvent
-import io.github.kotlinmania.codex.protocol.GetHistoryEntryResponseEvent
-import io.github.kotlinmania.codex.protocol.McpListToolsResponseEvent
-import io.github.kotlinmania.codex.protocol.ListCustomPromptsResponseEvent
-import io.github.kotlinmania.codex.protocol.SessionConfiguredEvent
-import io.github.kotlinmania.codex.protocol.McpTool
-import io.github.kotlinmania.codex.protocol.McpResource
-import io.github.kotlinmania.codex.protocol.McpResourceTemplate
-import io.github.kotlinmania.codex.protocol.McpAuthStatus
-import io.github.kotlinmania.codex.protocol.CustomPrompt
-import io.github.kotlinmania.codex.protocol.ReviewRequest
-import io.github.kotlinmania.codex.protocol.ElicitationAction
-import io.github.kotlinmania.codex.protocol.TokenUsage
-import io.github.kotlinmania.codex.protocol.TokenUsageInfo
-import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
-import io.github.kotlinmania.codex.protocol.HistoryEntry
-import io.github.kotlinmania.codex.protocol.FileChange
-import io.github.kotlinmania.codex.protocol.ConversationId
-import io.github.kotlinmania.codex.protocol.ReasoningEffort
-import io.github.kotlinmania.codex.protocol.ReasoningSummary
-import io.github.kotlinmania.codex.protocol.TurnContextItem
-import io.github.kotlinmania.codex.protocol.TurnDiffEvent
-import io.github.kotlinmania.codex.protocol.AgentMessageContentDeltaEvent
-import io.github.kotlinmania.codex.protocol.ReasoningContentDeltaEvent
-import io.github.kotlinmania.codex.protocol.ReasoningRawContentDeltaEvent
-import io.github.kotlinmania.codex.protocol.AgentReasoningSectionBreakEvent
-import io.github.kotlinmania.codex.protocol.RolloutItem
 import io.github.kotlinmania.codex.protocol.UserMessageItem
-import io.github.kotlinmania.codex.protocol.ReasoningItem
-import io.github.kotlinmania.codex.protocol.ReasoningItemReasoningSummary
-import io.github.kotlinmania.codex.protocol.ReasoningItemContent
-import io.github.kotlinmania.codex.protocol.WebSearchItem
-import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
-import io.github.kotlinmania.codex.protocol.InitialHistory
-import io.github.kotlinmania.codex.protocol.SessionSource
-import io.github.kotlinmania.codex.protocol.UserInput as ProtocolUserInput
-import io.github.kotlinmania.codex.protocol.ContentItem
-import io.github.kotlinmania.codex.protocol.ResponseInputItem
-import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.WarningEvent
-import io.github.kotlinmania.codex.protocol.ContextCompactedEvent
-import io.github.kotlinmania.codex.protocol.ExitedReviewModeEvent
-import io.github.kotlinmania.codex.protocol.ReviewOutputEvent
-import io.github.kotlinmania.codex.protocol.ReviewFinding
-import io.github.kotlinmania.codex.protocol.ReviewCodeLocation
-import io.github.kotlinmania.codex.protocol.ReviewLineRange
-import io.github.kotlinmania.codex.protocol.ExecCommandBeginEvent
-import io.github.kotlinmania.codex.protocol.ExecCommandEndEvent
-import io.github.kotlinmania.codex.protocol.ExecCommandSource
-import io.github.kotlinmania.codex.protocol.ParsedCommand
-import io.github.kotlinmania.codex.core.Exec
-import io.github.kotlinmania.codex.core.ExecParams
-import io.github.kotlinmania.codex.core.ExecExpiration
+import io.github.kotlinmania.codex.protocol.WebSearchItem
+import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
 import io.github.kotlinmania.codex.utils.git.CreateGhostCommitOptions
-import kotlin.time.Duration
-import kotlin.time.measureTime
 import io.github.kotlinmania.codex.utils.git.GhostSnapshotReport
 import io.github.kotlinmania.codex.utils.git.GitToolingError
 import io.github.kotlinmania.codex.utils.git.ShellGitOperations
 import io.github.kotlinmania.codex.utils.readiness.ReadinessFlag
 import io.github.kotlinmania.codex.utils.readiness.ReadinessToken
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readString
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -134,14 +122,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 import kotlin.concurrent.atomics.AtomicLong
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.measureTime
+import io.github.kotlinmania.codex.protocol.UserInput as ProtocolUserInput
 
 private val codexJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-private val rolloutJson = kotlinx.serialization.json.Json {
-    ignoreUnknownKeys = true
-    classDiscriminator = "type"
-}
+private val rolloutJson =
+    kotlinx.serialization.json.Json {
+        ignoreUnknownKeys = true
+        classDiscriminator = "type"
+    }
 
 /**
  * Timeout for graceful task interruption before forcing abort.
@@ -195,7 +187,7 @@ private const val CODEX_SUBMISSION_CHANNEL_CAPACITY = 64
 class Codex internal constructor(
     private val nextId: AtomicLong,
     private val txSub: Channel<Submission>,
-    private val rxEvent: Channel<Event>
+    private val rxEvent: Channel<Event>,
 ) {
     /**
      * Submit the `op` wrapped in a `Submission` with a unique ID.
@@ -210,26 +202,24 @@ class Codex internal constructor(
      * Use sparingly: prefer `submit()` so Codex is responsible for generating
      * unique IDs for each submission.
      */
-    suspend fun submitWithId(sub: Submission): CodexResult<Unit> {
-        return try {
+    suspend fun submitWithId(sub: Submission): CodexResult<Unit> =
+        try {
             txSub.send(sub)
             CodexResult.success(Unit)
         } catch (e: Exception) {
             CodexResult.failure(CodexErr.InternalAgentDied)
         }
-    }
 
     /**
      * Receive the next event from the agent.
      */
-    suspend fun nextEvent(): CodexResult<Event> {
-        return try {
+    suspend fun nextEvent(): CodexResult<Event> =
+        try {
             val event = rxEvent.receive()
             CodexResult.success(event)
         } catch (e: Exception) {
             CodexResult.failure(CodexErr.InternalAgentDied)
         }
-    }
 
     /**
      * Get a Flow of events for reactive consumption.
@@ -246,7 +236,7 @@ class Codex internal constructor(
  */
 data class CodexSpawnOk(
     val codex: Codex,
-    val conversationId: ConversationId
+    val conversationId: ConversationId,
 )
 
 /**
@@ -259,7 +249,7 @@ suspend fun spawnCodex(
     config: Config,
     authManager: AuthManager,
     conversationHistory: InitialHistory = InitialHistory.New,
-    sessionSource: SessionSource = SessionSource.Cli
+    sessionSource: SessionSource = SessionSource.Cli,
 ): CodexResult<CodexSpawnOk> {
     val txSub = Channel<Submission>(CODEX_SUBMISSION_CHANNEL_CAPACITY)
     val txEvent = Channel<Event>(Channel.UNLIMITED)
@@ -269,31 +259,33 @@ suspend fun spawnCodex(
 
     val execPolicy = execPolicyFor(config.features, config.codexHome)
 
-    val sessionConfiguration = SessionConfiguration(
-        provider = config.modelProvider,
-        model = config.model,
-        modelReasoningEffort = config.modelReasoningEffort,
-        modelReasoningSummary = config.modelReasoningSummary,
-        developerInstructions = config.developerInstructions,
-        userInstructions = userInstructions,
-        baseInstructions = config.baseInstructions,
-        compactPrompt = config.compactPrompt,
-        approvalPolicy = config.approvalPolicy,
-        sandboxPolicy = config.sandboxPolicy,
-        cwd = config.cwd,
-        features = config.features,
-        execPolicy = execPolicy,
-        sessionSource = sessionSource
-    )
+    val sessionConfiguration =
+        SessionConfiguration(
+            provider = config.modelProvider,
+            model = config.model,
+            modelReasoningEffort = config.modelReasoningEffort,
+            modelReasoningSummary = config.modelReasoningSummary,
+            developerInstructions = config.developerInstructions,
+            userInstructions = userInstructions,
+            baseInstructions = config.baseInstructions,
+            compactPrompt = config.compactPrompt,
+            approvalPolicy = config.approvalPolicy,
+            sandboxPolicy = config.sandboxPolicy,
+            cwd = config.cwd,
+            features = config.features,
+            execPolicy = execPolicy,
+            sessionSource = sessionSource,
+        )
 
-    val session = Session.Factory.new(
-        sessionConfiguration = sessionConfiguration,
-        config = config,
-        authManager = authManager,
-        txEvent = txEvent,
-        initialHistory = conversationHistory,
-        sessionSource = sessionSource
-    )
+    val session =
+        Session.Factory.new(
+            sessionConfiguration = sessionConfiguration,
+            config = config,
+            authManager = authManager,
+            txEvent = txEvent,
+            initialHistory = conversationHistory,
+            sessionSource = sessionSource,
+        )
 
     if (session == null) {
         return CodexResult.failure(CodexErr.InternalAgentDied)
@@ -314,16 +306,19 @@ suspend fun spawnCodex(
         }
     }
 
-    val codex = Codex(
-        nextId = AtomicLong(0L),
-        txSub = txSub,
-        rxEvent = rxEvent
-    )
+    val codex =
+        Codex(
+            nextId = AtomicLong(0L),
+            txSub = txSub,
+            rxEvent = rxEvent,
+        )
 
-    return CodexResult.success(CodexSpawnOk(
-        codex = codex,
-        conversationId = conversationId
-    ))
+    return CodexResult.success(
+        CodexSpawnOk(
+            codex = codex,
+            conversationId = conversationId,
+        ),
+    )
 }
 
 // =============================================================================
@@ -345,7 +340,7 @@ internal class Session private constructor(
     private val stateMutex: Mutex,
     val activeTurn: ActiveTurnHolder,
     val services: SessionServices,
-    private val nextInternalSubId: AtomicLong
+    private val nextInternalSubId: AtomicLong,
 ) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -373,11 +368,10 @@ internal class Session private constructor(
     /**
      * Get total token usage.
      */
-    suspend fun getTotalTokenUsage(): Long {
-        return stateMutex.withLock {
+    suspend fun getTotalTokenUsage(): Long =
+        stateMutex.withLock {
             state.getTotalTokenUsage()
         }
-    }
 
     /**
      * Record initial conversation history.
@@ -431,18 +425,19 @@ internal class Session private constructor(
      * Create a new turn context with a specific submission ID.
      */
     suspend fun newTurnWithSubId(subId: String, updates: SessionSettingsUpdate): TurnContext {
-        val sessionConfiguration = stateMutex.withLock {
-            val config = state.sessionConfiguration.apply(updates)
-            state.sessionConfiguration = config
-            config
-        }
+        val sessionConfiguration =
+            stateMutex.withLock {
+                val config = state.sessionConfiguration.apply(updates)
+                state.sessionConfiguration = config
+                config
+            }
 
         return makeTurnContext(
             authManager = services.authManager,
             sessionConfiguration = sessionConfiguration,
             conversationId = conversationId,
             subId = subId,
-            finalOutputJsonSchema = updates.finalOutputJsonSchema
+            finalOutputJsonSchema = updates.finalOutputJsonSchema,
         )
     }
 
@@ -451,7 +446,7 @@ internal class Session private constructor(
      */
     fun buildEnvironmentUpdateItem(
         previous: TurnContext?,
-        next: TurnContext
+        next: TurnContext,
     ): ResponseItem? {
         if (previous == null) return null
 
@@ -467,10 +462,11 @@ internal class Session private constructor(
      * Persist the event to rollout and send it to clients.
      */
     suspend fun sendEvent(turnContext: TurnContext, msg: EventMsg) {
-        val event = Event(
-            id = turnContext.subId,
-            msg = msg
-        )
+        val event =
+            Event(
+                id = turnContext.subId,
+                msg = msg,
+            )
         sendEventRaw(event)
 
         // Send legacy events if applicable
@@ -497,11 +493,13 @@ internal class Session private constructor(
     suspend fun emitTurnItemStarted(turnContext: TurnContext, item: TurnItem) {
         sendEvent(
             turnContext,
-            EventMsg.ItemStarted(ItemStartedEvent(
-                threadId = conversationId,
-                turnId = turnContext.subId,
-                item = item
-            ))
+            EventMsg.ItemStarted(
+                ItemStartedEvent(
+                    threadId = conversationId,
+                    turnId = turnContext.subId,
+                    item = item,
+                ),
+            ),
         )
     }
 
@@ -511,11 +509,13 @@ internal class Session private constructor(
     suspend fun emitTurnItemCompleted(turnContext: TurnContext, item: TurnItem) {
         sendEvent(
             turnContext,
-            EventMsg.ItemCompleted(ItemCompletedEvent(
-                threadId = conversationId,
-                turnId = turnContext.subId,
-                item = item
-            ))
+            EventMsg.ItemCompleted(
+                ItemCompletedEvent(
+                    threadId = conversationId,
+                    turnId = turnContext.subId,
+                    item = item,
+                ),
+            ),
         )
     }
 
@@ -526,7 +526,7 @@ internal class Session private constructor(
         turnContext: TurnContext,
         callId: String,
         command: List<String>,
-        failureMessage: String?
+        failureMessage: String?,
     ): SandboxCommandAssessment? {
         // TODO: Implement command assessment
         return null
@@ -541,27 +541,31 @@ internal class Session private constructor(
         command: List<String>,
         cwd: String,
         reason: String?,
-        risk: SandboxCommandAssessment?
+        risk: SandboxCommandAssessment?,
     ): ReviewDecision {
         val subId = turnContext.subId
         val deferred = CompletableDeferred<ReviewDecision>()
 
-        val prevEntry = activeTurn.withLock { turn ->
-            turn?.turnState?.insertPendingApproval(subId, deferred)
-        }
+        val prevEntry =
+            activeTurn.withLock { turn ->
+                turn?.turnState?.insertPendingApproval(subId, deferred)
+            }
         if (prevEntry != null) {
             println("WARN: Overwriting existing pending approval for sub_id: $subId")
         }
 
-        val event = EventMsg.ExecApprovalRequest(ExecApprovalRequestEvent(
-            callId = callId,
-            turnId = turnContext.subId,
-            command = command,
-            cwd = cwd,
-            reason = reason,
-            risk = risk,
-            parsedCmd = emptyList()
-        ))
+        val event =
+            EventMsg.ExecApprovalRequest(
+                ExecApprovalRequestEvent(
+                    callId = callId,
+                    turnId = turnContext.subId,
+                    command = command,
+                    cwd = cwd,
+                    reason = reason,
+                    risk = risk,
+                    parsedCmd = emptyList(),
+                ),
+            )
         sendEvent(turnContext, event)
 
         return try {
@@ -579,25 +583,29 @@ internal class Session private constructor(
         callId: String,
         changes: Map<String, io.github.kotlinmania.codex.protocol.FileChange>,
         reason: String?,
-        grantRoot: String?
+        grantRoot: String?,
     ): CompletableDeferred<ReviewDecision> {
         val subId = turnContext.subId
         val deferred = CompletableDeferred<ReviewDecision>()
 
-        val prevEntry = activeTurn.withLock { turn ->
-            turn?.turnState?.insertPendingApproval(subId, deferred)
-        }
+        val prevEntry =
+            activeTurn.withLock { turn ->
+                turn?.turnState?.insertPendingApproval(subId, deferred)
+            }
         if (prevEntry != null) {
             println("WARN: Overwriting existing pending approval for sub_id: $subId")
         }
 
-        val event = EventMsg.ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent(
-            callId = callId,
-            turnId = turnContext.subId,
-            changes = changes,
-            reason = reason,
-            grantRoot = grantRoot
-        ))
+        val event =
+            EventMsg.ApplyPatchApprovalRequest(
+                ApplyPatchApprovalRequestEvent(
+                    callId = callId,
+                    turnId = turnContext.subId,
+                    changes = changes,
+                    reason = reason,
+                    grantRoot = grantRoot,
+                ),
+            )
         sendEvent(turnContext, event)
 
         return deferred
@@ -607,9 +615,10 @@ internal class Session private constructor(
      * Notify approval for a pending request.
      */
     suspend fun notifyApproval(subId: String, decision: ReviewDecision) {
-        val entry = activeTurn.withLock { turn ->
-            turn?.turnState?.removePendingApproval(subId)
-        }
+        val entry =
+            activeTurn.withLock { turn ->
+                turn?.turnState?.removePendingApproval(subId)
+            }
         if (entry != null) {
             entry.complete(decision)
         } else {
@@ -632,7 +641,7 @@ internal class Session private constructor(
      */
     private fun reconstructHistoryFromRollout(
         turnContext: TurnContext,
-        rolloutItems: List<io.github.kotlinmania.codex.protocol.RolloutItem>
+        rolloutItems: List<io.github.kotlinmania.codex.protocol.RolloutItem>,
     ): List<ResponseItem> {
         val history = ContextManager()
         for (rolloutItem in rolloutItems) {
@@ -647,11 +656,12 @@ internal class Session private constructor(
                     } else {
                         val snapshot = history.getHistory()
                         val userMessages = collectUserMessages(snapshot)
-                        val rebuilt = buildCompactedHistory(
-                            buildInitialContext(turnContext),
-                            userMessages,
-                            compacted.message
-                        )
+                        val rebuilt =
+                            buildCompactedHistory(
+                                buildInitialContext(turnContext),
+                                userMessages,
+                                compacted.message,
+                            )
                         history.replace(rebuilt)
                     }
                 }
@@ -690,11 +700,10 @@ internal class Session private constructor(
     /**
      * Check if a feature is enabled.
      */
-    suspend fun enabled(feature: Feature): Boolean {
-        return stateMutex.withLock {
+    suspend fun enabled(feature: Feature): Boolean =
+        stateMutex.withLock {
             state.sessionConfiguration.features.enabled(feature)
         }
-    }
 
     /**
      * Send raw response items as events.
@@ -703,7 +712,7 @@ internal class Session private constructor(
         for (item in items) {
             sendEvent(
                 turnContext,
-                EventMsg.RawResponseItem(RawResponseItemEvent(item = item))
+                EventMsg.RawResponseItem(RawResponseItemEvent(item = item)),
             )
         }
     }
@@ -719,18 +728,22 @@ internal class Session private constructor(
         }
 
         turnContext.userInstructions?.let { instructions ->
-            items.add(UserInstructions(
-                directory = turnContext.cwd,
-                text = instructions,
-            ).toResponseItem())
+            items.add(
+                UserInstructions(
+                    directory = turnContext.cwd,
+                    text = instructions,
+                ).toResponseItem(),
+            )
         }
 
-        items.add(EnvironmentContext(
-            cwd = turnContext.cwd,
-            approvalPolicy = turnContext.approvalPolicy,
-            sandboxPolicy = turnContext.sandboxPolicy,
-            shell = userShell()
-        ).toResponseItem())
+        items.add(
+            EnvironmentContext(
+                cwd = turnContext.cwd,
+                approvalPolicy = turnContext.approvalPolicy,
+                sandboxPolicy = turnContext.sandboxPolicy,
+                shell = userShell(),
+            ).toResponseItem(),
+        )
 
         return items
     }
@@ -745,11 +758,10 @@ internal class Session private constructor(
     /**
      * Clone the current conversation history.
      */
-    suspend fun cloneHistory(): ContextManager {
-        return stateMutex.withLock {
+    suspend fun cloneHistory(): ContextManager =
+        stateMutex.withLock {
             state.cloneHistory()
         }
-    }
 
     /**
      * Update token usage info.
@@ -773,26 +785,28 @@ internal class Session private constructor(
 
         stateMutex.withLock {
             val existingInfo = state.tokenInfo
-            val newLastUsage = TokenUsage(
-                inputTokens = 0,
-                cachedInputTokens = 0,
-                outputTokens = 0,
-                reasoningOutputTokens = 0,
-                totalTokens = maxOf(estimatedTotalTokens, 0)
-            )
+            val newLastUsage =
+                TokenUsage(
+                    inputTokens = 0,
+                    cachedInputTokens = 0,
+                    outputTokens = 0,
+                    reasoningOutputTokens = 0,
+                    totalTokens = maxOf(estimatedTotalTokens, 0),
+                )
 
-            state.tokenInfo = if (existingInfo != null) {
-                existingInfo.copy(
-                    lastTokenUsage = newLastUsage,
-                    modelContextWindow = existingInfo.modelContextWindow ?: turnContext.modelContextWindow
-                )
-            } else {
-                TokenUsageInfo(
-                    totalTokenUsage = TokenUsage(),
-                    lastTokenUsage = newLastUsage,
-                    modelContextWindow = turnContext.modelContextWindow
-                )
-            }
+            state.tokenInfo =
+                if (existingInfo != null) {
+                    existingInfo.copy(
+                        lastTokenUsage = newLastUsage,
+                        modelContextWindow = existingInfo.modelContextWindow ?: turnContext.modelContextWindow,
+                    )
+                } else {
+                    TokenUsageInfo(
+                        totalTokenUsage = TokenUsage(),
+                        lastTokenUsage = newLastUsage,
+                        modelContextWindow = turnContext.modelContextWindow,
+                    )
+                }
         }
         sendTokenCountEvent(turnContext)
     }
@@ -810,35 +824,33 @@ internal class Session private constructor(
     /**
      * List resources from MCP server.
      */
-    suspend fun listResources(server: String, params: io.github.kotlinmania.codex.protocol.ListResourcesRequestParams?): io.github.kotlinmania.codex.protocol.ListResourcesResult {
-        return services.mcpConnectionManager.listResources(server, params)
-    }
+    suspend fun listResources(server: String, params: io.github.kotlinmania.codex.protocol.ListResourcesRequestParams?): io.github.kotlinmania.codex.protocol.ListResourcesResult = services.mcpConnectionManager.listResources(server, params)
 
     /**
      * List resource templates from MCP server.
      */
-    suspend fun listResourceTemplates(server: String, params: io.github.kotlinmania.codex.protocol.ListResourceTemplatesRequestParams?): io.github.kotlinmania.codex.protocol.ListResourceTemplatesResult {
-        return services.mcpConnectionManager.listResourceTemplates(server, params)
-    }
+    suspend fun listResourceTemplates(server: String, params: io.github.kotlinmania.codex.protocol.ListResourceTemplatesRequestParams?): io.github.kotlinmania.codex.protocol.ListResourceTemplatesResult = services.mcpConnectionManager.listResourceTemplates(server, params)
 
     /**
      * Read resource from MCP server.
      */
-    suspend fun readResource(server: String, params: io.github.kotlinmania.codex.protocol.ReadResourceRequestParams): io.github.kotlinmania.codex.protocol.ReadResourceResult {
-        return services.mcpConnectionManager.readResource(server, params)
-    }
+    suspend fun readResource(server: String, params: io.github.kotlinmania.codex.protocol.ReadResourceRequestParams): io.github.kotlinmania.codex.protocol.ReadResourceResult = services.mcpConnectionManager.readResource(server, params)
 
     /**
      * Send token count event.
      */
     private suspend fun sendTokenCountEvent(turnContext: TurnContext) {
-        val (info, rateLimits) = stateMutex.withLock {
-            Pair(state.tokenInfo, state.rateLimits)
-        }
-        val event = EventMsg.TokenCount(TokenCountEvent(
-            info = info,
-            rateLimits = rateLimits
-        ))
+        val (info, rateLimits) =
+            stateMutex.withLock {
+                Pair(state.tokenInfo, state.rateLimits)
+            }
+        val event =
+            EventMsg.TokenCount(
+                TokenCountEvent(
+                    info = info,
+                    rateLimits = rateLimits,
+                ),
+            )
         sendEvent(turnContext, event)
     }
 
@@ -859,7 +871,7 @@ internal class Session private constructor(
      */
     suspend fun recordInputAndRolloutUsermsg(
         turnContext: TurnContext,
-        responseInput: ResponseInputItem
+        responseInput: ResponseInputItem,
     ) {
         val responseItem = responseInput.toResponseItem()
         recordConversationItems(turnContext, listOf(responseItem))
@@ -885,15 +897,19 @@ internal class Session private constructor(
     suspend fun notifyStreamError(
         turnContext: TurnContext,
         message: String,
-        codexError: CodexErr
+        codexError: CodexErr,
     ) {
-        val codexErrorInfo = CodexErrorInfo.ResponseStreamDisconnected(
-            httpStatusCode = codexError.httpStatusCodeValue()
-        )
-        val event = EventMsg.StreamError(StreamErrorEvent(
-            message = message,
-            codexErrorInfo = codexErrorInfo
-        ))
+        val codexErrorInfo =
+            CodexErrorInfo.ResponseStreamDisconnected(
+                httpStatusCode = codexError.httpStatusCodeValue(),
+            )
+        val event =
+            EventMsg.StreamError(
+                StreamErrorEvent(
+                    message = message,
+                    codexErrorInfo = codexErrorInfo,
+                ),
+            )
         sendEvent(turnContext, event)
     }
 
@@ -902,7 +918,7 @@ internal class Session private constructor(
      */
     suspend fun maybeStartGhostSnapshot(
         turnContext: TurnContext,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ) {
         if (!enabled(Feature.GhostCommit)) {
             return
@@ -919,20 +935,20 @@ internal class Session private constructor(
                     SessionTaskContext(this),
                     turnContext,
                     emptyList(),
-                    cancellationToken
+                    cancellationToken,
                 )
             },
             onFailure = { error ->
                 println("WARN: failed to subscribe to ghost snapshot readiness: $error")
-            }
+            },
         )
     }
 
     /**
      * Returns the input if there was no task running to inject into.
      */
-    suspend fun injectInput(input: List<UserInput>): Result<Unit> {
-        return activeTurn.withLock { turn ->
+    suspend fun injectInput(input: List<UserInput>): Result<Unit> =
+        activeTurn.withLock { turn ->
             if (turn != null) {
                 for (item in input) {
                     turn.turnState.pushPendingInput(item.toResponseInputItem())
@@ -942,16 +958,14 @@ internal class Session private constructor(
                 Result.failure(Exception("No active turn"))
             }
         }
-    }
 
     /**
      * Get pending input from the active turn.
      */
-    suspend fun getPendingInput(): List<ResponseInputItem> {
-        return activeTurn.withLock { turn ->
+    suspend fun getPendingInput(): List<ResponseInputItem> =
+        activeTurn.withLock { turn ->
             turn?.turnState?.takePendingInput() ?: emptyList()
         }
-    }
 
     /**
      * Interrupt the current task.
@@ -996,20 +1010,21 @@ internal class Session private constructor(
     suspend fun spawnTask(
         turnContext: TurnContext,
         input: List<UserInput>,
-        task: SessionTask
+        task: SessionTask,
     ) {
         // Abort any existing tasks first (Rust: self.abortAllTasks(Replaced).await)
         abortAllTasks(TurnAbortReason.Replaced)
 
         val cancellationToken = CancellationToken()
         val done = CompletableDeferred<Unit>()
-        val runningTask = RunningTask(
-            done = done,
-            kind = task.kind(),
-            task = task,
-            cancellationToken = cancellationToken,
-            turnContext = turnContext
-        )
+        val runningTask =
+            RunningTask(
+                done = done,
+                kind = task.kind(),
+                task = task,
+                cancellationToken = cancellationToken,
+                turnContext = turnContext,
+            )
 
         // Register the task (Rust: self.registerNewActiveTask(runningTask).await)
         registerNewActiveTask(runningTask)
@@ -1018,12 +1033,13 @@ internal class Session private constructor(
         scope.launch {
             val sessionContext = SessionTaskContext(this@Session)
             try {
-                val lastAgentMessage = task.run(
-                    sessionContext,
-                    turnContext,
-                    input,
-                    cancellationToken
-                )
+                val lastAgentMessage =
+                    task.run(
+                        sessionContext,
+                        turnContext,
+                        input,
+                        cancellationToken,
+                    )
 
                 // Signal task completion
                 done.complete(Unit)
@@ -1089,7 +1105,7 @@ internal class Session private constructor(
      */
     private suspend fun handleTaskAbort(
         runningTask: RunningTask,
-        reason: TurnAbortReason
+        reason: TurnAbortReason,
     ) {
         val subId = runningTask.turnContext.subId
 
@@ -1102,10 +1118,11 @@ internal class Session private constructor(
         runningTask.cancellationToken.cancel()
 
         // Wait for graceful completion with timeout (Rust: select! with sleep)
-        val completedGracefully = withTimeoutOrNull(GRACEFUL_INTERRUPTION_TIMEOUT) {
-            runningTask.done.await()
-            true
-        } ?: false
+        val completedGracefully =
+            withTimeoutOrNull(GRACEFUL_INTERRUPTION_TIMEOUT) {
+                runningTask.done.await()
+                true
+            } ?: false
 
         if (!completedGracefully) {
             println("WARN: task $subId didn't complete gracefully after ${GRACEFUL_INTERRUPTION_TIMEOUT.inWholeMilliseconds}ms")
@@ -1121,7 +1138,7 @@ internal class Session private constructor(
 
         sendEvent(
             runningTask.turnContext,
-            EventMsg.TurnAborted(TurnAbortedEvent(reason = reason))
+            EventMsg.TurnAborted(TurnAbortedEvent(reason = reason)),
         )
     }
 
@@ -1136,18 +1153,18 @@ internal class Session private constructor(
         // Emit task complete event
         sendEvent(
             turnContext,
-            EventMsg.TaskComplete(TaskCompleteEvent(
-                lastAgentMessage = lastAgentMessage
-            ))
+            EventMsg.TaskComplete(
+                TaskCompleteEvent(
+                    lastAgentMessage = lastAgentMessage,
+                ),
+            ),
         )
     }
 
     /**
      * Parse an MCP tool name into server and tool parts.
      */
-    suspend fun parseMcpToolName(toolName: String): Pair<String, String>? {
-        return services.mcpConnectionManager.parseToolName(toolName)
-    }
+    suspend fun parseMcpToolName(toolName: String): Pair<String, String>? = services.mcpConnectionManager.parseToolName(toolName)
 
     /**
      * Call an MCP tool.
@@ -1155,10 +1172,8 @@ internal class Session private constructor(
     suspend fun callTool(
         server: String,
         tool: String,
-        arguments: JsonElement?
-    ): Result<io.github.kotlinmania.codex.protocol.CallToolResult> {
-        return services.mcpConnectionManager.callTool(server, tool, arguments)
-    }
+        arguments: JsonElement?,
+    ): Result<io.github.kotlinmania.codex.protocol.CallToolResult> = services.mcpConnectionManager.callTool(server, tool, arguments)
 
     object Factory {
         /**
@@ -1171,7 +1186,7 @@ internal class Session private constructor(
             authManager: AuthManager,
             txEvent: Channel<Event>,
             initialHistory: InitialHistory,
-            sessionSource: SessionSource
+            sessionSource: SessionSource,
         ): Session? {
             println("DEBUG: Configuring session: model=${sessionConfiguration.model}; provider=${sessionConfiguration.provider}")
 
@@ -1180,10 +1195,11 @@ internal class Session private constructor(
                 return null
             }
 
-            val conversationId: ConversationId = when (initialHistory) {
-                is InitialHistory.New, is InitialHistory.Forked -> generateConversationId()
-                is InitialHistory.Resumed -> initialHistory.payload.conversationId
-            }
+            val conversationId: ConversationId =
+                when (initialHistory) {
+                    is InitialHistory.New, is InitialHistory.Forked -> generateConversationId()
+                    is InitialHistory.Resumed -> initialHistory.payload.conversationId
+                }
 
             // Initialize services
             val rolloutRecorder = newRolloutRecorder(config, conversationId)
@@ -1191,59 +1207,66 @@ internal class Session private constructor(
 
             val state = SessionState(sessionConfiguration)
 
-            val services = SessionServices(
-                mcpConnectionManager = McpConnectionManager(),
-                mcpStartupCancellationToken = CancellationToken(),
-                unifiedExecManager = UnifiedExecSessionManager(),
-                notifier = UserNotifier(config.notify),
-                rollout = rolloutRecorder,
-                userShell = defaultShell,
-                showRawAgentReasoning = config.showRawAgentReasoning,
-                authManager = authManager,
-                toolApprovals = ApprovalStore()
-            )
+            val services =
+                SessionServices(
+                    mcpConnectionManager = McpConnectionManager(),
+                    mcpStartupCancellationToken = CancellationToken(),
+                    unifiedExecManager = UnifiedExecSessionManager(),
+                    notifier = UserNotifier(config.notify),
+                    rollout = rolloutRecorder,
+                    userShell = defaultShell,
+                    showRawAgentReasoning = config.showRawAgentReasoning,
+                    authManager = authManager,
+                    toolApprovals = ApprovalStore(),
+                )
 
-            val session = Session(
-                conversationId = conversationId,
-                txEvent = txEvent,
-                state = state,
-                stateMutex = Mutex(),
-                activeTurn = ActiveTurnHolder(),
-                services = services,
-                nextInternalSubId = AtomicLong(0L)
-            )
+            val session =
+                Session(
+                    conversationId = conversationId,
+                    txEvent = txEvent,
+                    state = state,
+                    stateMutex = Mutex(),
+                    activeTurn = ActiveTurnHolder(),
+                    services = services,
+                    nextInternalSubId = AtomicLong(0L),
+                )
 
             // Send SessionConfigured event
-            val event = Event(
-                id = CODEX_INITIAL_SUBMIT_ID,
-                msg = EventMsg.SessionConfigured(SessionConfiguredEvent(
-                    sessionId = conversationId,
-                    model = sessionConfiguration.model,
-                    modelProviderId = config.modelProviderId ?: "",
-                    approvalPolicy = sessionConfiguration.approvalPolicy,
-                    sandboxPolicy = sessionConfiguration.sandboxPolicy,
-                    cwd = sessionConfiguration.cwd,
-                    reasoningEffort = sessionConfiguration.modelReasoningEffort,
-                    historyLogId = 0L,
-                    historyEntryCount = 0L,
-                    initialMessages = emptyList(),
-                    rolloutPath = rolloutRecorder?.rolloutPath ?: ""
-                ))
-            )
+            val event =
+                Event(
+                    id = CODEX_INITIAL_SUBMIT_ID,
+                    msg =
+                        EventMsg.SessionConfigured(
+                            SessionConfiguredEvent(
+                                sessionId = conversationId,
+                                model = sessionConfiguration.model,
+                                modelProviderId = config.modelProviderId ?: "",
+                                approvalPolicy = sessionConfiguration.approvalPolicy,
+                                sandboxPolicy = sessionConfiguration.sandboxPolicy,
+                                cwd = sessionConfiguration.cwd,
+                                reasoningEffort = sessionConfiguration.modelReasoningEffort,
+                                historyLogId = 0L,
+                                historyEntryCount = 0L,
+                                initialMessages = emptyList(),
+                                rolloutPath = rolloutRecorder?.rolloutPath ?: "",
+                            ),
+                        ),
+                )
             session.sendEventRaw(event)
 
             // Initialize MCP connection manager
-            val mcpServerConfigs = config.mcpServers.mapValues { (_, v) ->
-                io.github.kotlinmania.codex.mcp.connection.McpServerConfig(
-                    command = v.command,
-                    args = v.args,
-                    env = v.env
-                )
-            }
+            val mcpServerConfigs =
+                config.mcpServers.mapValues { (_, v) ->
+                    io.github.kotlinmania.codex.mcp.connection.McpServerConfig(
+                        command = v.command,
+                        args = v.args,
+                        env = v.env,
+                    )
+                }
             services.mcpConnectionManager.initialize(
                 mcpServerConfigs,
                 txEvent,
-                CancellationToken()
+                CancellationToken(),
             )
 
             // Record initial history
@@ -1254,9 +1277,7 @@ internal class Session private constructor(
 
         private fun generateConversationId(): ConversationId = ConversationId.new()
 
-        private fun isAbsolutePath(path: String): Boolean {
-            return path.startsWith("/") || (path.length >= 3 && path[1] == ':' && path[2] == '\\')
-        }
+        private fun isAbsolutePath(path: String): Boolean = path.startsWith("/") || (path.length >= 3 && path[1] == ':' && path[2] == '\\')
     }
 
     /**
@@ -1272,21 +1293,23 @@ internal class Session private constructor(
         conversationId: ConversationId,
         subId: String,
         finalOutputJsonSchema: JsonElement? = null,
-        client: io.github.kotlinmania.codex.core.client.ModelClient? = null
+        client: io.github.kotlinmania.codex.core.client.ModelClient? = null,
     ): TurnContext {
-        val modelFamily = findFamilyForModel(sessionConfiguration.model)
-            ?: sessionConfiguration.modelFamily
+        val modelFamily =
+            findFamilyForModel(sessionConfiguration.model)
+                ?: sessionConfiguration.modelFamily
 
-        val toolsConfig = newToolsConfig(
-            io.github.kotlinmania.codex.core.tools.ToolsConfigParams(
-                modelFamily = modelFamily,
-                features = sessionConfiguration.features
+        val toolsConfig =
+            newToolsConfig(
+                io.github.kotlinmania.codex.core.tools.ToolsConfigParams(
+                    modelFamily = modelFamily,
+                    features = sessionConfiguration.features,
+                ),
             )
-        )
 
         return TurnContext(
             subId = subId,
-            client = client,  // Model info accessed via client
+            client = client, // Model info accessed via client
             cwd = sessionConfiguration.cwd,
             developerInstructions = sessionConfiguration.developerInstructions,
             baseInstructions = sessionConfiguration.baseInstructions,
@@ -1300,7 +1323,7 @@ internal class Session private constructor(
             codexLinuxSandboxExe = sessionConfiguration.codexLinuxSandboxExe,
             toolCallGate = ReadinessFlag(),
             execPolicy = sessionConfiguration.execPolicy,
-            truncationPolicy = TruncationPolicy.Tokens(8000)
+            truncationPolicy = TruncationPolicy.Tokens(8000),
         )
     }
 }
@@ -1320,7 +1343,8 @@ internal class Session private constructor(
  * Rust architecture where TurnContext.client provides access to ModelClient which
  * holds the Config.
  */
-private val TURN_CONTEXT_DEFAULT_COMPACT_PROMPT = """
+private val TURN_CONTEXT_DEFAULT_COMPACT_PROMPT =
+    """
     Summarize the conversation history concisely while preserving:
     - User's original requests and intent
     - Key decisions and technical approach
@@ -1335,7 +1359,7 @@ private val TURN_CONTEXT_DEFAULT_COMPACT_PROMPT = """
     - Current state of the work
     - Next steps to continue
     - Critical constraints and requirements
-""".trimIndent()
+    """.trimIndent()
 
 internal data class TurnContext(
     val subId: String,
@@ -1359,18 +1383,19 @@ internal data class TurnContext(
     val approvalPolicy: AskForApproval,
     val sandboxPolicy: SandboxPolicy,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
-    val toolsConfig: io.github.kotlinmania.codex.core.tools.ToolsConfig = io.github.kotlinmania.codex.core.tools.ToolsConfig(
-        shellType = io.github.kotlinmania.codex.core.tools.ConfigShellToolType.Default,
-        applyPatchToolType = null,
-        webSearchRequest = false,
-        includeViewImageTool = true,
-        experimentalSupportedTools = emptyList()
-    ),
+    val toolsConfig: io.github.kotlinmania.codex.core.tools.ToolsConfig =
+        io.github.kotlinmania.codex.core.tools.ToolsConfig(
+            shellType = io.github.kotlinmania.codex.core.tools.ConfigShellToolType.Default,
+            applyPatchToolType = null,
+            webSearchRequest = false,
+            includeViewImageTool = true,
+            experimentalSupportedTools = emptyList(),
+        ),
     val finalOutputJsonSchema: JsonElement? = null,
     val codexLinuxSandboxExe: String? = null,
     val toolCallGate: ReadinessFlag? = null,
     val execPolicy: ExecPolicy = ExecPolicy(),
-    val truncationPolicy: TruncationPolicy = TruncationPolicy.Tokens(8000)
+    val truncationPolicy: TruncationPolicy = TruncationPolicy.Tokens(8000),
 ) {
     // =========================================================================
     // Convenience accessors - delegate to client for model/config info
@@ -1430,9 +1455,7 @@ internal data class TurnContext(
     /**
      * Returns the compact prompt to import for this turn.
      */
-    fun getCompactPrompt(): String {
-        return compactPrompt ?: TURN_CONTEXT_DEFAULT_COMPACT_PROMPT
-    }
+    fun getCompactPrompt(): String = compactPrompt ?: TURN_CONTEXT_DEFAULT_COMPACT_PROMPT
 }
 
 // =============================================================================
@@ -1461,21 +1484,20 @@ data class SessionConfiguration(
     val sessionSource: SessionSource,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
     val codexLinuxSandboxExe: String? = null,
-    val modelFamily: ModelFamily = deriveDefaultModelFamily("default")
+    val modelFamily: ModelFamily = deriveDefaultModelFamily("default"),
 ) {
     /**
      * Applies updates to create a new configuration.
      */
-    fun apply(updates: SessionSettingsUpdate): SessionConfiguration {
-        return copy(
+    fun apply(updates: SessionSettingsUpdate): SessionConfiguration =
+        copy(
             model = updates.model ?: model,
             modelReasoningEffort = updates.reasoningEffort ?: modelReasoningEffort,
             modelReasoningSummary = updates.reasoningSummary ?: modelReasoningSummary,
             approvalPolicy = updates.approvalPolicy ?: approvalPolicy,
             sandboxPolicy = updates.sandboxPolicy ?: sandboxPolicy,
-            cwd = updates.cwd ?: cwd
+            cwd = updates.cwd ?: cwd,
         )
-    }
 }
 
 /**
@@ -1490,7 +1512,7 @@ data class SessionSettingsUpdate(
     val model: String? = null,
     val reasoningEffort: ReasoningEffort? = null,
     val reasoningSummary: ReasoningSummary? = null,
-    val finalOutputJsonSchema: JsonElement? = null
+    val finalOutputJsonSchema: JsonElement? = null,
 )
 
 // =============================================================================
@@ -1504,16 +1526,18 @@ data class SessionSettingsUpdate(
  */
 sealed class ShellEnvironmentPolicy {
     data class Inherit(
-        val filter: ShellEnvironmentInheritFilter = ShellEnvironmentInheritFilter.All
+        val filter: ShellEnvironmentInheritFilter = ShellEnvironmentInheritFilter.All,
     ) : ShellEnvironmentPolicy()
 
     data class Sanitize(
-        val additionalVars: Map<String, String> = emptyMap()
+        val additionalVars: Map<String, String> = emptyMap(),
     ) : ShellEnvironmentPolicy()
 }
 
 enum class ShellEnvironmentInheritFilter {
-    Core, All, None
+    Core,
+    All,
+    None,
 }
 
 // ToolsConfig is defined in io.github.kotlinmania.codex.core.tools (see core/tools/Spec.kt).
@@ -1526,7 +1550,7 @@ enum class ShellEnvironmentInheritFilter {
  */
 data class ExecPolicy(
     val enabled: Boolean = true,
-    val defaultAction: ExecPolicyAction = ExecPolicyAction.Ask
+    val defaultAction: ExecPolicyAction = ExecPolicyAction.Ask,
 )
 
 enum class ExecPolicyAction { Allow, Deny, Ask }
@@ -1543,7 +1567,7 @@ enum class ExecPolicyAction { Allow, Deny, Ask }
 private suspend fun submissionLoop(
     sess: Session,
     config: Config,
-    rxSub: Channel<Submission>
+    rxSub: Channel<Submission>,
 ) {
     var previousContext: TurnContext? = sess.newTurn(SessionSettingsUpdate())
 
@@ -1555,14 +1579,17 @@ private suspend fun submissionLoop(
                 Handlers.interrupt(sess)
             }
             is Op.OverrideTurnContext -> {
-                Handlers.overrideTurnContext(sess, SessionSettingsUpdate(
-                    cwd = op.cwd,
-                    approvalPolicy = op.approvalPolicy,
-                    sandboxPolicy = op.sandboxPolicy,
-                    model = op.model,
-                    reasoningEffort = op.effort,
-                    reasoningSummary = op.summary
-                ))
+                Handlers.overrideTurnContext(
+                    sess,
+                    SessionSettingsUpdate(
+                        cwd = op.cwd,
+                        approvalPolicy = op.approvalPolicy,
+                        sandboxPolicy = op.sandboxPolicy,
+                        model = op.model,
+                        reasoningEffort = op.effort,
+                        reasoningSummary = op.summary,
+                    ),
+                )
             }
             is Op.UserInput -> {
                 previousContext = Handlers.userInputOrTurn(sess, sub.id, op, previousContext)
@@ -1635,33 +1662,36 @@ private object Handlers {
         sess: Session,
         subId: String,
         op: Op,
-        previousContext: TurnContext?
+        previousContext: TurnContext?,
     ): TurnContext {
-        val (protocolItems, updates) = when (op) {
-            is Op.UserTurn -> Pair(
-                op.items,
-                SessionSettingsUpdate(
-                    cwd = op.cwd,
-                    approvalPolicy = op.approvalPolicy,
-                    sandboxPolicy = op.sandboxPolicy,
-                    model = op.model,
-                    reasoningEffort = op.effort,
-                    reasoningSummary = op.summary,
-                    finalOutputJsonSchema = op.finalOutputJsonSchema
-                )
-            )
-            is Op.UserInput -> Pair(op.items, SessionSettingsUpdate())
-            else -> throw IllegalArgumentException("Unexpected op type")
-        }
+        val (protocolItems, updates) =
+            when (op) {
+                is Op.UserTurn ->
+                    Pair(
+                        op.items,
+                        SessionSettingsUpdate(
+                            cwd = op.cwd,
+                            approvalPolicy = op.approvalPolicy,
+                            sandboxPolicy = op.sandboxPolicy,
+                            model = op.model,
+                            reasoningEffort = op.effort,
+                            reasoningSummary = op.summary,
+                            finalOutputJsonSchema = op.finalOutputJsonSchema,
+                        ),
+                    )
+                is Op.UserInput -> Pair(op.items, SessionSettingsUpdate())
+                else -> throw IllegalArgumentException("Unexpected op type")
+            }
 
         // Convert protocol UserInput to session UserInput
-        val items = protocolItems.map { input ->
-            when (input) {
-                is ProtocolUserInput.Text -> UserInput.Text(content = input.text)
-                is ProtocolUserInput.Image -> UserInput.Text(content = "[Image: ${input.imageUrl}]")
-                is ProtocolUserInput.LocalImage -> UserInput.FileRef(path = input.path)
+        val items =
+            protocolItems.map { input ->
+                when (input) {
+                    is ProtocolUserInput.Text -> UserInput.Text(content = input.text)
+                    is ProtocolUserInput.Image -> UserInput.Text(content = "[Image: ${input.imageUrl}]")
+                    is ProtocolUserInput.LocalImage -> UserInput.FileRef(path = input.path)
+                }
             }
-        }
 
         val currentContext = sess.newTurnWithSubId(subId, updates)
 
@@ -1683,13 +1713,13 @@ private object Handlers {
         sess: Session,
         subId: String,
         command: String,
-        previousContext: TurnContext?
+        previousContext: TurnContext?,
     ): TurnContext {
         val turnContext = sess.newTurnWithSubId(subId, SessionSettingsUpdate())
         sess.spawnTask(
             turnContext,
             emptyList(),
-            UserShellCommandTask(command)
+            UserShellCommandTask(command),
         )
         return turnContext
     }
@@ -1698,12 +1728,13 @@ private object Handlers {
         sess: Session,
         serverName: String,
         requestId: String,
-        decision: ElicitationAction
+        decision: ElicitationAction,
     ) {
-        val response = McpConnectionManager.ElicitationResponse(
-            action = decision,
-            content = null
-        )
+        val response =
+            McpConnectionManager.ElicitationResponse(
+                action = decision,
+                content = null,
+            )
         try {
             sess.services.mcpConnectionManager.resolveElicitation(serverName, requestId, response)
         } catch (e: Exception) {
@@ -1734,42 +1765,54 @@ private object Handlers {
         config: Config,
         subId: String,
         offset: Int,
-        logId: Long
+        logId: Long,
     ) {
         // TODO: Implement history entry lookup
-        val event = Event(
-            id = subId,
-            msg = EventMsg.GetHistoryEntryResponse(GetHistoryEntryResponseEvent(
-                offset = offset.toLong(),
-                logId = logId,
-                entry = null
-            ))
-        )
+        val event =
+            Event(
+                id = subId,
+                msg =
+                    EventMsg.GetHistoryEntryResponse(
+                        GetHistoryEntryResponseEvent(
+                            offset = offset.toLong(),
+                            logId = logId,
+                            entry = null,
+                        ),
+                    ),
+            )
         sess.sendEventRaw(event)
     }
 
     suspend fun listMcpTools(sess: Session, config: Config, subId: String) {
         val tools = sess.services.mcpConnectionManager.listAllTools()
-        val event = Event(
-            id = subId,
-            msg = EventMsg.McpListToolsResponse(McpListToolsResponseEvent(
-                tools = tools,
-                resources = emptyMap(),
-                resourceTemplates = emptyMap(),
-                authStatuses = emptyMap()
-            ))
-        )
+        val event =
+            Event(
+                id = subId,
+                msg =
+                    EventMsg.McpListToolsResponse(
+                        McpListToolsResponseEvent(
+                            tools = tools,
+                            resources = emptyMap(),
+                            resourceTemplates = emptyMap(),
+                            authStatuses = emptyMap(),
+                        ),
+                    ),
+            )
         sess.sendEventRaw(event)
     }
 
     suspend fun listCustomPrompts(sess: Session, subId: String) {
         val customPrompts = discoverCustomPrompts()
-        val event = Event(
-            id = subId,
-            msg = EventMsg.ListCustomPromptsResponse(ListCustomPromptsResponseEvent(
-                customPrompts = customPrompts
-            ))
-        )
+        val event =
+            Event(
+                id = subId,
+                msg =
+                    EventMsg.ListCustomPromptsResponse(
+                        ListCustomPromptsResponseEvent(
+                            customPrompts = customPrompts,
+                        ),
+                    ),
+            )
         sess.sendEventRaw(event)
     }
 
@@ -1783,7 +1826,7 @@ private object Handlers {
         sess.spawnTask(
             turnContext,
             listOf(UserInput.Text(turnContext.getCompactPrompt())),
-            CompactTask()
+            CompactTask(),
         )
     }
 
@@ -1795,10 +1838,11 @@ private object Handlers {
         // Flush and shutdown rollout recorder
         sess.services.rollout?.shutdown()
 
-        val event = Event(
-            id = subId,
-            msg = EventMsg.ShutdownComplete
-        )
+        val event =
+            Event(
+                id = subId,
+                msg = EventMsg.ShutdownComplete,
+            )
         sess.sendEventRaw(event)
         return true
     }
@@ -1826,15 +1870,18 @@ internal suspend fun runTask(
     sess: Session,
     turnContext: TurnContext,
     input: List<UserInput>,
-    cancellationToken: CancellationToken
+    cancellationToken: CancellationToken,
 ): String? {
     if (input.isEmpty()) {
         return null
     }
 
-    val event = EventMsg.TaskStarted(TaskStartedEvent(
-        modelContextWindow = turnContext.modelContextWindow
-    ))
+    val event =
+        EventMsg.TaskStarted(
+            TaskStartedEvent(
+                modelContextWindow = turnContext.modelContextWindow,
+            ),
+        )
     sess.sendEvent(turnContext, event)
 
     val initialInputForTurn = ResponseInputItem.fromUserInput(input)
@@ -1846,29 +1893,35 @@ internal suspend fun runTask(
     val turnDiffTracker = SharedTurnDiffTracker()
 
     while (!cancellationToken.isCancelled()) {
-        val pendingInput = sess.getPendingInput()
-            .map { it.toResponseItem() }
+        val pendingInput =
+            sess
+                .getPendingInput()
+                .map { it.toResponseItem() }
 
-        val turnInput = run {
-            sess.recordConversationItems(turnContext, pendingInput)
-            sess.cloneHistory().getHistoryForPrompt()
-        }
-
-        val turnInputMessages = turnInput
-            .filterIsInstance<ResponseItem.Message>()
-            .filter { it.role == "user" }
-            .flatMap { msg ->
-                msg.content.filterIsInstance<ContentItem.InputText>()
-                    .map { it.text }
+        val turnInput =
+            run {
+                sess.recordConversationItems(turnContext, pendingInput)
+                sess.cloneHistory().getHistoryForPrompt()
             }
 
-        val turnResult = runTurn(
-            sess = sess,
-            turnContext = turnContext,
-            turnDiffTracker = turnDiffTracker,
-            input = turnInput,
-            cancellationToken = cancellationToken.child()
-        )
+        val turnInputMessages =
+            turnInput
+                .filterIsInstance<ResponseItem.Message>()
+                .filter { it.role == "user" }
+                .flatMap { msg ->
+                    msg.content
+                        .filterIsInstance<ContentItem.InputText>()
+                        .map { it.text }
+                }
+
+        val turnResult =
+            runTurn(
+                sess = sess,
+                turnContext = turnContext,
+                turnDiffTracker = turnDiffTracker,
+                input = turnInput,
+                cancellationToken = cancellationToken.child(),
+            )
 
         when {
             turnResult.isSuccess -> {
@@ -1891,13 +1944,15 @@ internal suspend fun runTask(
 
                 if (processResult.responses.isEmpty()) {
                     lastAgentMessage = getLastAssistantMessageFromTurn(processResult.itemsToRecord)
-                    sess.notifier().notify(UserNotification.AgentTurnComplete(
-                        threadId = sess.conversationId.toString(),
-                        turnId = turnContext.subId,
-                        cwd = turnContext.cwd,
-                        inputMessages = turnInputMessages,
-                        lastAssistantMessage = lastAgentMessage
-                    ))
+                    sess.notifier().notify(
+                        UserNotification.AgentTurnComplete(
+                            threadId = sess.conversationId.toString(),
+                            turnId = turnContext.subId,
+                            cwd = turnContext.cwd,
+                            inputMessages = turnInputMessages,
+                            lastAssistantMessage = lastAgentMessage,
+                        ),
+                    )
                     break
                 }
                 continue
@@ -1911,10 +1966,13 @@ internal suspend fun runTask(
             else -> {
                 val error = turnResult.exceptionOrNull()
                 println("INFO: Turn error: ${error?.message}")
-                val errorEvent = EventMsg.Error(ErrorEvent(
-                    message = error?.message ?: "Unknown error",
-                    codexErrorInfo = null
-                ))
+                val errorEvent =
+                    EventMsg.Error(
+                        ErrorEvent(
+                            message = error?.message ?: "Unknown error",
+                            codexErrorInfo = null,
+                        ),
+                    )
                 sess.sendEvent(turnContext, errorEvent)
                 break
             }
@@ -1934,10 +1992,12 @@ private suspend fun runTurn(
     turnContext: TurnContext,
     turnDiffTracker: SharedTurnDiffTracker,
     input: List<ResponseItem>,
-    cancellationToken: CancellationToken
+    cancellationToken: CancellationToken,
 ): Result<List<ProcessedResponseItem>> {
     val mcpTools = sess.services.mcpConnectionManager.listAllTools()
-    val router = io.github.kotlinmania.codex.core.tools.ToolRouter.fromConfig(turnContext.toolsConfig, mcpTools)
+    val router =
+        io.github.kotlinmania.codex.core.tools.ToolRouter
+            .fromConfig(turnContext.toolsConfig, mcpTools)
 
     val modelSupportsParallel = turnContext.modelFamilySupportsParallelToolCalls
     val parallelToolCalls = modelSupportsParallel && sess.enabled(Feature.ParallelToolCalls)
@@ -1946,33 +2006,36 @@ private suspend fun runTurn(
     if (parallelToolCalls) {
         val family = findFamilyForModel(turnContext.model)
         if (family != null) {
-            val newInstructions = (baseInstructions ?: family.baseInstructions) +
-                "\n\n" + PARALLEL_INSTRUCTIONS
+            val newInstructions =
+                (baseInstructions ?: family.baseInstructions) +
+                    "\n\n" + PARALLEL_INSTRUCTIONS
             baseInstructions = newInstructions
         }
     }
 
     // TODO: Convert ToolRouter specs to Prompt ToolSpec format
-    val prompt = Prompt(
-        input = input,
-        tools = emptyList(), // router.getToolSpecs() - needs type conversion
-        parallelToolCalls = parallelToolCalls,
-        baseInstructionsOverride = baseInstructions,
-        outputSchema = turnContext.finalOutputJsonSchema
-    )
+    val prompt =
+        Prompt(
+            input = input,
+            tools = emptyList(), // router.getToolSpecs() - needs type conversion
+            parallelToolCalls = parallelToolCalls,
+            baseInstructionsOverride = baseInstructions,
+            outputSchema = turnContext.finalOutputJsonSchema,
+        )
 
     var retries = 0
     val maxRetries = turnContext.streamMaxRetries
 
     while (true) {
-        val result = tryRunTurn(
-            router = router,
-            sess = sess,
-            turnContext = turnContext,
-            turnDiffTracker = turnDiffTracker,
-            prompt = prompt,
-            cancellationToken = cancellationToken.child()
-        )
+        val result =
+            tryRunTurn(
+                router = router,
+                sess = sess,
+                turnContext = turnContext,
+                turnDiffTracker = turnDiffTracker,
+                prompt = prompt,
+                cancellationToken = cancellationToken.child(),
+            )
 
         when {
             result.isSuccess -> return result
@@ -1993,7 +2056,7 @@ private suspend fun runTurn(
                     sess.notifyStreamError(
                         turnContext,
                         "Reconnecting... $retries/$maxRetries",
-                        CodexErr.Stream(error?.message ?: "Unknown error")
+                        CodexErr.Stream(error?.message ?: "Unknown error"),
                     )
 
                     kotlinx.coroutines.delay(delay)
@@ -2016,26 +2079,30 @@ private suspend fun tryRunTurn(
     turnContext: TurnContext,
     turnDiffTracker: SharedTurnDiffTracker,
     prompt: Prompt,
-    cancellationToken: CancellationToken
+    cancellationToken: CancellationToken,
 ): Result<List<ProcessedResponseItem>> {
     // Persist turn context to rollout
-    val rolloutItem = RolloutItem.TurnContextHolder(TurnContextItem(
-        cwd = turnContext.cwd,
-        approvalPolicy = turnContext.approvalPolicy,
-        sandboxPolicy = turnContext.sandboxPolicy,
-        model = turnContext.model,
-        effort = turnContext.reasoningEffort,
-        summary = turnContext.reasoningSummary
-    ))
+    val rolloutItem =
+        RolloutItem.TurnContextHolder(
+            TurnContextItem(
+                cwd = turnContext.cwd,
+                approvalPolicy = turnContext.approvalPolicy,
+                sandboxPolicy = turnContext.sandboxPolicy,
+                model = turnContext.model,
+                effort = turnContext.reasoningEffort,
+                summary = turnContext.reasoningSummary,
+            ),
+        )
     sess.persistRolloutItems(listOf(rolloutItem))
 
     // Create tool runtime for handling tool calls
-    val toolRuntime = ToolCallRuntime(
-        router = router,
-        session = sess,
-        turnContext = turnContext,
-        tracker = turnDiffTracker
-    )
+    val toolRuntime =
+        ToolCallRuntime(
+            router = router,
+            session = sess,
+            turnContext = turnContext,
+            tracker = turnDiffTracker,
+        )
 
     // Output queue for processed items (parallel tool execution results)
     val outputQueue = mutableListOf<Deferred<Result<ProcessedResponseItem>>>()
@@ -2052,16 +2119,22 @@ private suspend fun tryRunTurn(
         while (true) {
             // Check for cancellation
             if (cancellationToken.isCancelled()) {
-                val processedItems = outputQueue.mapNotNull { deferred ->
-                    try { deferred.await().getOrNull() } catch (_: Exception) { null }
-                }
+                val processedItems =
+                    outputQueue.mapNotNull { deferred ->
+                        try {
+                            deferred.await().getOrNull()
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
                 return Result.failure(TurnAbortedException(processedItems))
             }
 
             // Try to receive next event (with timeout to check cancellation)
-            val event = withTimeoutOrNull(100) {
-                streamChannel.receiveCatching().getOrNull()
-            }
+            val event =
+                withTimeoutOrNull(100) {
+                    streamChannel.receiveCatching().getOrNull()
+                }
 
             // If no events and stream is closed, we are done waiting
             // In real implementation, stream would send Completed event
@@ -2089,14 +2162,17 @@ private suspend fun tryRunTurn(
                             println("INFO: ToolCall: ${call.toolName} ${call.payload}")
 
                             // Handle tool call asynchronously
-                            val deferred = CoroutineScope(Dispatchers.Default).async {
-                                val responseResult = toolRuntime.handleToolCall(call, null)
-                                val response = responseResult.getOrNull()
-                                Result.success(ProcessedResponseItem(
-                                    item = event.item,
-                                    response = response
-                                ))
-                            }
+                            val deferred =
+                                CoroutineScope(Dispatchers.Default).async {
+                                    val responseResult = toolRuntime.handleToolCall(call, null)
+                                    val response = responseResult.getOrNull()
+                                    Result.success(
+                                        ProcessedResponseItem(
+                                            item = event.item,
+                                            response = response,
+                                        ),
+                                    )
+                                }
                             outputQueue.add(deferred)
                         }
 
@@ -2110,12 +2186,15 @@ private suspend fun tryRunTurn(
                                 sess.emitTurnItemCompleted(turnContext, turnItem)
                             }
 
-                            val deferred = CoroutineScope(Dispatchers.Default).async {
-                                Result.success(ProcessedResponseItem(
-                                    item = event.item,
-                                    response = null
-                                ))
-                            }
+                            val deferred =
+                                CoroutineScope(Dispatchers.Default).async {
+                                    Result.success(
+                                        ProcessedResponseItem(
+                                            item = event.item,
+                                            response = null,
+                                        ),
+                                    )
+                                }
                             outputQueue.add(deferred)
                         }
 
@@ -2123,20 +2202,25 @@ private suspend fun tryRunTurn(
                             // Tool call error - respond with error message
                             val errorMessage = toolCallResult.exceptionOrNull()?.message ?: "Unknown tool call error"
 
-                            val response = ResponseInputItem.FunctionCallOutput(
-                                callId = "",
-                                output = FunctionCallOutputPayload(
-                                    content = errorMessage,
-                                    success = false
+                            val response =
+                                ResponseInputItem.FunctionCallOutput(
+                                    callId = "",
+                                    output =
+                                        FunctionCallOutputPayload(
+                                            content = errorMessage,
+                                            success = false,
+                                        ),
                                 )
-                            )
 
-                            val deferred = CoroutineScope(Dispatchers.Default).async {
-                                Result.success(ProcessedResponseItem(
-                                    item = event.item,
-                                    response = response
-                                ))
-                            }
+                            val deferred =
+                                CoroutineScope(Dispatchers.Default).async {
+                                    Result.success(
+                                        ProcessedResponseItem(
+                                            item = event.item,
+                                            response = response,
+                                        ),
+                                    )
+                                }
                             outputQueue.add(deferred)
                         }
                     }
@@ -2160,9 +2244,14 @@ private suspend fun tryRunTurn(
                     sess.updateTokenUsageInfo(turnContext, event.tokenUsage)
 
                     // Collect all processed items
-                    val processedItems = outputQueue.mapNotNull { deferred ->
-                        try { deferred.await().getOrNull() } catch (_: Exception) { null }
-                    }
+                    val processedItems =
+                        outputQueue.mapNotNull { deferred ->
+                            try {
+                                deferred.await().getOrNull()
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
 
                     // Get unified diff if available
                     val unifiedDiff = turnDiffTracker.computeUnifiedDiff()
@@ -2178,12 +2267,13 @@ private suspend fun tryRunTurn(
                     // Emit text delta for streaming UI
                     val active = activeItem
                     if (active != null) {
-                        val deltaEvent = AgentMessageContentDeltaEvent(
-                            threadId = sess.conversationId.toString(),
-                            turnId = turnContext.subId,
-                            itemId = active.id(),
-                            delta = event.delta
-                        )
+                        val deltaEvent =
+                            AgentMessageContentDeltaEvent(
+                                threadId = sess.conversationId.toString(),
+                                turnId = turnContext.subId,
+                                itemId = active.id(),
+                                delta = event.delta,
+                            )
                         sess.sendEvent(turnContext, EventMsg.AgentMessageContentDelta(deltaEvent))
                     } else {
                         println("WARN: OutputTextDelta without active item")
@@ -2193,13 +2283,14 @@ private suspend fun tryRunTurn(
                 is ResponseEvent.ReasoningSummaryDelta -> {
                     val active = activeItem
                     if (active != null) {
-                        val deltaEvent = ReasoningContentDeltaEvent(
-                            threadId = sess.conversationId.toString(),
-                            turnId = turnContext.subId,
-                            itemId = active.id(),
-                            delta = event.delta,
-                            summaryIndex = event.summaryIndex
-                        )
+                        val deltaEvent =
+                            ReasoningContentDeltaEvent(
+                                threadId = sess.conversationId.toString(),
+                                turnId = turnContext.subId,
+                                itemId = active.id(),
+                                delta = event.delta,
+                                summaryIndex = event.summaryIndex,
+                            )
                         sess.sendEvent(turnContext, EventMsg.ReasoningContentDelta(deltaEvent))
                     } else {
                         println("WARN: ReasoningSummaryDelta without active item")
@@ -2209,10 +2300,11 @@ private suspend fun tryRunTurn(
                 is ResponseEvent.ReasoningSummaryPartAdded -> {
                     val active = activeItem
                     if (active != null) {
-                        val breakEvent = AgentReasoningSectionBreakEvent(
-                            itemId = active.id(),
-                            summaryIndex = event.summaryIndex
-                        )
+                        val breakEvent =
+                            AgentReasoningSectionBreakEvent(
+                                itemId = active.id(),
+                                summaryIndex = event.summaryIndex,
+                            )
                         sess.sendEvent(turnContext, EventMsg.AgentReasoningSectionBreak(breakEvent))
                     } else {
                         println("WARN: ReasoningSummaryPartAdded without active item")
@@ -2222,13 +2314,14 @@ private suspend fun tryRunTurn(
                 is ResponseEvent.ReasoningContentDelta -> {
                     val active = activeItem
                     if (active != null) {
-                        val deltaEvent = ReasoningRawContentDeltaEvent(
-                            threadId = sess.conversationId.toString(),
-                            turnId = turnContext.subId,
-                            itemId = active.id(),
-                            delta = event.delta,
-                            contentIndex = event.contentIndex
-                        )
+                        val deltaEvent =
+                            ReasoningRawContentDeltaEvent(
+                                threadId = sess.conversationId.toString(),
+                                turnId = turnContext.subId,
+                                itemId = active.id(),
+                                delta = event.delta,
+                                contentIndex = event.contentIndex,
+                            )
                         sess.sendEvent(turnContext, EventMsg.ReasoningRawContentDelta(deltaEvent))
                     } else {
                         println("WARN: ReasoningContentDelta without active item")
@@ -2242,9 +2335,14 @@ private suspend fun tryRunTurn(
     }
 
     // If we exit the loop without Completed event, return what we have
-    val processedItems = outputQueue.mapNotNull { deferred ->
-        try { deferred.await().getOrNull() } catch (_: Exception) { null }
-    }
+    val processedItems =
+        outputQueue.mapNotNull { deferred ->
+            try {
+                deferred.await().getOrNull()
+            } catch (_: Exception) {
+                null
+            }
+        }
     return Result.success(processedItems)
 }
 
@@ -2253,61 +2351,69 @@ private suspend fun tryRunTurn(
 /**
  * Handle a non-tool response item.
  */
-private fun handleNonToolResponseItem(item: ResponseItem): TurnItem? {
-    return when (item) {
+private fun handleNonToolResponseItem(item: ResponseItem): TurnItem? =
+    when (item) {
         is ResponseItem.Message,
         is ResponseItem.Reasoning,
-        is ResponseItem.WebSearchCall -> parseTurnItem(item)
+        is ResponseItem.WebSearchCall,
+        -> parseTurnItem(item)
         is ResponseItem.FunctionCallOutput,
-        is ResponseItem.CustomToolCallOutput -> {
+        is ResponseItem.CustomToolCallOutput,
+        -> {
             println("DEBUG: unexpected tool output from stream")
             null
         }
         else -> null
     }
-}
 
 /**
  * Parse a ResponseItem into a TurnItem for event emission.
  */
-private fun parseTurnItem(item: ResponseItem): TurnItem? {
-    return when (item) {
+private fun parseTurnItem(item: ResponseItem): TurnItem? =
+    when (item) {
         is ResponseItem.Message -> {
-            val content = item.content.mapNotNull { ci ->
-                when (ci) {
-                    is ContentItem.OutputText -> ProtocolUserInput.Text(text = ci.text)
-                    else -> null
+            val content =
+                item.content.mapNotNull { ci ->
+                    when (ci) {
+                        is ContentItem.OutputText -> ProtocolUserInput.Text(text = ci.text)
+                        else -> null
+                    }
                 }
-            }
             TurnItem.UserMessage(item = UserMessageItem(id = item.id ?: "msg_${item.hashCode()}", content = content))
         }
         is ResponseItem.Reasoning -> {
-            TurnItem.Reasoning(item = ReasoningItem(
-                id = item.id,
-                summaryText = item.summary.mapNotNull { (it as? ReasoningItemReasoningSummary.SummaryText)?.text },
-                rawContent = item.content?.mapNotNull {
-                    when (it) {
-                        is ReasoningItemContent.ReasoningText -> it.text
-                        is ReasoningItemContent.Text -> it.text
-                    }
-                } ?: emptyList()
-            ))
+            TurnItem.Reasoning(
+                item =
+                    ReasoningItem(
+                        id = item.id,
+                        summaryText = item.summary.mapNotNull { (it as? ReasoningItemReasoningSummary.SummaryText)?.text },
+                        rawContent =
+                            item.content?.mapNotNull {
+                                when (it) {
+                                    is ReasoningItemContent.ReasoningText -> it.text
+                                    is ReasoningItemContent.Text -> it.text
+                                }
+                            } ?: emptyList(),
+                    ),
+            )
         }
         is ResponseItem.WebSearchCall -> {
-            TurnItem.WebSearch(item = WebSearchItem(
-                id = item.id ?: "search_${item.hashCode()}",
-                query = "" // WebSearchCall does not have query info
-            ))
+            TurnItem.WebSearch(
+                item =
+                    WebSearchItem(
+                        id = item.id ?: "search_${item.hashCode()}",
+                        query = "", // WebSearchCall does not have query info
+                    ),
+            )
         }
         else -> null
     }
-}
 
 /**
  * Get the last assistant message from turn responses.
  */
-fun getLastAssistantMessageFromTurn(responses: List<ResponseItem>): String? {
-    return responses.asReversed().firstNotNullOfOrNull { item ->
+fun getLastAssistantMessageFromTurn(responses: List<ResponseItem>): String? =
+    responses.asReversed().firstNotNullOfOrNull { item ->
         if (item is ResponseItem.Message && item.role == "assistant") {
             item.content.asReversed().firstNotNullOfOrNull { ci ->
                 if (ci is ContentItem.OutputText) ci.text else null
@@ -2316,7 +2422,6 @@ fun getLastAssistantMessageFromTurn(responses: List<ResponseItem>): String? {
             null
         }
     }
-}
 
 /**
  * Spawn a review thread for code review functionality.
@@ -2328,26 +2433,29 @@ private suspend fun spawnReviewThread(
     config: Config,
     parentTurnContext: TurnContext,
     subId: String,
-    reviewRequest: ReviewRequest
+    reviewRequest: ReviewRequest,
 ) {
     // Get review model (import config reviewModel or fall back to main model)
     val reviewModel = config.model // In full implementation, would import config.reviewModel
-    val reviewModelFamily = findFamilyForModel(reviewModel)
-        ?: deriveDefaultModelFamily("default")
+    val reviewModelFamily =
+        findFamilyForModel(reviewModel)
+            ?: deriveDefaultModelFamily("default")
 
     // For reviews, disable webSearch and viewImage regardless of global settings
-    val reviewFeatures = config.features.copy().apply {
-        disable(Feature.WebSearchRequest)
-        disable(Feature.ViewImageTool)
-    }
+    val reviewFeatures =
+        config.features.copy().apply {
+            disable(Feature.WebSearchRequest)
+            disable(Feature.ViewImageTool)
+        }
 
     // Create tools config for review
-    val toolsConfig = newToolsConfig(
-        io.github.kotlinmania.codex.core.tools.ToolsConfigParams(
-            modelFamily = reviewModelFamily,
-            features = reviewFeatures
+    val toolsConfig =
+        newToolsConfig(
+            io.github.kotlinmania.codex.core.tools.ToolsConfigParams(
+                modelFamily = reviewModelFamily,
+                features = reviewFeatures,
+            ),
         )
-    )
 
     // Use review-specific base instructions
     val baseInstructions = REVIEW_PROMPT
@@ -2362,24 +2470,25 @@ private suspend fun spawnReviewThread(
     // in Rust here and attached to this TurnContext. We pass through the parent
     // client for now; reviewModel/reviewModelFamily/reviewReasoningEffort/
     // reviewReasoningSummary are consumed via the client when the port is completed.
-    val reviewTurnContext = TurnContext(
-        subId = subId,
-        client = parentTurnContext.client,
-        cwd = parentTurnContext.cwd,
-        developerInstructions = null,
-        baseInstructions = baseInstructions,
-        compactPrompt = parentTurnContext.compactPrompt,
-        userInstructions = null,
-        approvalPolicy = parentTurnContext.approvalPolicy,
-        sandboxPolicy = parentTurnContext.sandboxPolicy,
-        shellEnvironmentPolicy = parentTurnContext.shellEnvironmentPolicy,
-        toolsConfig = toolsConfig,
-        finalOutputJsonSchema = null,
-        codexLinuxSandboxExe = parentTurnContext.codexLinuxSandboxExe,
-        toolCallGate = ReadinessFlag(),
-        execPolicy = parentTurnContext.execPolicy,
-        truncationPolicy = TruncationPolicy.Tokens(8000)
-    )
+    val reviewTurnContext =
+        TurnContext(
+            subId = subId,
+            client = parentTurnContext.client,
+            cwd = parentTurnContext.cwd,
+            developerInstructions = null,
+            baseInstructions = baseInstructions,
+            compactPrompt = parentTurnContext.compactPrompt,
+            userInstructions = null,
+            approvalPolicy = parentTurnContext.approvalPolicy,
+            sandboxPolicy = parentTurnContext.sandboxPolicy,
+            shellEnvironmentPolicy = parentTurnContext.shellEnvironmentPolicy,
+            toolsConfig = toolsConfig,
+            finalOutputJsonSchema = null,
+            codexLinuxSandboxExe = parentTurnContext.codexLinuxSandboxExe,
+            toolCallGate = ReadinessFlag(),
+            execPolicy = parentTurnContext.execPolicy,
+            truncationPolicy = TruncationPolicy.Tokens(8000),
+        )
 
     // Seed the child task with the review prompt as the initial user message
     val input = listOf(UserInput.Text(reviewPrompt))
@@ -2388,7 +2497,7 @@ private suspend fun spawnReviewThread(
     sess.spawnTask(
         reviewTurnContext,
         input,
-        ReviewTask(appendToOriginalThread = reviewRequest.appendToOriginalThread)
+        ReviewTask(appendToOriginalThread = reviewRequest.appendToOriginalThread),
     )
 
     // Announce entering review mode so UIs can switch modes
@@ -2451,8 +2560,8 @@ internal class ActiveTurnHolder {
     private val mutex = Mutex()
     private var turn: ActiveTurn? = null
 
-    suspend fun <T> withLock(block: suspend (ActiveTurn?) -> T): T {
-        return mutex.withLock {
+    suspend fun <T> withLock(block: suspend (ActiveTurn?) -> T): T =
+        mutex.withLock {
             val result = block(turn)
             when (result) {
                 null -> turn = null
@@ -2460,7 +2569,6 @@ internal class ActiveTurnHolder {
             }
             result
         }
-    }
 
     suspend fun set(newTurn: ActiveTurn?) {
         mutex.withLock {
@@ -2468,11 +2576,10 @@ internal class ActiveTurnHolder {
         }
     }
 
-    suspend fun get(): ActiveTurn? {
-        return mutex.withLock {
+    suspend fun get(): ActiveTurn? =
+        mutex.withLock {
             turn
         }
-    }
 }
 
 /**
@@ -2489,7 +2596,7 @@ internal data class SessionServices(
     val userShell: Shell,
     val showRawAgentReasoning: Boolean,
     val authManager: AuthManager,
-    val toolApprovals: ApprovalStore
+    val toolApprovals: ApprovalStore,
 )
 
 /**
@@ -2498,15 +2605,13 @@ internal data class SessionServices(
  * Ported from Rust codex-rs/core/src/state.rs SessionState
  */
 internal class SessionState(
-    var sessionConfiguration: SessionConfiguration
+    var sessionConfiguration: SessionConfiguration,
 ) {
     private val contextManager = ContextManager()
     var tokenInfo: TokenUsageInfo? = null
     var rateLimits: RateLimitSnapshot? = null
 
-    fun getTotalTokenUsage(): Long {
-        return tokenInfo?.totalTokenUsage?.totalTokens ?: 0L
-    }
+    fun getTotalTokenUsage(): Long = tokenInfo?.totalTokenUsage?.totalTokens ?: 0L
 
     fun recordItems(items: Iterable<ResponseItem>, truncationPolicy: TruncationPolicy) {
         contextManager.recordItems(items.toList(), truncationPolicy)
@@ -2524,23 +2629,25 @@ internal class SessionState(
 
     fun updateTokenInfoFromUsage(usage: TokenUsage, contextWindow: Long?) {
         val currentInfo = tokenInfo
-        val newTotal = if (currentInfo != null) {
-            TokenUsage(
-                inputTokens = currentInfo.totalTokenUsage.inputTokens + usage.inputTokens,
-                cachedInputTokens = currentInfo.totalTokenUsage.cachedInputTokens + usage.cachedInputTokens,
-                outputTokens = currentInfo.totalTokenUsage.outputTokens + usage.outputTokens,
-                reasoningOutputTokens = currentInfo.totalTokenUsage.reasoningOutputTokens + usage.reasoningOutputTokens,
-                totalTokens = currentInfo.totalTokenUsage.totalTokens + usage.totalTokens
-            )
-        } else {
-            usage
-        }
+        val newTotal =
+            if (currentInfo != null) {
+                TokenUsage(
+                    inputTokens = currentInfo.totalTokenUsage.inputTokens + usage.inputTokens,
+                    cachedInputTokens = currentInfo.totalTokenUsage.cachedInputTokens + usage.cachedInputTokens,
+                    outputTokens = currentInfo.totalTokenUsage.outputTokens + usage.outputTokens,
+                    reasoningOutputTokens = currentInfo.totalTokenUsage.reasoningOutputTokens + usage.reasoningOutputTokens,
+                    totalTokens = currentInfo.totalTokenUsage.totalTokens + usage.totalTokens,
+                )
+            } else {
+                usage
+            }
 
-        tokenInfo = TokenUsageInfo(
-            totalTokenUsage = newTotal,
-            lastTokenUsage = usage,
-            modelContextWindow = currentInfo?.modelContextWindow ?: contextWindow
-        )
+        tokenInfo =
+            TokenUsageInfo(
+                totalTokenUsage = newTotal,
+                lastTokenUsage = usage,
+                modelContextWindow = currentInfo?.modelContextWindow ?: contextWindow,
+            )
     }
 
     fun setTokenUsageFull(contextWindow: Long) {
@@ -2572,7 +2679,7 @@ data class CodexSessionConfiguration(
     val sessionSource: SessionSource,
     val shellEnvironmentPolicy: ShellEnvironmentPolicy = ShellEnvironmentPolicy.Inherit(),
     val codexLinuxSandboxExe: String? = null,
-    val modelFamily: ModelFamily = deriveDefaultModelFamily("default")
+    val modelFamily: ModelFamily = deriveDefaultModelFamily("default"),
 )
 
 /**
@@ -2583,7 +2690,7 @@ data class Prompt(
     val tools: List<ToolSpec>,
     val parallelToolCalls: Boolean,
     val baseInstructionsOverride: String?,
-    val outputSchema: JsonElement?
+    val outputSchema: JsonElement?,
 )
 
 /**
@@ -2596,7 +2703,9 @@ sealed class ToolSpec {
     /**
      * A function tool with schema-defined parameters.
      */
-    internal data class Function(val tool: ResponsesApiTool) : ToolSpec()
+    internal data class Function(
+        val tool: ResponsesApiTool,
+    ) : ToolSpec()
 
     /**
      * A local shell tool (no parameters needed).
@@ -2611,17 +2720,20 @@ sealed class ToolSpec {
     /**
      * A freeform/custom tool with format specification.
      */
-    internal data class Freeform(val tool: FreeformTool) : ToolSpec()
+    internal data class Freeform(
+        val tool: FreeformTool,
+    ) : ToolSpec()
 
     /**
      * Get the name of this tool.
      */
-    fun name(): String = when (this) {
-        is Function -> tool.name
-        is LocalShell -> "local_shell"
-        is WebSearch -> "web_search"
-        is Freeform -> tool.name
-    }
+    fun name(): String =
+        when (this) {
+            is Function -> tool.name
+            is LocalShell -> "local_shell"
+            is WebSearch -> "web_search"
+            is Freeform -> tool.name
+        }
 }
 
 /**
@@ -2630,7 +2742,7 @@ sealed class ToolSpec {
 internal data class FreeformTool(
     val name: String,
     val description: String,
-    val format: FreeformToolFormat
+    val format: FreeformToolFormat,
 )
 
 /**
@@ -2639,7 +2751,7 @@ internal data class FreeformTool(
 internal data class FreeformToolFormat(
     val type: String,
     val syntax: String,
-    val definition: String
+    val definition: String,
 )
 
 /**
@@ -2650,7 +2762,7 @@ internal data class ResponsesApiTool(
     val name: String,
     val description: String,
     val strict: Boolean = false,
-    val parameters: JsonSchema
+    val parameters: JsonSchema,
 )
 
 // =============================================================================
@@ -2673,7 +2785,7 @@ class Config(
     val codexHome: String? = null,
     val mcpServers: Map<String, McpServerConfig> = emptyMap(),
     val notify: NotifyConfig? = null,
-    val showRawAgentReasoning: Boolean = false
+    val showRawAgentReasoning: Boolean = false,
 )
 
 // ModelProviderInfo imported from io.github.kotlinmania.codex.core.model
@@ -2683,14 +2795,16 @@ class Config(
 // McpServerConfig is now imported from io.github.kotlinmania.codex.mcp.connection
 
 data class NotifyConfig(
-    val enabled: Boolean = false
+    val enabled: Boolean = false,
 )
 
 class RolloutRecorder(
-    val rolloutPath: String?
+    val rolloutPath: String?,
 ) {
     suspend fun recordItems(items: List<RolloutItem>) {}
+
     suspend fun flush() {}
+
     suspend fun shutdown() {}
 
     companion object {
@@ -2701,11 +2815,12 @@ class RolloutRecorder(
          * `core/src/rollout/recorder.rs`.
          */
         suspend fun getRolloutHistory(path: String): CodexResult<InitialHistory> {
-            val text = try {
-                SystemFileSystem.source(Path(path)).buffered().use { it.readString() }
-            } catch (e: Exception) {
-                return CodexResult.failure(CodexErr.Io(e.message ?: "failed to read rollout file"))
-            }
+            val text =
+                try {
+                    SystemFileSystem.source(Path(path)).buffered().use { it.readString() }
+                } catch (e: Exception) {
+                    return CodexResult.failure(CodexErr.Io(e.message ?: "failed to read rollout file"))
+                }
             if (text.trim().isEmpty()) {
                 return CodexResult.failure(CodexErr.Io("empty session file"))
             }
@@ -2716,15 +2831,17 @@ class RolloutRecorder(
 
             for (line in text.lines()) {
                 if (line.trim().isEmpty()) continue
-                val rolloutLine = try {
-                    json.decodeFromString(
-                        io.github.kotlinmania.codex.protocol.RolloutLine.serializer(),
-                        line,
-                    )
-                } catch (e: kotlinx.serialization.SerializationException) {
-                    // Skip malformed lines, matching the Rust behavior of warning and continuing.
-                    continue
-                }
+                val rolloutLine =
+                    try {
+                        json.decodeFromString(
+                            io.github.kotlinmania.codex.protocol.RolloutLine
+                                .serializer(),
+                            line,
+                        )
+                    } catch (e: kotlinx.serialization.SerializationException) {
+                        // Skip malformed lines, matching the Rust behavior of warning and continuing.
+                        continue
+                    }
                 // Parse the rollout line structure
                 when (val item = rolloutLine.item) {
                     is RolloutItem.SessionMetaItem -> {
@@ -2742,10 +2859,11 @@ class RolloutRecorder(
                 }
             }
 
-            val resolvedId = conversationId
-                ?: return CodexResult.failure(
-                    CodexErr.Io("failed to parse conversation ID from rollout file"),
-                )
+            val resolvedId =
+                conversationId
+                    ?: return CodexResult.failure(
+                        CodexErr.Io("failed to parse conversation ID from rollout file"),
+                    )
 
             if (items.isEmpty()) {
                 return CodexResult.success(InitialHistory.New)
@@ -2761,15 +2879,14 @@ class RolloutRecorder(
                 ),
             )
         }
-
     }
 }
 
-private fun newRolloutRecorder(config: Config, conversationId: ConversationId): RolloutRecorder? {
-    return RolloutRecorder(null)
-}
+private fun newRolloutRecorder(config: Config, conversationId: ConversationId): RolloutRecorder? = RolloutRecorder(null)
 
-class UserNotifier(config: NotifyConfig?) {
+class UserNotifier(
+    config: NotifyConfig?,
+) {
     fun notify(notification: UserNotification) {}
 }
 
@@ -2779,7 +2896,7 @@ sealed class UserNotification {
         val turnId: String,
         val cwd: String,
         val inputMessages: List<String>,
-        val lastAssistantMessage: String?
+        val lastAssistantMessage: String?,
     ) : UserNotification()
 }
 
@@ -2794,7 +2911,9 @@ class UnifiedExecSessionManager {
 // Helper functions
 
 private suspend fun getUserInstructions(config: Config): String? = null
+
 private fun execPolicyFor(features: Features, codexHome: String?): ExecPolicy = ExecPolicy()
+
 private fun findFamilyForModel(model: String): ModelFamily? = null
 
 /**
@@ -2830,9 +2949,7 @@ fun contentItemsToText(content: List<ContentItem>): String? {
  *
  * Ported from Rust codex-rs/core/src/compact.rs isSummaryMessage
  */
-fun isSummaryMessage(message: String): Boolean {
-    return message.startsWith("$SUMMARY_PREFIX\n")
-}
+fun isSummaryMessage(message: String): Boolean = message.startsWith("$SUMMARY_PREFIX\n")
 
 /**
  * Collect user messages from history for context compaction.
@@ -2840,15 +2957,15 @@ fun isSummaryMessage(message: String): Boolean {
  *
  * Ported from Rust codex-rs/core/src/compact.rs collectUserMessages
  */
-private fun collectUserMessages(history: List<ResponseItem>): List<String> {
-    return history.filterIsInstance<ResponseItem.Message>()
+private fun collectUserMessages(history: List<ResponseItem>): List<String> =
+    history
+        .filterIsInstance<ResponseItem.Message>()
         .filter { it.role == "user" }
         .mapNotNull { message ->
             val text = contentItemsToText(message.content)
             // Filter out summary messages
             if (text != null && !isSummaryMessage(text)) text else null
         }
-}
 
 /**
  * Build compacted history with initial context, preserved user messages, and summary.
@@ -2860,6 +2977,7 @@ private fun collectUserMessages(history: List<ResponseItem>): List<String> {
  *
  * Ported from Rust codex-rs/core/src/tasks/compact.rs
  */
+
 /**
  * Build compacted history with token-limited user messages.
  * Ported from Rust codex-rs/core/src/compact.rs buildCompactedHistory
@@ -2867,15 +2985,14 @@ private fun collectUserMessages(history: List<ResponseItem>): List<String> {
 private fun buildCompactedHistory(
     initial: List<ResponseItem>,
     userMessages: List<String>,
-    summary: String
-): List<ResponseItem> {
-    return buildCompactedHistoryWithLimit(
+    summary: String,
+): List<ResponseItem> =
+    buildCompactedHistoryWithLimit(
         initial,
         userMessages,
         summary,
-        COMPACT_USER_MESSAGE_MAX_TOKENS
+        COMPACT_USER_MESSAGE_MAX_TOKENS,
     )
-}
 
 /**
  * Build compacted history with configurable token limit for user messages.
@@ -2885,7 +3002,7 @@ private fun buildCompactedHistoryWithLimit(
     initial: List<ResponseItem>,
     userMessages: List<String>,
     summary: String,
-    maxTokens: Int
+    maxTokens: Int,
 ): List<ResponseItem> {
     val result = mutableListOf<ResponseItem>()
 
@@ -2913,28 +3030,34 @@ private fun buildCompactedHistoryWithLimit(
 
     // Add selected user messages (reverse back to original order)
     for (message in selectedMessages.asReversed()) {
-        result.add(ResponseItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = message))
-        ))
+        result.add(
+            ResponseItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = message)),
+            ),
+        )
     }
 
     // Handle empty summary - Rust uses "(no summary available)" as fallback
-    val summaryText = if (summary.isEmpty()) {
-        "(no summary available)"
-    } else {
-        summary
-    }
+    val summaryText =
+        if (summary.isEmpty()) {
+            "(no summary available)"
+        } else {
+            summary
+        }
 
     // Add summary as a user message (matching the upstream ResponseItem::Message with role="user")
-    result.add(ResponseItem.Message(
-        id = null,
-        role = "user",
-        content = listOf(ContentItem.InputText(text = summaryText))
-    ))
+    result.add(
+        ResponseItem.Message(
+            id = null,
+            role = "user",
+            content = listOf(ContentItem.InputText(text = summaryText)),
+        ),
+    )
 
     return result
 }
+
 /**
  * Check if remote compaction should be used.
  * Returns true if auth mode is ChatGPT and RemoteCompaction feature is enabled.
@@ -2975,9 +3098,12 @@ private suspend fun runInlineAutoCompactTask(sess: Session, turnContext: TurnCon
  * Ported from Rust codex-rs/core/src/compact.rs runCompactTask
  */
 private suspend fun runCompactTask(sess: Session, turnContext: TurnContext, input: List<UserInput>) {
-    val startEvent = EventMsg.TaskStarted(TaskStartedEvent(
-        modelContextWindow = turnContext.modelContextWindow
-    ))
+    val startEvent =
+        EventMsg.TaskStarted(
+            TaskStartedEvent(
+                modelContextWindow = turnContext.modelContextWindow,
+            ),
+        )
     sess.sendEvent(turnContext, startEvent)
     runCompactTaskInner(sess, turnContext, input)
 }
@@ -2991,16 +3117,17 @@ private suspend fun runCompactTask(sess: Session, turnContext: TurnContext, inpu
 private suspend fun runCompactTaskInner(sess: Session, turnContext: TurnContext, input: List<UserInput>) {
     // Build the input item from user input
     val inputText = input.filterIsInstance<UserInput.Text>().joinToString("\n") { it.content }
-    val initialInputForTurn = ResponseItem.Message(
-        role = "user",
-        content = listOf(ContentItem.InputText(text = inputText))
-    )
+    val initialInputForTurn =
+        ResponseItem.Message(
+            role = "user",
+            content = listOf(ContentItem.InputText(text = inputText)),
+        )
 
     // Clone history and record the compaction request
     val history = sess.cloneHistory()
     history.recordItems(
         listOf(initialInputForTurn),
-        turnContext.truncationPolicy
+        turnContext.truncationPolicy,
     )
 
     // For inline compaction, we simulate the summarization by:
@@ -3024,12 +3151,13 @@ private suspend fun runCompactTaskInner(sess: Session, turnContext: TurnContext,
     sess.recomputeTokenUsage(turnContext)
 
     // Persist rollout item
-    val rolloutItem = RolloutItem.Compacted(
-        io.github.kotlinmania.codex.protocol.CompactedItem(
-            message = summaryText,
-            replacementHistory = null
+    val rolloutItem =
+        RolloutItem.Compacted(
+            io.github.kotlinmania.codex.protocol.CompactedItem(
+                message = summaryText,
+                replacementHistory = null,
+            ),
         )
-    )
     sess.persistRolloutItems(listOf(rolloutItem))
 
     // Send compaction event
@@ -3037,12 +3165,17 @@ private suspend fun runCompactTaskInner(sess: Session, turnContext: TurnContext,
     sess.sendEvent(turnContext, event)
 
     // Send warning about compaction limitations
-    val warning = EventMsg.Warning(WarningEvent(
-        message = "Heads up: Long conversations and multiple compactions can cause the model to be less accurate. Start a new conversation when possible to keep conversations small and targeted."
-    ))
+    val warning =
+        EventMsg.Warning(
+            WarningEvent(
+                message = "Heads up: Long conversations and multiple compactions can cause the model to be less accurate. Start a new conversation when possible to keep conversations small and targeted.",
+            ),
+        )
     sess.sendEvent(turnContext, warning)
 }
+
 private fun discoverCustomPrompts(): List<CustomPrompt> = emptyList()
+
 private fun backoff(retries: Int): Long = minOf(1000L * (1 shl retries), 30000L)
 
 private const val PARALLEL_INSTRUCTIONS = """
@@ -3051,8 +3184,12 @@ invoke them in a single response to improve efficiency.
 """
 
 // Exception types for turn execution
-class TurnAbortedException(val danglingArtifacts: List<ProcessedResponseItem>) : Exception()
+class TurnAbortedException(
+    val danglingArtifacts: List<ProcessedResponseItem>,
+) : Exception()
+
 class InterruptedException : Exception()
+
 class ContextWindowExceededException : Exception()
 
 // UserInstructions and DeveloperInstructions are defined in UserInstructions.kt
@@ -3062,57 +3199,57 @@ class EnvironmentContext(
     val cwd: String?,
     val approvalPolicy: AskForApproval?,
     val sandboxPolicy: SandboxPolicy?,
-    val shell: Shell
+    val shell: Shell,
 ) {
-    fun equalsExceptShell(other: EnvironmentContext): Boolean {
-        return cwd == other.cwd &&
+    fun equalsExceptShell(other: EnvironmentContext): Boolean =
+        cwd == other.cwd &&
             approvalPolicy == other.approvalPolicy &&
             sandboxPolicy == other.sandboxPolicy
-    }
 
-    fun toResponseItem(): ResponseItem {
-        return ResponseItem.Message(
+    fun toResponseItem(): ResponseItem =
+        ResponseItem.Message(
             role = "system",
-            content = listOf(ContentItem.InputText(
-                text = "Environment: cwd=$cwd, policy=$approvalPolicy, sandbox=$sandboxPolicy"
-            ))
+            content =
+                listOf(
+                    ContentItem.InputText(
+                        text = "Environment: cwd=$cwd, policy=$approvalPolicy, sandbox=$sandboxPolicy",
+                    ),
+                ),
         )
-    }
 }
 
-private fun environmentContextFrom(context: TurnContext): EnvironmentContext {
-    return EnvironmentContext(
+private fun environmentContextFrom(context: TurnContext): EnvironmentContext =
+    EnvironmentContext(
         cwd = context.cwd,
         approvalPolicy = context.approvalPolicy,
         sandboxPolicy = context.sandboxPolicy,
-        shell = ShellDetector().defaultUserShell()
+        shell = ShellDetector().defaultUserShell(),
     )
-}
 
-private fun environmentContextDiff(prev: TurnContext, next: TurnContext): EnvironmentContext {
-    return EnvironmentContext(
+private fun environmentContextDiff(prev: TurnContext, next: TurnContext): EnvironmentContext =
+    EnvironmentContext(
         cwd = if (prev.cwd != next.cwd) next.cwd else null,
         approvalPolicy = if (prev.approvalPolicy != next.approvalPolicy) next.approvalPolicy else null,
         sandboxPolicy = if (prev.sandboxPolicy != next.sandboxPolicy) next.sandboxPolicy else null,
-        shell = ShellDetector().defaultUserShell()
+        shell = ShellDetector().defaultUserShell(),
     )
-}
 
 // Note: SessionTask, SessionTaskContext are defined in Turn.kt
 
 internal class RegularTask : SessionTask {
     override fun kind() = TaskKind.Regular
+
     override suspend fun run(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
-    ): String? {
-        return runTask(sessionContext.getSession(), turnContext, input, cancellationToken)
-    }
+        cancellationToken: CancellationToken,
+    ): String? = runTask(sessionContext.getSession(), turnContext, input, cancellationToken)
 }
 
-internal class UserShellCommandTask(private val command: String) : SessionTask {
+internal class UserShellCommandTask(
+    private val command: String,
+) : SessionTask {
     private val processExecutor = Exec()
 
     override fun kind() = TaskKind.Regular
@@ -3121,7 +3258,7 @@ internal class UserShellCommandTask(private val command: String) : SessionTask {
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String? {
         val session = sessionContext.getSession()
         val callId = "user-shell-${kotlin.random.Random.nextLong()}"
@@ -3133,7 +3270,7 @@ internal class UserShellCommandTask(private val command: String) : SessionTask {
         // Send TaskStarted event
         session.sendEvent(
             turnContext,
-            EventMsg.TaskStarted(TaskStartedEvent(modelContextWindow = null))
+            EventMsg.TaskStarted(TaskStartedEvent(modelContextWindow = null)),
         )
 
         // Check for cancellation before execution
@@ -3147,89 +3284,98 @@ internal class UserShellCommandTask(private val command: String) : SessionTask {
         // Send ExecCommandBegin event
         session.sendEvent(
             turnContext,
-            EventMsg.ExecCommandBegin(ExecCommandBeginEvent(
-                callId = callId,
-                processId = null,
-                turnId = turnContext.subId,
-                command = execArgs,
-                cwd = cwd,
-                parsedCmd = parsedCmd,
-                source = ExecCommandSource.UserShell,
-                interactionInput = command
-            ))
+            EventMsg.ExecCommandBegin(
+                ExecCommandBeginEvent(
+                    callId = callId,
+                    processId = null,
+                    turnId = turnContext.subId,
+                    command = execArgs,
+                    cwd = cwd,
+                    parsedCmd = parsedCmd,
+                    source = ExecCommandSource.UserShell,
+                    interactionInput = command,
+                ),
+            ),
         )
 
         // Execute the command with 1-hour timeout (Rust: USER_SHELL_TIMEOUT_MS)
-        val execParams = ExecParams(
-            command = execArgs,
-            cwd = cwd,
-            expiration = ExecExpiration.Timeout(USER_SHELL_TIMEOUT),
-            env = emptyMap()
-        )
+        val execParams =
+            ExecParams(
+                command = execArgs,
+                cwd = cwd,
+                expiration = ExecExpiration.Timeout(USER_SHELL_TIMEOUT),
+                env = emptyMap(),
+            )
 
         var stdout = ""
         var stderr = ""
         var exitCode = 0
         var execDuration: Duration = Duration.ZERO
 
-        execDuration = measureTime {
-            val result = processExecutor.execute(
-                params = execParams,
-                sandboxPolicy = io.github.kotlinmania.codex.protocol.SandboxPolicy.DangerFullAccess,
-                sandboxCwd = cwd
-            )
+        execDuration =
+            measureTime {
+                val result =
+                    processExecutor.execute(
+                        params = execParams,
+                        sandboxPolicy = io.github.kotlinmania.codex.protocol.SandboxPolicy.DangerFullAccess,
+                        sandboxCwd = cwd,
+                    )
 
-            result.fold(
-                onSuccess = { output ->
-                    stdout = output.stdout.text
-                    stderr = output.stderr.text
-                    exitCode = output.exitCode
-                },
-                onFailure = { error ->
-                    stderr = error.toString()
-                    exitCode = 1
-                }
-            )
-        }
+                result.fold(
+                    onSuccess = { output ->
+                        stdout = output.stdout.text
+                        stderr = output.stderr.text
+                        exitCode = output.exitCode
+                    },
+                    onFailure = { error ->
+                        stderr = error.toString()
+                        exitCode = 1
+                    },
+                )
+            }
 
         // Format output for display
-        val formattedOutput = buildString {
-            if (stdout.isNotEmpty()) {
-                append(stdout)
+        val formattedOutput =
+            buildString {
+                if (stdout.isNotEmpty()) {
+                    append(stdout)
+                }
+                if (stderr.isNotEmpty()) {
+                    if (isNotEmpty()) append("\n")
+                    append(stderr)
+                }
             }
-            if (stderr.isNotEmpty()) {
-                if (isNotEmpty()) append("\n")
-                append(stderr)
-            }
-        }
 
-        val aggregatedOutput = buildString {
-            if (stdout.isNotEmpty()) append(stdout)
-            if (stderr.isNotEmpty()) {
-                if (isNotEmpty()) append("\n")
-                append(stderr)
+        val aggregatedOutput =
+            buildString {
+                if (stdout.isNotEmpty()) append(stdout)
+                if (stderr.isNotEmpty()) {
+                    if (isNotEmpty()) append("\n")
+                    append(stderr)
+                }
             }
-        }
 
         // Send ExecCommandEnd event
         session.sendEvent(
             turnContext,
-            EventMsg.ExecCommandEnd(ExecCommandEndEvent(
-                callId = callId,
-                processId = null,
-                turnId = turnContext.subId,
-                command = execArgs,
-                cwd = cwd,
-                parsedCmd = parsedCmd,
-                source = ExecCommandSource.UserShell,
-                interactionInput = command,
-                stdout = stdout,
-                stderr = stderr,
-                aggregatedOutput = aggregatedOutput,
-                exitCode = exitCode,
-                duration = execDuration.toString(),
-                formattedOutput = formattedOutput
-            ))
+            EventMsg.ExecCommandEnd(
+                ExecCommandEndEvent(
+                    callId = callId,
+                    processId = null,
+                    turnId = turnContext.subId,
+                    command = execArgs,
+                    cwd = cwd,
+                    parsedCmd = parsedCmd,
+                    source = ExecCommandSource.UserShell,
+                    interactionInput = command,
+                    stdout = stdout,
+                    stderr = stderr,
+                    aggregatedOutput = aggregatedOutput,
+                    exitCode = exitCode,
+                    duration = execDuration.toString(),
+                    formattedOutput = formattedOutput,
+                ),
+            ),
         )
 
         return null
@@ -3245,24 +3391,26 @@ internal class UndoTask : SessionTask {
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String? {
         val session = sessionContext.getSession()
 
         // Send undo started event
         session.sendEvent(
             turnContext,
-            EventMsg.UndoStarted(UndoStartedEvent(message = "Undo in progress..."))
+            EventMsg.UndoStarted(UndoStartedEvent(message = "Undo in progress...")),
         )
 
         // Check for cancellation
         if (cancellationToken.isCancelled()) {
             session.sendEvent(
                 turnContext,
-                EventMsg.UndoCompleted(UndoCompletedEvent(
-                    success = false,
-                    message = "Undo cancelled."
-                ))
+                EventMsg.UndoCompleted(
+                    UndoCompletedEvent(
+                        success = false,
+                        message = "Undo cancelled.",
+                    ),
+                ),
             )
             return null
         }
@@ -3287,10 +3435,12 @@ internal class UndoTask : SessionTask {
         if (foundIdx == null || foundCommit == null) {
             session.sendEvent(
                 turnContext,
-                EventMsg.UndoCompleted(UndoCompletedEvent(
-                    success = false,
-                    message = "No ghost snapshot available to undo."
-                ))
+                EventMsg.UndoCompleted(
+                    UndoCompletedEvent(
+                        success = false,
+                        message = "No ghost snapshot available to undo.",
+                    ),
+                ),
             )
             return null
         }
@@ -3312,10 +3462,12 @@ internal class UndoTask : SessionTask {
 
                 session.sendEvent(
                     turnContext,
-                    EventMsg.UndoCompleted(UndoCompletedEvent(
-                        success = true,
-                        message = "Undo restored snapshot $shortId."
-                    ))
+                    EventMsg.UndoCompleted(
+                        UndoCompletedEvent(
+                            success = true,
+                            message = "Undo restored snapshot $shortId.",
+                        ),
+                    ),
                 )
             },
             onFailure = { error ->
@@ -3324,12 +3476,14 @@ internal class UndoTask : SessionTask {
 
                 session.sendEvent(
                     turnContext,
-                    EventMsg.UndoCompleted(UndoCompletedEvent(
-                        success = false,
-                        message = message
-                    ))
+                    EventMsg.UndoCompleted(
+                        UndoCompletedEvent(
+                            success = false,
+                            message = message,
+                        ),
+                    ),
                 )
-            }
+            },
         )
 
         return null
@@ -3357,7 +3511,7 @@ internal class CompactTask : SessionTask {
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String? {
         val session = sessionContext.getSession()
 
@@ -3386,16 +3540,17 @@ internal class CompactTask : SessionTask {
         val historyText = formatHistoryForCompaction(snapshot)
 
         // Build the compaction request message
-        val compactionRequest = buildString {
-            appendLine(compactPrompt)
-            appendLine()
-            appendLine("=== Conversation History ===")
-            appendLine(historyText)
-            appendLine()
-            appendLine("=== End of History ===")
-            appendLine()
-            appendLine("Please provide a concise summary that captures the essential context for continuing this conversation.")
-        }
+        val compactionRequest =
+            buildString {
+                appendLine(compactPrompt)
+                appendLine()
+                appendLine("=== Conversation History ===")
+                appendLine(historyText)
+                appendLine()
+                appendLine("=== End of History ===")
+                appendLine()
+                appendLine("Please provide a concise summary that captures the essential context for continuing this conversation.")
+            }
 
         // Send to model for summarization using regular task flow
         val compactInput = listOf(UserInput.Text(compactionRequest))
@@ -3410,11 +3565,12 @@ internal class CompactTask : SessionTask {
         val summary = extractSummaryFromResponse(summaryResponse)
 
         // Build new compacted history
-        val compactedItems = buildCompactedHistory(
-            initialContext = emptyList(),
-            userMessages = userMessages,
-            summary = summary
-        )
+        val compactedItems =
+            buildCompactedHistory(
+                initialContext = emptyList(),
+                userMessages = userMessages,
+                summary = summary,
+            )
 
         // Replace session history with compacted version
         session.replaceHistory(compactedItems)
@@ -3422,19 +3578,19 @@ internal class CompactTask : SessionTask {
         // Send ContextCompacted event
         session.sendEvent(
             turnContext,
-            EventMsg.ContextCompacted(ContextCompactedEvent)
+            EventMsg.ContextCompacted(ContextCompactedEvent),
         )
 
         return summary
     }
 
-    private fun collectUserMessages(items: List<ResponseItem>): List<ResponseItem.Message> {
-        return items.filterIsInstance<ResponseItem.Message>()
+    private fun collectUserMessages(items: List<ResponseItem>): List<ResponseItem.Message> =
+        items
+            .filterIsInstance<ResponseItem.Message>()
             .filter { it.role == "user" }
-    }
 
-    private fun formatHistoryForCompaction(items: List<ResponseItem>): String {
-        return items.joinToString("\n---\n") { item ->
+    private fun formatHistoryForCompaction(items: List<ResponseItem>): String =
+        items.joinToString("\n---\n") { item ->
             when (item) {
                 is ResponseItem.Message -> "${item.role.uppercase()}: ${item.content.filterIsInstance<ContentItem.InputText>().joinToString("\n") { it.text }}"
                 is ResponseItem.FunctionCall -> "TOOL CALL: ${item.name}(${item.arguments})"
@@ -3442,7 +3598,6 @@ internal class CompactTask : SessionTask {
                 else -> item.toString()
             }
         }
-    }
 
     private fun extractSummaryFromResponse(response: String): String {
         // Look for summary prefix or take the whole response
@@ -3456,7 +3611,7 @@ internal class CompactTask : SessionTask {
     private fun buildCompactedHistory(
         initialContext: List<ResponseItem>,
         userMessages: List<ResponseItem.Message>,
-        summary: String
+        summary: String,
     ): List<ResponseItem> {
         val result = mutableListOf<ResponseItem>()
 
@@ -3464,10 +3619,12 @@ internal class CompactTask : SessionTask {
         result.addAll(initialContext)
 
         // Add summary message with prefix
-        result.add(ResponseItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText("$SUMMARY_PREFIX\n\n$summary"))
-        ))
+        result.add(
+            ResponseItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText("$SUMMARY_PREFIX\n\n$summary")),
+            ),
+        )
 
         // Keep recent user messages
         result.addAll(userMessages.takeLast(3))
@@ -3478,7 +3635,7 @@ internal class CompactTask : SessionTask {
 
 internal class GhostSnapshotTask(
     private val token: ReadinessToken,
-    private val readinessFlag: ReadinessFlag
+    private val readinessFlag: ReadinessFlag,
 ) : SessionTask {
     private val gitOperations = ShellGitOperations()
 
@@ -3488,7 +3645,7 @@ internal class GhostSnapshotTask(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String? {
         // Spawn as independent coroutine so the main flow can continue
         val session = sessionContext.getSession()
@@ -3499,15 +3656,16 @@ internal class GhostSnapshotTask(
                 val repoPath = turnContext.cwd
 
                 // First, compute a snapshot report to warn about large untracked directories
-                val reportResult = gitOperations.captureGhostSnapshotReport(
-                    CreateGhostCommitOptions(repoPath)
-                )
+                val reportResult =
+                    gitOperations.captureGhostSnapshotReport(
+                        CreateGhostCommitOptions(repoPath),
+                    )
 
                 reportResult.onSuccess { report ->
                     formatLargeUntrackedWarning(report)?.let { message ->
                         session.sendEvent(
                             turnContext,
-                            EventMsg.Warning(WarningEvent(message))
+                            EventMsg.Warning(WarningEvent(message)),
                         )
                     }
                 }
@@ -3528,7 +3686,7 @@ internal class GhostSnapshotTask(
                         println("INFO: ghost snapshot blocking task finished")
                         session.recordConversationItems(
                             turnContext,
-                            listOf(ResponseItem.GhostSnapshot(ghostCommit = ghostCommit))
+                            listOf(ResponseItem.GhostSnapshot(ghostCommit = ghostCommit)),
                         )
                         println("INFO: ghost commit captured: ${ghostCommit.id}")
                     },
@@ -3541,7 +3699,7 @@ internal class GhostSnapshotTask(
                                 println("WARN: failed to capture ghost snapshot: $error")
                             }
                         }
-                    }
+                    },
                 )
             } catch (e: Exception) {
                 println("WARN: ghost snapshot task failed: $e")
@@ -3568,7 +3726,7 @@ internal class GhostSnapshotTask(
             },
             onFailure = { error ->
                 println("WARN: failed to mark ghost snapshot ready: $error")
-            }
+            },
         )
     }
 }
@@ -3608,7 +3766,9 @@ private fun formatLargeUntrackedWarning(report: GhostSnapshotReport): String? {
  *
  * Ported from Rust codex-rs/core/src/tasks/review.rs
  */
-internal class ReviewTask(private val appendToOriginalThread: Boolean) : SessionTask {
+internal class ReviewTask(
+    private val appendToOriginalThread: Boolean,
+) : SessionTask {
     override fun kind() = TaskKind.Review
 
     /**
@@ -3623,7 +3783,7 @@ internal class ReviewTask(private val appendToOriginalThread: Boolean) : Session
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String? {
         val session = sessionContext.getSession()
 
@@ -3685,7 +3845,7 @@ internal class ReviewTask(private val appendToOriginalThread: Boolean) : Session
             overallExplanation = text,
             findings = emptyList(),
             overallCorrectness = "",
-            overallConfidenceScore = 0.0f
+            overallConfidenceScore = 0.0f,
         )
     }
 
@@ -3721,87 +3881,95 @@ internal class ReviewTask(private val appendToOriginalThread: Boolean) : Session
     private suspend fun exitReviewMode(
         session: Session,
         turnContext: TurnContext,
-        reviewOutput: ReviewOutputEvent?
+        reviewOutput: ReviewOutputEvent?,
     ) {
         // Record to original thread if requested
         if (appendToOriginalThread) {
-            val userMessage = if (reviewOutput != null) {
-                val findingsStr = buildString {
-                    val explanation = reviewOutput.overallExplanation.trim()
-                    if (explanation.isNotEmpty()) {
-                        append(explanation)
-                    }
-                    if (reviewOutput.findings.isNotEmpty()) {
-                        val block = formatReviewFindingsBlock(reviewOutput.findings)
-                        append("\n$block")
-                    }
+            val userMessage =
+                if (reviewOutput != null) {
+                    val findingsStr =
+                        buildString {
+                            val explanation = reviewOutput.overallExplanation.trim()
+                            if (explanation.isNotEmpty()) {
+                                append(explanation)
+                            }
+                            if (reviewOutput.findings.isNotEmpty()) {
+                                val block = formatReviewFindingsBlock(reviewOutput.findings)
+                                append("\n$block")
+                            }
+                        }
+                    REVIEW_EXIT_SUCCESS_TMPL.replace("{results}", findingsStr)
+                } else {
+                    REVIEW_EXIT_INTERRUPTED_TMPL
                 }
-                REVIEW_EXIT_SUCCESS_TMPL.replace("{results}", findingsStr)
-            } else {
-                REVIEW_EXIT_INTERRUPTED_TMPL
-            }
 
             // Record as user message (matching Rust)
             session.recordConversationItems(
                 turnContext,
-                listOf(ResponseItem.Message(
-                    id = null,
-                    role = "user",
-                    content = listOf(ContentItem.InputText(text = userMessage))
-                ))
+                listOf(
+                    ResponseItem.Message(
+                        id = null,
+                        role = "user",
+                        content = listOf(ContentItem.InputText(text = userMessage)),
+                    ),
+                ),
             )
         }
 
         // Send ExitedReviewMode event
         session.sendEvent(
             turnContext,
-            EventMsg.ExitedReviewMode(ExitedReviewModeEvent(reviewOutput = reviewOutput))
+            EventMsg.ExitedReviewMode(ExitedReviewModeEvent(reviewOutput = reviewOutput)),
         )
     }
 }
 
 // Extension functions
-fun ResponseInputItem.toResponseItem(): ResponseItem {
-    return when (this) {
-        is ResponseInputItem.FunctionCallOutput -> ResponseItem.FunctionCallOutput(
-            callId = callId,
-            output = output
-        )
-        is ResponseInputItem.CustomToolCallOutput -> ResponseItem.CustomToolCallOutput(
-            callId = callId,
-            output = output
-        )
+fun ResponseInputItem.toResponseItem(): ResponseItem =
+    when (this) {
+        is ResponseInputItem.FunctionCallOutput ->
+            ResponseItem.FunctionCallOutput(
+                callId = callId,
+                output = output,
+            )
+        is ResponseInputItem.CustomToolCallOutput ->
+            ResponseItem.CustomToolCallOutput(
+                callId = callId,
+                output = output,
+            )
         else -> ResponseItem.Message(role = "user", content = emptyList())
     }
-}
 
 fun ResponseInputItem.Companion.fromUserInput(input: List<UserInput>): ResponseInputItem {
-    val content = input.map { userInput ->
-        when (userInput) {
-            is UserInput.Text -> ContentItem.InputText(text = userInput.content)
-            is UserInput.Image -> ContentItem.InputImage(imageUrl = "data:${userInput.mimeType};base64,...")
-            is UserInput.FileRef -> ContentItem.InputText(text = "[File: ${userInput.path}]")
+    val content =
+        input.map { userInput ->
+            when (userInput) {
+                is UserInput.Text -> ContentItem.InputText(text = userInput.content)
+                is UserInput.Image -> ContentItem.InputImage(imageUrl = "data:${userInput.mimeType};base64,...")
+                is UserInput.FileRef -> ContentItem.InputText(text = "[File: ${userInput.path}]")
+            }
         }
-    }
     return ResponseInputItem.Message(
         role = "user",
-        content = content
+        content = content,
     )
 }
 
-fun UserInput.toResponseInputItem(): ResponseInputItem {
-    return when (this) {
-        is UserInput.Text -> ResponseInputItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = content))
-        )
-        is UserInput.Image -> ResponseInputItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputImage(imageUrl = "data:$mimeType;base64,..."))
-        )
-        is UserInput.FileRef -> ResponseInputItem.Message(
-            role = "user",
-            content = listOf(ContentItem.InputText(text = "[File: $path]"))
-        )
+fun UserInput.toResponseInputItem(): ResponseInputItem =
+    when (this) {
+        is UserInput.Text ->
+            ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = content)),
+            )
+        is UserInput.Image ->
+            ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputImage(imageUrl = "data:$mimeType;base64,...")),
+            )
+        is UserInput.FileRef ->
+            ResponseInputItem.Message(
+                role = "user",
+                content = listOf(ContentItem.InputText(text = "[File: $path]")),
+            )
     }
-}

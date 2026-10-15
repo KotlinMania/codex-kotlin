@@ -11,13 +11,14 @@ import kotlinx.serialization.json.Json
 fun createLinuxSandboxCommandArgs(
     command: List<String>,
     sandboxPolicy: SandboxPolicy,
-    sandboxPolicyCwd: String
+    sandboxPolicyCwd: String,
 ): List<String> {
-    val sandboxPolicyJson = try {
-        Json.encodeToString(sandboxPolicy)
-    } catch (e: Exception) {
-        throw RuntimeException("Failed to serialize SandboxPolicy to JSON", e)
-    }
+    val sandboxPolicyJson =
+        try {
+            Json.encodeToString(sandboxPolicy)
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to serialize SandboxPolicy to JSON", e)
+        }
 
     val linuxCmd = mutableListOf<String>()
     linuxCmd.add("--sandbox-policy-cwd")

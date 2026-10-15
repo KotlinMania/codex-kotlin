@@ -9,29 +9,34 @@ import ratatui.widgets.paragraph.Paragraph
 
 internal interface Renderable {
     fun render(area: Rect, buf: Buffer)
+
     fun desiredHeight(width: Int): Int
 
-    fun cursorPos(area: Rect): Pair<Int, Int>? {
-        return null
-    }
+    fun cursorPos(area: Rect): Pair<Int, Int>? = null
 
     companion object {
-        fun from(value: Renderable): Renderable {
-            return value
-        }
+        fun from(value: Renderable): Renderable = value
     }
 }
 
 internal sealed class RenderableItem : Renderable {
-    class Owned(val child: Renderable) : RenderableItem() {
+    class Owned(
+        val child: Renderable,
+    ) : RenderableItem() {
         override fun render(area: Rect, buf: Buffer) = child.render(area, buf)
+
         override fun desiredHeight(width: Int): Int = child.desiredHeight(width)
+
         override fun cursorPos(area: Rect): Pair<Int, Int>? = child.cursorPos(area)
     }
 
-    class Borrowed(val child: Renderable) : RenderableItem() {
+    class Borrowed(
+        val child: Renderable,
+    ) : RenderableItem() {
         override fun render(area: Rect, buf: Buffer) = child.render(area, buf)
+
         override fun desiredHeight(width: Int): Int = child.desiredHeight(width)
+
         override fun cursorPos(area: Rect): Pair<Int, Int>? = child.cursorPos(area)
     }
 
@@ -42,35 +47,34 @@ internal sealed class RenderableItem : Renderable {
         }
     }
 
-    override fun desiredHeight(width: Int): Int {
-        return when (this) {
+    override fun desiredHeight(width: Int): Int =
+        when (this) {
             is Owned -> child.desiredHeight(width)
             is Borrowed -> child.desiredHeight(width)
         }
-    }
 
-    override fun cursorPos(area: Rect): Pair<Int, Int>? {
-        return when (this) {
+    override fun cursorPos(area: Rect): Pair<Int, Int>? =
+        when (this) {
             is Owned -> child.cursorPos(area)
             is Borrowed -> child.cursorPos(area)
         }
-    }
 
     companion object {
-        fun from(value: Renderable): RenderableItem {
-            return Owned(value)
-        }
+        fun from(value: Renderable): RenderableItem = Owned(value)
     }
 }
 
 /** A no-op renderable with zero height. */
 internal object EmptyRenderable : Renderable {
     override fun render(area: Rect, buf: Buffer) {}
+
     override fun desiredHeight(width: Int): Int = 0
 }
 
 /** A renderable that renders a single string. */
-internal class StringRenderable(private val text: String) : Renderable {
+internal class StringRenderable(
+    private val text: String,
+) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         Span(text).render(area, buf)
     }
@@ -79,7 +83,9 @@ internal class StringRenderable(private val text: String) : Renderable {
 }
 
 /** A renderable that wraps a [Span]. */
-internal class SpanRenderable(private val span: Span) : Renderable {
+internal class SpanRenderable(
+    private val span: Span,
+) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         span.render(area, buf)
     }
@@ -88,7 +94,9 @@ internal class SpanRenderable(private val span: Span) : Renderable {
 }
 
 /** A renderable that wraps a [Line]. */
-internal class LineRenderable(private val line: Line) : Renderable {
+internal class LineRenderable(
+    private val line: Line,
+) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         line.render(area, buf)
     }
@@ -97,7 +105,9 @@ internal class LineRenderable(private val line: Line) : Renderable {
 }
 
 /** A renderable that wraps a [Paragraph]. */
-internal class ParagraphRenderable(private val paragraph: Paragraph) : Renderable {
+internal class ParagraphRenderable(
+    private val paragraph: Paragraph,
+) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         paragraph.render(area, buf)
     }
@@ -106,7 +116,9 @@ internal class ParagraphRenderable(private val paragraph: Paragraph) : Renderabl
 }
 
 /** A renderable that delegates to an optional inner renderable. */
-internal class OptionalRenderable(private val inner: Renderable?) : Renderable {
+internal class OptionalRenderable(
+    private val inner: Renderable?,
+) : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         val renderable = inner
         if (renderable != null) {
@@ -130,8 +142,10 @@ internal class ColumnRenderable : Renderable {
     override fun render(area: Rect, buf: Buffer) {
         var y = area.y
         for (child in children) {
-            val childArea = Rect.new(area.x, y, area.width, child.desiredHeight(area.width))
-                .intersection(area)
+            val childArea =
+                Rect
+                    .new(area.x, y, area.width, child.desiredHeight(area.width))
+                    .intersection(area)
             if (!childArea.isEmpty()) {
                 child.render(childArea, buf)
             }
@@ -139,9 +153,7 @@ internal class ColumnRenderable : Renderable {
         }
     }
 
-    override fun desiredHeight(width: Int): Int {
-        return children.sumOf { it.desiredHeight(width) }
-    }
+    override fun desiredHeight(width: Int): Int = children.sumOf { it.desiredHeight(width) }
 
     /**
      * Returns the cursor position of the first child that has a cursor position, offset by the
@@ -152,8 +164,10 @@ internal class ColumnRenderable : Renderable {
     override fun cursorPos(area: Rect): Pair<Int, Int>? {
         var y = area.y
         for (child in children) {
-            val childArea = Rect.new(area.x, y, area.width, child.desiredHeight(area.width))
-                .intersection(area)
+            val childArea =
+                Rect
+                    .new(area.x, y, area.width, child.desiredHeight(area.width))
+                    .intersection(area)
             if (!childArea.isEmpty()) {
                 val pos = child.cursorPos(childArea)
                 if (pos != null) return pos
@@ -220,10 +234,11 @@ internal class FlexRenderable : Renderable {
                 totalFlex += fc.flex
                 lastFlexChildIdx = i
             } else {
-                childSizes[i] = minOf(
-                    fc.child.desiredHeight(area.width),
-                    (maxSize - allocatedSize).coerceAtLeast(0)
-                )
+                childSizes[i] =
+                    minOf(
+                        fc.child.desiredHeight(area.width),
+                        (maxSize - allocatedSize).coerceAtLeast(0),
+                    )
                 allocatedSize += childSizes[i]
             }
         }
@@ -236,11 +251,12 @@ internal class FlexRenderable : Renderable {
                 if (fc.flex > 0) {
                     // Last flex child gets all the remaining space, to prevent a rounding error
                     // from not allocating all the space.
-                    val maxChildExtent = if (i == lastFlexChildIdx) {
-                        freeSpace - allocatedFlexSpace
-                    } else {
-                        spacePerFlex * fc.flex
-                    }
+                    val maxChildExtent =
+                        if (i == lastFlexChildIdx) {
+                            freeSpace - allocatedFlexSpace
+                        } else {
+                            spacePerFlex * fc.flex
+                        }
                     val childSize = minOf(fc.child.desiredHeight(area.width), maxChildExtent)
                     childSizes[i] = childSize
                     allocatedSize += childSize
@@ -265,12 +281,11 @@ internal class FlexRenderable : Renderable {
         }
     }
 
-    override fun desiredHeight(width: Int): Int {
-        return allocate(Rect.new(0, 0, width, Int.MAX_VALUE))
+    override fun desiredHeight(width: Int): Int =
+        allocate(Rect.new(0, 0, width, Int.MAX_VALUE))
             .lastOrNull()
             ?.bottom()
             ?: 0
-    }
 
     override fun cursorPos(area: Rect): Pair<Int, Int>? {
         for ((rect, child) in allocate(area).zip(children)) {
@@ -351,25 +366,18 @@ internal class InsetRenderable(
         child.render(area.inset(insets), buf)
     }
 
-    override fun desiredHeight(width: Int): Int {
-        return child.desiredHeight(width - insets.left - insets.right) + insets.top + insets.bottom
-    }
+    override fun desiredHeight(width: Int): Int = child.desiredHeight(width - insets.left - insets.right) + insets.top + insets.bottom
 
-    override fun cursorPos(area: Rect): Pair<Int, Int>? {
-        return child.cursorPos(area.inset(insets))
-    }
+    override fun cursorPos(area: Rect): Pair<Int, Int>? = child.cursorPos(area.inset(insets))
 
     companion object {
-        internal fun new(child: Renderable, insets: Insets): InsetRenderable {
-            return InsetRenderable(
+        internal fun new(child: Renderable, insets: Insets): InsetRenderable =
+            InsetRenderable(
                 child = RenderableItem.Owned(child),
                 insets = insets,
             )
-        }
     }
 }
 
 /** Extension to wrap a renderable with insets. */
-internal fun Renderable.inset(insets: Insets): RenderableItem {
-    return RenderableItem.Owned(InsetRenderable(RenderableItem.Owned(this), insets))
-}
+internal fun Renderable.inset(insets: Insets): RenderableItem = RenderableItem.Owned(InsetRenderable(RenderableItem.Owned(this), insets))

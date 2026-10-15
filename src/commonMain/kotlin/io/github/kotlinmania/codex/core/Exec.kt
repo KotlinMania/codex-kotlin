@@ -1,13 +1,11 @@
 // port-lint: source core/src/exec.rs
 package io.github.kotlinmania.codex.core
 
-import io.github.kotlinmania.codex.core.CodexErr
-import io.github.kotlinmania.codex.core.CodexResult
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
 import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
-import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
+import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.utils.git.platformExecuteCommand
 
 typealias ExecToolCallOutput = io.github.kotlinmania.codex.protocol.ExecToolCallOutput
@@ -35,16 +33,17 @@ open class Exec {
         sandboxPolicy: SandboxPolicy,
         sandboxCwd: String = params.cwd,
     ): CodexResult<ExecToolCallOutput> {
-        val env = ExecEnv(
-            command = params.command,
-            cwd = params.cwd,
-            env = params.env,
-            expiration = params.expiration,
-            sandbox = SandboxType.None,
-            withEscalatedPermissions = params.withEscalatedPermissions,
-            justification = params.justification,
-            arg0 = params.arg0,
-        )
+        val env =
+            ExecEnv(
+                command = params.command,
+                cwd = params.cwd,
+                env = params.env,
+                expiration = params.expiration,
+                sandbox = SandboxType.None,
+                withEscalatedPermissions = params.withEscalatedPermissions,
+                justification = params.justification,
+                arg0 = params.arg0,
+            )
         return executeExecEnv(env, sandboxPolicy)
     }
 
@@ -57,12 +56,13 @@ open class Exec {
             return CodexResult.failure(CodexErr.Fatal("empty command"))
         }
         val exitCode = platformExecuteCommand(env.command)
-        val output = ExecToolCallOutput(
-            exitCode = exitCode,
-            stdout = StreamOutput.of(""),
-            stderr = StreamOutput.of(""),
-            aggregatedOutput = StreamOutput.of(""),
-        )
+        val output =
+            ExecToolCallOutput(
+                exitCode = exitCode,
+                stdout = StreamOutput.of(""),
+                stderr = StreamOutput.of(""),
+                aggregatedOutput = StreamOutput.of(""),
+            )
         return CodexResult.success(output)
     }
 }

@@ -1,8 +1,10 @@
 // port-lint: source provider.rs
 package io.github.kotlinmania.codex.api.provider
 
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.github.kotlinmania.http.Method
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.url
+import io.ktor.http.HttpMethod
 import kotlin.time.Duration
 
 /** Wire-level APIs supported by a Provider. */
@@ -42,6 +44,12 @@ internal data class Provider(
         }
         return url
     }
+
+    fun buildRequest(
+        method: Method,
+        path: String,
+        block: HttpRequestBuilder.() -> Unit = {},
+    ): HttpRequestBuilder = buildRequest(HttpMethod(method.asStr()), path, block)
 
     fun buildRequest(method: HttpMethod, path: String, block: HttpRequestBuilder.() -> Unit = {}): HttpRequestBuilder =
         HttpRequestBuilder().apply {

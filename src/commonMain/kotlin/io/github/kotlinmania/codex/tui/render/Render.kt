@@ -17,13 +17,9 @@ internal data class Insets(
     }
 
     companion object {
-        fun tlbr(top: Int, left: Int, bottom: Int, right: Int): Insets {
-            return Insets(top = top, left = left, bottom = bottom, right = right)
-        }
+        fun tlbr(top: Int, left: Int, bottom: Int, right: Int): Insets = Insets(top = top, left = left, bottom = bottom, right = right)
 
-        fun vh(v: Int, h: Int): Insets {
-            return Insets(top = v, left = h, bottom = v, right = h)
-        }
+        fun vh(v: Int, h: Int): Insets = Insets(top = v, left = h, bottom = v, right = h)
     }
 }
 
@@ -38,10 +34,6 @@ internal fun Rect.inset(insets: Insets): Rect {
     )
 }
 
-private fun saturatingAdd(left: Int, right: Int): Int {
-    return (left.toLong() + right.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-}
+private fun saturatingAdd(left: Int, right: Int): Int = (left.toLong() + right.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 
-private fun saturatingSubtract(left: Int, right: Int): Int {
-    return (left.toLong() - right.toLong()).coerceAtLeast(0L).toInt()
-}
+private fun saturatingSubtract(left: Int, right: Int): Int = (left.toLong() - right.toLong()).coerceAtLeast(0L).toInt()

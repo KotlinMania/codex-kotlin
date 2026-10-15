@@ -21,7 +21,7 @@ const val TELEMETRY_PREVIEW_TRUNCATION_NOTICE = "[... telemetry preview truncate
  */
 fun formatExecOutputForModelStructured(
     execOutput: ExecToolCallOutput,
-    truncationPolicy: TruncationPolicy
+    truncationPolicy: TruncationPolicy,
 ): String {
     val exitCode = execOutput.exitCode
     val duration = execOutput.duration
@@ -29,13 +29,13 @@ fun formatExecOutputForModelStructured(
     @Serializable
     data class ExecMetadata(
         val exitCode1: Int,
-        val durationSeconds: Float
+        val durationSeconds: Float,
     )
 
     @Serializable
     data class ExecOutput(
         val output: String,
-        val metadata: ExecMetadata
+        val metadata: ExecMetadata,
     )
 
     // round to 1 decimal place
@@ -43,25 +43,30 @@ fun formatExecOutputForModelStructured(
 
     val formattedOutput = formatExecOutputStr(execOutput, truncationPolicy)
 
-    val payload = ExecOutput(
-        output = formattedOutput,
-        metadata = ExecMetadata(
-            exitCode1 = exitCode,
-            durationSeconds = durationSeconds
+    val payload =
+        ExecOutput(
+            output = formattedOutput,
+            metadata =
+                ExecMetadata(
+                    exitCode1 = exitCode,
+                    durationSeconds = durationSeconds,
+                ),
         )
-    )
 
     return Json.encodeToString(payload)
 }
 
 fun formatExecOutputForModelFreeform(
     execOutput: ExecToolCallOutput,
-    truncationPolicy: TruncationPolicy
+    truncationPolicy: TruncationPolicy,
 ): String {
     // round to 1 decimal place
     val durationSeconds = (execOutput.duration.inWholeMilliseconds / 1000f * 10.0f).roundToInt() / 10.0f
 
-    val totalLines = execOutput.aggregatedOutput.text.lines().count()
+    val totalLines =
+        execOutput.aggregatedOutput.text
+            .lines()
+            .count()
 
     val formattedOutput = truncateText(execOutput.aggregatedOutput.text, truncationPolicy)
 
@@ -81,15 +86,16 @@ fun formatExecOutputForModelFreeform(
 
 fun formatExecOutputStr(
     execOutput: ExecToolCallOutput,
-    truncationPolicy: TruncationPolicy
+    truncationPolicy: TruncationPolicy,
 ): String {
     val content = execOutput.aggregatedOutput.text
 
-    val body = if (execOutput.timedOut) {
-        "command timed out after ${execOutput.duration.inWholeMilliseconds} milliseconds\n$content"
-    } else {
-        content
-    }
+    val body =
+        if (execOutput.timedOut) {
+            "command timed out after ${execOutput.duration.inWholeMilliseconds} milliseconds\n$content"
+        } else {
+            content
+        }
 
     // Truncate for model consumption before serialization.
     return formattedTruncateText(body, truncationPolicy)

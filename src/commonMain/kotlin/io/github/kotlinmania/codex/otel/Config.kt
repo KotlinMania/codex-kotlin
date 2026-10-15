@@ -1,7 +1,7 @@
 // port-lint: source config.rs
 package io.github.kotlinmania.codex.otel
 
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 
 internal data class OtelSettings(
     val environment: String,
@@ -14,6 +14,7 @@ internal data class OtelSettings(
 internal enum class OtelHttpProtocol {
     /** HTTP protocol with binary protobuf */
     Binary,
+
     /** HTTP protocol with JSON payload */
     Json,
 }

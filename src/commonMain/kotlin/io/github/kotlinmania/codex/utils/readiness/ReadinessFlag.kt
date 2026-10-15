@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Ported from Rust async-utils CancelErr enum.
  */
 internal enum class CancelErr {
-    Cancelled
+    Cancelled,
 }
 
 /**
@@ -40,8 +40,8 @@ internal interface OrCancelExt<T> {
  *
  * Ported from Rust OrCancelExt trait.
  */
-internal suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
-    return select {
+internal suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> =
+    select {
         onAwait { value ->
             Result.success(value)
         }
@@ -49,17 +49,20 @@ internal suspend fun <T> Deferred<T>.orCancel(cancellation: Job): Result<T> {
             Result.failure(CancellationException(CancelErr.Cancelled))
         }
     }
-}
 
 /**
  * Exception wrapper for CancelErr to import with Result.failure.
  */
-internal class CancellationException(val error: CancelErr) : Exception("Operation cancelled")
+internal class CancellationException(
+    val error: CancelErr,
+) : Exception("Operation cancelled")
 
 /**
  * Opaque subscription token returned by `subscribe()`.
  */
-internal data class ReadinessToken(val id: Int)
+internal data class ReadinessToken(
+    val id: Int,
+)
 
 /**
  * Errors that can occur during readiness operations.
@@ -68,6 +71,7 @@ internal sealed class ReadinessError : Exception() {
     data object TokenLockFailed : ReadinessError() {
         override val message: String get() = "Failed to acquire readiness token lock"
     }
+
     data object FlagAlreadyReady : ReadinessError() {
         override val message: String get() = "Flag is already ready. Impossible to subscribe"
     }
@@ -225,11 +229,12 @@ internal class ReadinessFlag : Readiness {
                         return@withTimeout Result.failure(ReadinessError.FlagAlreadyReady)
                     }
 
-                    val tokenList = (0 until count).map {
-                        val token = ReadinessToken(nextId++)
-                        tokens.add(token)
-                        token
-                    }
+                    val tokenList =
+                        (0 until count).map {
+                            val token = ReadinessToken(nextId++)
+                            tokens.add(token)
+                            token
+                        }
                     Result.success(tokenList)
                 }
             }

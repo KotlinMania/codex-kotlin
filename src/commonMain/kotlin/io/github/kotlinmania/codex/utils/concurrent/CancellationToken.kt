@@ -5,7 +5,6 @@ package io.github.kotlinmania.codex.utils.concurrent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * A token which can be used to signal a cancellation request to one or more tasks.
@@ -24,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
  * - Clone creates a linked token (both cancel together) - use [child] for independent children
  */
 class CancellationToken private constructor(
-    private val node: TreeNode
+    private val node: TreeNode,
 ) {
     /**
      * Creates a new [CancellationToken] in the non-cancelled state.
@@ -39,9 +38,7 @@ class CancellationToken private constructor(
      * If the current token is already cancelled, the child token will get
      * returned in cancelled state.
      */
-    fun childToken(): CancellationToken {
-        return CancellationToken(node.createChild())
-    }
+    fun childToken(): CancellationToken = CancellationToken(node.createChild())
 
     /**
      * Alias for [childToken] matching some Rust usage patterns.
@@ -118,6 +115,7 @@ internal class TreeNode {
     private val state = MutableStateFlow(false)
     private val mutex = Mutex()
     private val children = mutableListOf<TreeNode>()
+
     @kotlin.concurrent.Volatile
     private var parent: TreeNode? = null
 
@@ -173,19 +171,17 @@ internal class TreeNode {
  * Ported from Rust tokioUtil::sync::cancellationToken::guard::DropGuard
  */
 class DropGuard internal constructor(
-    private var inner: CancellationToken?
+    private var inner: CancellationToken?,
 ) : AutoCloseable {
-
     /**
      * Returns the stored cancellation token and disarms this guard
      * (i.e., it will no longer cancel the token on close).
      *
      * @throws IllegalStateException if already disarmed or closed
      */
-    fun disarm(): CancellationToken {
-        return inner?.also { inner = null }
+    fun disarm(): CancellationToken =
+        inner?.also { inner = null }
             ?: throw IllegalStateException("DropGuard already disarmed or closed")
-    }
 
     /**
      * Cancels the token if this guard has not been disarmed.
@@ -204,19 +200,17 @@ class DropGuard internal constructor(
  * Ported from Rust tokioUtil::sync::cancellationToken::guardRef::DropGuardRef
  */
 class DropGuardRef internal constructor(
-    private var inner: CancellationToken?
+    private var inner: CancellationToken?,
 ) : AutoCloseable {
-
     /**
      * Returns the stored cancellation token reference and disarms this guard
      * (i.e., it will no longer cancel the token on close).
      *
      * @throws IllegalStateException if already disarmed or closed
      */
-    fun disarm(): CancellationToken {
-        return inner?.also { inner = null }
+    fun disarm(): CancellationToken =
+        inner?.also { inner = null }
             ?: throw IllegalStateException("DropGuardRef already disarmed or closed")
-    }
 
     /**
      * Cancels the token if this guard has not been disarmed.

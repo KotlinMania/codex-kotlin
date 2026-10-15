@@ -26,5 +26,5 @@ data class CustomPrompt(
     @SerialName("description")
     val descriptionText: String? = null,
     @SerialName("argument_hint")
-    val argumentHint: String? = null
+    val argumentHint: String? = null,
 )

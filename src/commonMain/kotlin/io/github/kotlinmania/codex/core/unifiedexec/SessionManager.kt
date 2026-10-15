@@ -4,41 +4,54 @@ package io.github.kotlinmania.codex.core.unifiedexec
 import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
-import io.github.kotlinmania.codex.core.session.Session as CodexSession
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.CommandSpec
 import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
 import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
 import io.github.kotlinmania.codex.utils.concurrent.Notify
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import io.github.kotlinmania.codex.core.session.Session as CodexSession
 
 internal data class SessionEntry(
-        val session: UnifiedExecSession,
-        val sessionRef: CodexSession,
-        val turnRef: TurnContext,
-        val callId: String,
-        val processId: String,
-        val command: List<String>,
-        val cwd: String,
-        val startedAt: Instant,
-        var lastUsed: Instant
+    val session: UnifiedExecSession,
+    val sessionRef: CodexSession,
+    val turnRef: TurnContext,
+    val callId: String,
+    val processId: String,
+    val command: List<String>,
+    val cwd: String,
+    val startedAt: Instant,
+    var lastUsed: Instant,
 )
 
 internal sealed class SessionStatus {
-    data class Alive(val exitCode: Int?, val callId: String, val processId: String) :
-            SessionStatus()
+    data class Alive(
+        val exitCode: Int?,
+        val callId: String,
+        val processId: String,
+    ) : SessionStatus()
 
-    data class Exited(val exitCode: Int?, val entry: SessionEntry) : SessionStatus()
+    data class Exited(
+        val exitCode: Int?,
+        val entry: SessionEntry,
+    ) : SessionStatus()
 
     object Unknown : SessionStatus()
 }
@@ -58,16 +71,16 @@ internal class UnifiedExecSessionManager {
             val store = usedSessionIds.withLock { usedSessionIdsSet.toSet() }
 
             val processId =
-                    if (true) { // TODO: Check for test/deterministic mode
-                        Random.nextInt(1_000, 100_000).toString()
-                    } else {
-                        val next =
-                                store.mapNotNull { it.toIntOrNull() }.maxOrNull()?.let {
-                                    maxOf(it, 999) + 1
-                                }
-                                        ?: 1000
-                        next.toString()
-                    }
+                if (true) { // TODO: Check for test/deterministic mode
+                    Random.nextInt(1_000, 100_000).toString()
+                } else {
+                    val next =
+                        store.mapNotNull { it.toIntOrNull() }.maxOrNull()?.let {
+                            maxOf(it, 999) + 1
+                        }
+                            ?: 1000
+                    next.toString()
+                }
 
             if (store.contains(processId)) {
                 continue
@@ -79,19 +92,19 @@ internal class UnifiedExecSessionManager {
     }
 
     suspend fun execCommand(
-            request: ExecCommandRequest,
-            context: UnifiedExecContext
+        request: ExecCommandRequest,
+        context: UnifiedExecContext,
     ): UnifiedExecResponse {
         val cwd = request.workdir ?: context.turn.cwd
 
         val session =
-                openSessionWithSandbox(
-                        request.command,
-                        cwd,
-                        request.withEscalatedPermissions,
-                        request.justification,
-                        context
-                )
+            openSessionWithSandbox(
+                request.command,
+                cwd,
+                request.withEscalatedPermissions,
+                request.justification,
+                context,
+            )
 
         val maxTokens = resolveMaxTokens(request.maxOutputTokens)
         val yieldTimeMs = clampYieldTime(request.yieldTimeMs)
@@ -101,12 +114,12 @@ internal class UnifiedExecSessionManager {
         val deadline = start + yieldTimeMs.milliseconds
 
         val collected =
-                collectOutputUntilDeadline(
-                        handles.outputState, // Pass wrapper
-                        handles.outputNotify,
-                        handles.cancellationToken,
-                        deadline
-                )
+            collectOutputUntilDeadline(
+                handles.outputState, // Pass wrapper
+                handles.outputNotify,
+                handles.cancellationToken,
+                deadline,
+            )
 
         val wallTime = Clock.System.now() - start
 
@@ -117,26 +130,26 @@ internal class UnifiedExecSessionManager {
         val chunkId = generateChunkId()
 
         val processId =
-                if (hasExited) {
-                    null
-                } else {
-                    storeSession(session, context, request.command, cwd, start, request.processId)
-                    request.processId
-                }
+            if (hasExited) {
+                null
+            } else {
+                storeSession(session, context, request.command, cwd, start, request.processId)
+                request.processId
+            }
 
         val originalTokenCount = TruncationPolicy.approxTokenCount(text)
 
         val response =
-                UnifiedExecResponse(
-                        eventCallId = context.callId,
-                        chunkId = chunkId,
-                        wallTime = wallTime,
-                        output = output,
-                        processId = processId,
-                        exitCode = exitCode,
-                        originalTokenCount = originalTokenCount,
-                        sessionCommand = request.command
-                )
+            UnifiedExecResponse(
+                eventCallId = context.callId,
+                chunkId = chunkId,
+                wallTime = wallTime,
+                output = output,
+                processId = processId,
+                exitCode = exitCode,
+                originalTokenCount = originalTokenCount,
+                sessionCommand = request.command,
+            )
 
         if (!hasExited) {
             emitWaitingStatus(context.session, context.turn, request.command)
@@ -145,13 +158,13 @@ internal class UnifiedExecSessionManager {
         if (hasExited) {
             val exit = response.exitCode ?: -1
             emitExecEndFromContext(
-                    context,
-                    request.command,
-                    cwd,
-                    response.output,
-                    exit,
-                    response.wallTime,
-                    request.processId
+                context,
+                request.command,
+                cwd,
+                response.output,
+                exit,
+                response.wallTime,
+                request.processId,
             )
         }
 
@@ -160,8 +173,8 @@ internal class UnifiedExecSessionManager {
 
     suspend fun writeStdin(processId: String, data: String) {
         val entry =
-                sessions.withLock { sessionsMap[processId] }
-                        ?: throw UnifiedExecError.UnknownSessionId(processId)
+            sessions.withLock { sessionsMap[processId] }
+                ?: throw UnifiedExecError.UnknownSessionId(processId)
 
         entry.lastUsed = Clock.System.now()
         entry.session.writeStdin(data)
@@ -169,25 +182,26 @@ internal class UnifiedExecSessionManager {
 
     suspend fun openSessionWithExecEnv(env: ExecEnv): UnifiedExecSession {
         val (program, args) =
-                if (env.command.isNotEmpty()) {
-                    env.command.first() to env.command.drop(1)
-                } else {
-                    throw UnifiedExecError.MissingCommandLine()
-                }
+            if (env.command.isNotEmpty()) {
+                env.command.first() to env.command.drop(1)
+            } else {
+                throw UnifiedExecError.MissingCommandLine()
+            }
 
         // Use PTY lib to spawn process
         val spawned =
-                io.github.kotlinmania.codex.utils.pty.spawnPtyProcess(program, args, env.cwd, env.env, scope)
+            io.github.kotlinmania.codex.utils.pty
+                .spawnPtyProcess(program, args, env.cwd, env.env, scope)
 
         return UnifiedExecSession.fromSpawned(spawned, env.sandbox, scope).getOrThrow()
     }
 
     suspend fun openSessionWithSandbox(
-            command: List<String>,
-            cwd: String,
-            withEscalatedPermissions: Boolean?,
-            justification: String?,
-            context: UnifiedExecContext
+        command: List<String>,
+        cwd: String,
+        withEscalatedPermissions: Boolean?,
+        justification: String?,
+        context: UnifiedExecContext,
     ): UnifiedExecSession {
         if (command.isEmpty()) {
             throw UnifiedExecError.MissingCommandLine()
@@ -195,30 +209,32 @@ internal class UnifiedExecSessionManager {
         val (program, args) = command.first() to command.drop(1)
 
         val spec =
-                CommandSpec(
-                        program = program,
-                        args = args,
-                        cwd = cwd,
-                        env = emptyMap(), // TODO: Inherit or config
-                        expiration =
-                                io.github.kotlinmania.codex.core.ExecExpiration
-                                        .DefaultTimeout, // Unified execs are usually
-                        // interactive/long-running?
-                        withEscalatedPermissions = withEscalatedPermissions,
-                        justification = justification
-                )
+            CommandSpec(
+                program = program,
+                args = args,
+                cwd = cwd,
+                env = emptyMap(), // TODO: Inherit or config
+                expiration =
+                    io.github.kotlinmania.codex.core.ExecExpiration
+                        .DefaultTimeout, // Unified execs are usually
+                // interactive/long-running?
+                withEscalatedPermissions = withEscalatedPermissions,
+                justification = justification,
+            )
 
         // Default policy for unified exec (terminal) is usually permissive or standard
         val policy = io.github.kotlinmania.codex.protocol.SandboxPolicy.DangerFullAccess
-        val sandboxType = io.github.kotlinmania.codex.core.platformGetSandbox() ?: SandboxType.None
+        val sandboxType =
+            io.github.kotlinmania.codex.core
+                .platformGetSandbox() ?: SandboxType.None
 
         val manager = SandboxManager()
         val transformResult = manager.transform(spec, policy, sandboxType, cwd, null)
 
         if (transformResult.isFailure()) {
             throw UnifiedExecError.SandboxError(
-                    transformResult.onFailure {}.getOrNull()?.toString()
-                            ?: "Sandbox transform failed"
+                transformResult.onFailure {}.getOrNull()?.toString()
+                    ?: "Sandbox transform failed",
             )
         }
 
@@ -227,10 +243,10 @@ internal class UnifiedExecSessionManager {
     }
 
     private suspend fun collectOutputUntilDeadline(
-            outputState: OutputBufferStateWrapper,
-            outputNotify: Notify,
-            cancellationToken: Job,
-            deadline: Instant
+        outputState: OutputBufferStateWrapper,
+        outputNotify: Notify,
+        cancellationToken: Job,
+        deadline: Instant,
     ): List<Byte> {
         val postExitOutputGrace = 25.milliseconds
         val collected = ArrayList<Byte>()
@@ -248,26 +264,25 @@ internal class UnifiedExecSessionManager {
 
                 if (exitSignalReceived) {
                     val grace =
-                            if (remaining < postExitOutputGrace) remaining else postExitOutputGrace
+                        if (remaining < postExitOutputGrace) remaining else postExitOutputGrace
                     withTimeoutOrNull(grace) { outputNotify.notified() } ?: break
                     continue
                 }
 
                 val waitResult =
-                        withTimeoutOrNull<Unit>(remaining) {
-                            coroutineScope {
-                                val notifiedJob: Deferred<Unit> = async { outputNotify.notified() }
-                                val joinedJob: Deferred<Unit> = async { cancellationToken.join() }
-                                select<Unit> {
-                                    notifiedJob.onAwait {}
-                                    joinedJob.onAwait { exitSignalReceived = true }
-                                }
-                                        .also {
-                                            notifiedJob.cancel()
-                                            joinedJob.cancel()
-                                        }
+                    withTimeoutOrNull<Unit>(remaining) {
+                        coroutineScope {
+                            val notifiedJob: Deferred<Unit> = async { outputNotify.notified() }
+                            val joinedJob: Deferred<Unit> = async { cancellationToken.join() }
+                            select<Unit> {
+                                notifiedJob.onAwait {}
+                                joinedJob.onAwait { exitSignalReceived = true }
+                            }.also {
+                                notifiedJob.cancel()
+                                joinedJob.cancel()
                             }
                         }
+                    }
                 if (waitResult == null) break
                 continue
             }
@@ -279,27 +294,27 @@ internal class UnifiedExecSessionManager {
     }
 
     private suspend fun storeSession(
-            session: UnifiedExecSession,
-            context: UnifiedExecContext,
-            command: List<String>,
-            cwd: String,
-            startedAt: Instant,
-            processId: String
+        session: UnifiedExecSession,
+        context: UnifiedExecContext,
+        command: List<String>,
+        cwd: String,
+        startedAt: Instant,
+        processId: String,
     ) {
         sessions.withLock {
             pruneSessionsIfNeeded(sessionsMap)
             val entry =
-                    SessionEntry(
-                            session,
-                            context.session,
-                            context.turn,
-                            context.callId,
-                            processId,
-                            command,
-                            cwd,
-                            startedAt,
-                            startedAt
-                    )
+                SessionEntry(
+                    session,
+                    context.session,
+                    context.turn,
+                    context.callId,
+                    processId,
+                    command,
+                    cwd,
+                    startedAt,
+                    startedAt,
+                )
             sessionsMap[processId] = entry
         }
     }
@@ -310,9 +325,9 @@ internal class UnifiedExecSessionManager {
         }
 
         val meta =
-                sessions.map { (id, entry) ->
-                    Triple(id, entry.lastUsed, entry.session.hasExited())
-                }
+            sessions.map { (id, entry) ->
+                Triple(id, entry.lastUsed, entry.session.hasExited())
+            }
 
         val sessionId = sessionIdToPruneFromMeta(meta)
         if (sessionId != null) {
@@ -328,29 +343,29 @@ internal class UnifiedExecSessionManager {
 
         // Try to find an exited one first that is not protected
         val toPrune =
-                byRecency.find { it.third && !protected.contains(it.first) }
-                        ?: byRecency.find { !protected.contains(it.first) }
-                                ?: byRecency.lastOrNull()
+            byRecency.find { it.third && !protected.contains(it.first) }
+                ?: byRecency.find { !protected.contains(it.first) }
+                ?: byRecency.lastOrNull()
 
         return toPrune?.first
     }
 
     private suspend fun emitWaitingStatus(
-            session: CodexSession,
-            turn: TurnContext,
-            command: List<String>
+        session: CodexSession,
+        turn: TurnContext,
+        command: List<String>,
     ) {
         // Emit event
     }
 
     private suspend fun emitExecEndFromContext(
-            context: UnifiedExecContext,
-            command: List<String>,
-            cwd: String,
-            aggregatedOutput: String,
-            exitCode: Int,
-            duration: Duration,
-            processId: String?
+        context: UnifiedExecContext,
+        command: List<String>,
+        cwd: String,
+        aggregatedOutput: String,
+        exitCode: Int,
+        duration: Duration,
+        processId: String?,
     ) {
         // Emit event
     }

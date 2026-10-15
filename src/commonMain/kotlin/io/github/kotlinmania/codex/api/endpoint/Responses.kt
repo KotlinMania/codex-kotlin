@@ -11,7 +11,7 @@ import io.github.kotlinmania.codex.api.requests.ResponsesRequest
 import io.github.kotlinmania.codex.api.requests.ResponsesRequestBuilder
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
-import io.ktor.client.*
+import io.ktor.client.HttpClient
 
 /** Options for configuring ResponsesClient. */
 internal data class ResponsesOptions(

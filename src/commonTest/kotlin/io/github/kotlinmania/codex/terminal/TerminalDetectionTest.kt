@@ -6,7 +6,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TerminalDetectionTest {
-
     private fun fakeEnv(
         vararg vars: Pair<String, String>,
         termtype: String? = null,
@@ -19,11 +18,12 @@ class TerminalDetectionTest {
 
     @Test
     fun detectsTermProgram() {
-        val env = fakeEnv(
-            "TERM_PROGRAM" to "iTerm.app",
-            "TERM_PROGRAM_VERSION" to "3.5.0",
-            "WEZTERM_VERSION" to "2024.2",
-        )
+        val env =
+            fakeEnv(
+                "TERM_PROGRAM" to "iTerm.app",
+                "TERM_PROGRAM_VERSION" to "3.5.0",
+                "WEZTERM_VERSION" to "2024.2",
+            )
         val terminal = detectTerminalInfoFromEnv(env)
         assertEquals(
             TerminalInfo.fromTermProgram(
@@ -36,10 +36,11 @@ class TerminalDetectionTest {
         )
         assertEquals("iTerm.app/3.5.0", terminal.userAgentToken())
 
-        val env2 = fakeEnv(
-            "TERM_PROGRAM" to "iTerm.app",
-            "TERM_PROGRAM_VERSION" to "",
-        )
+        val env2 =
+            fakeEnv(
+                "TERM_PROGRAM" to "iTerm.app",
+                "TERM_PROGRAM_VERSION" to "",
+            )
         val terminal2 = detectTerminalInfoFromEnv(env2)
         assertEquals(
             TerminalInfo.fromTermProgram(
@@ -105,10 +106,11 @@ class TerminalDetectionTest {
 
     @Test
     fun detectsVsCode() {
-        val env = fakeEnv(
-            "TERM_PROGRAM" to "vscode",
-            "TERM_PROGRAM_VERSION" to "1.86.0",
-        )
+        val env =
+            fakeEnv(
+                "TERM_PROGRAM" to "vscode",
+                "TERM_PROGRAM_VERSION" to "1.86.0",
+            )
         val terminal = detectTerminalInfoFromEnv(env)
         assertEquals(
             TerminalInfo.fromTermProgram(TerminalName.VsCode, "vscode", "1.86.0", null),
@@ -119,10 +121,11 @@ class TerminalDetectionTest {
 
     @Test
     fun detectsWarpTerminal() {
-        val env = fakeEnv(
-            "TERM_PROGRAM" to "WarpTerminal",
-            "TERM_PROGRAM_VERSION" to "v0.2025.12.10.08.12.stable_03",
-        )
+        val env =
+            fakeEnv(
+                "TERM_PROGRAM" to "WarpTerminal",
+                "TERM_PROGRAM_VERSION" to "v0.2025.12.10.08.12.stable_03",
+            )
         val terminal = detectTerminalInfoFromEnv(env)
         assertEquals(
             TerminalInfo.fromTermProgram(
@@ -138,12 +141,13 @@ class TerminalDetectionTest {
 
     @Test
     fun detectsTmuxMultiplexer() {
-        val env = fakeEnv(
-            "TMUX" to "/tmp/tmux-1000/default,123,0",
-            "TERM_PROGRAM" to "tmux",
-            termtype = "xterm-256color",
-            termname = "screen-256color",
-        )
+        val env =
+            fakeEnv(
+                "TMUX" to "/tmp/tmux-1000/default,123,0",
+                "TERM_PROGRAM" to "tmux",
+                termtype = "xterm-256color",
+                termname = "screen-256color",
+            )
         val terminal = detectTerminalInfoFromEnv(env)
         assertEquals(
             TerminalInfo.fromTermProgramAndTerm(

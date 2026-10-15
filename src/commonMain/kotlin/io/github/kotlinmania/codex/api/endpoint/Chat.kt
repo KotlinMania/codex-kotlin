@@ -11,7 +11,7 @@ import io.github.kotlinmania.codex.api.requests.ChatRequestBuilder
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
 import io.github.kotlinmania.codex.protocol.ResponseEvent
-import io.ktor.client.*
+import io.ktor.client.HttpClient
 import kotlinx.serialization.json.JsonElement
 
 /** Client for Chat Completions endpoint. */

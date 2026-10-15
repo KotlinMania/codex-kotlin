@@ -16,7 +16,9 @@ sealed class ThreadEvent {
      */
     @Serializable
     @SerialName("thread.started")
-    data class ThreadStarted(val event: ThreadStartedEvent) : ThreadEvent()
+    data class ThreadStarted(
+        val event: ThreadStartedEvent,
+    ) : ThreadEvent()
 
     /**
      * Emitted when a turn is started by sending a new prompt to the model.
@@ -24,49 +26,63 @@ sealed class ThreadEvent {
      */
     @Serializable
     @SerialName("turn.started")
-    data class TurnStarted(val event: TurnStartedEvent) : ThreadEvent()
+    data class TurnStarted(
+        val event: TurnStartedEvent,
+    ) : ThreadEvent()
 
     /**
      * Emitted when a turn is completed. Typically right after the assistant response.
      */
     @Serializable
     @SerialName("turn.completed")
-    data class TurnCompleted(val event: TurnCompletedEvent) : ThreadEvent()
+    data class TurnCompleted(
+        val event: TurnCompletedEvent,
+    ) : ThreadEvent()
 
     /**
      * Indicates that a turn failed with an error.
      */
     @Serializable
     @SerialName("turn.failed")
-    data class TurnFailed(val event: TurnFailedEvent) : ThreadEvent()
+    data class TurnFailed(
+        val event: TurnFailedEvent,
+    ) : ThreadEvent()
 
     /**
      * Emitted when a new item is added to the thread. Typically the item will be in an "in progress" state.
      */
     @Serializable
     @SerialName("item.started")
-    data class ItemStarted(val event: ItemStartedEvent) : ThreadEvent()
+    data class ItemStarted(
+        val event: ItemStartedEvent,
+    ) : ThreadEvent()
 
     /**
      * Emitted when an item is updated.
      */
     @Serializable
     @SerialName("item.updated")
-    data class ItemUpdated(val event: ItemUpdatedEvent) : ThreadEvent()
+    data class ItemUpdated(
+        val event: ItemUpdatedEvent,
+    ) : ThreadEvent()
 
     /**
      * Signals that an item has reached a terminal state—either success or failure.
      */
     @Serializable
     @SerialName("item.completed")
-    data class ItemCompleted(val event: ItemCompletedEvent) : ThreadEvent()
+    data class ItemCompleted(
+        val event: ItemCompletedEvent,
+    ) : ThreadEvent()
 
     /**
      * Represents an unrecoverable error emitted directly by the event stream.
      */
     @Serializable
     @SerialName("error")
-    data class Error(val event: ThreadErrorEvent) : ThreadEvent()
+    data class Error(
+        val event: ThreadErrorEvent,
+    ) : ThreadEvent()
 }
 
 @Serializable
@@ -75,23 +91,23 @@ data class ThreadStartedEvent(
      * The identifier of the new thread. Can be used to resume the thread later.
      */
     @SerialName("thread_id")
-    val threadId: String
+    val threadId: String,
 )
 
 @Serializable
 data class TurnStartedEvent(
     // Empty struct in Rust, but we keep it for API consistency
-    val placeholder: Unit = Unit
+    val placeholder: Unit = Unit,
 )
 
 @Serializable
 data class TurnCompletedEvent(
-    val usage: Usage
+    val usage: Usage,
 )
 
 @Serializable
 data class TurnFailedEvent(
-    val error: ThreadErrorEvent
+    val error: ThreadErrorEvent,
 )
 
 /**
@@ -104,33 +120,31 @@ data class Usage(
      */
     @SerialName("input_tokens")
     val inputTokens: Long = 0,
-
     /**
      * The number of cached input tokens used during the turn.
      */
     @SerialName("cached_input_tokens")
     val cachedInputTokens: Long = 0,
-
     /**
      * The number of output tokens used during the turn.
      */
     @SerialName("output_tokens")
-    val outputTokens: Long = 0
+    val outputTokens: Long = 0,
 )
 
 @Serializable
 data class ItemStartedEvent(
-    val item: ThreadItem
+    val item: ThreadItem,
 )
 
 @Serializable
 data class ItemCompletedEvent(
-    val item: ThreadItem
+    val item: ThreadItem,
 )
 
 @Serializable
 data class ItemUpdatedEvent(
-    val item: ThreadItem
+    val item: ThreadItem,
 )
 
 /**
@@ -138,7 +152,7 @@ data class ItemUpdatedEvent(
  */
 @Serializable
 data class ThreadErrorEvent(
-    val message: String
+    val message: String,
 )
 
 /**
@@ -151,7 +165,7 @@ data class ThreadItem(
      * Flattened details (using JsonContentPolymorphicSerializer would require more setup)
      * In Rust this uses (serde(flatten)), we will handle via custom serializer or flattening manually.
      */
-    val details: ThreadItemDetails
+    val details: ThreadItemDetails,
 )
 
 /**
@@ -165,14 +179,18 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("agent_message")
-    data class AgentMessage(val item: AgentMessageItem) : ThreadItemDetails()
+    data class AgentMessage(
+        val item: AgentMessageItem,
+    ) : ThreadItemDetails()
 
     /**
      * Agent reasoning summary.
      */
     @Serializable
     @SerialName("reasoning")
-    data class Reasoning(val item: ReasoningItem) : ThreadItemDetails()
+    data class Reasoning(
+        val item: ReasoningItem,
+    ) : ThreadItemDetails()
 
     /**
      * Tracks a command executed by the agent. The item starts when the command is
@@ -180,7 +198,9 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("command_execution")
-    data class CommandExecution(val item: CommandExecutionItem) : ThreadItemDetails()
+    data class CommandExecution(
+        val item: CommandExecutionItem,
+    ) : ThreadItemDetails()
 
     /**
      * Represents a set of file changes by the agent. The item is emitted only as a
@@ -188,7 +208,9 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("file_change")
-    data class FileChange(val item: FileChangeItem) : ThreadItemDetails()
+    data class FileChange(
+        val item: FileChangeItem,
+    ) : ThreadItemDetails()
 
     /**
      * Represents a call to an MCP tool. The item starts when the invocation is
@@ -196,7 +218,9 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("mcp_tool_call")
-    data class McpToolCall(val item: McpToolCallItem) : ThreadItemDetails()
+    data class McpToolCall(
+        val item: McpToolCallItem,
+    ) : ThreadItemDetails()
 
     /**
      * Captures a web search request. It starts when the search is kicked off
@@ -204,7 +228,9 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("web_search")
-    data class WebSearch(val item: WebSearchItem) : ThreadItemDetails()
+    data class WebSearch(
+        val item: WebSearchItem,
+    ) : ThreadItemDetails()
 
     /**
      * Tracks the agent running to-do list. It starts when the plan is first
@@ -212,14 +238,18 @@ sealed class ThreadItemDetails {
      */
     @Serializable
     @SerialName("todo_list")
-    data class TodoList(val item: TodoListItem) : ThreadItemDetails()
+    data class TodoList(
+        val item: TodoListItem,
+    ) : ThreadItemDetails()
 
     /**
      * Describes a non-fatal error surfaced as an item.
      */
     @Serializable
     @SerialName("error")
-    data class Error(val item: ErrorItem) : ThreadItemDetails()
+    data class Error(
+        val item: ErrorItem,
+    ) : ThreadItemDetails()
 }
 
 /**
@@ -228,7 +258,7 @@ sealed class ThreadItemDetails {
  */
 @Serializable
 data class AgentMessageItem(
-    val text: String
+    val text: String,
 )
 
 /**
@@ -236,7 +266,7 @@ data class AgentMessageItem(
  */
 @Serializable
 data class ReasoningItem(
-    val text: String
+    val text: String,
 )
 
 /**
@@ -254,7 +284,7 @@ enum class CommandExecutionStatus {
     FAILED,
 
     @SerialName("declined")
-    DECLINED;
+    DECLINED,
 }
 
 /**
@@ -263,14 +293,11 @@ enum class CommandExecutionStatus {
 @Serializable
 data class CommandExecutionItem(
     val command: String,
-
     @SerialName("aggregated_output")
     val aggregatedOutput: String,
-
     @SerialName("exit_code")
     val exitCode: Int? = null,
-
-    val status: CommandExecutionStatus = CommandExecutionStatus.IN_PROGRESS
+    val status: CommandExecutionStatus = CommandExecutionStatus.IN_PROGRESS,
 )
 
 /**
@@ -279,7 +306,7 @@ data class CommandExecutionItem(
 @Serializable
 data class FileUpdateChange(
     val path: String,
-    val kind: PatchChangeKind
+    val kind: PatchChangeKind,
 )
 
 /**
@@ -294,7 +321,7 @@ enum class PatchApplyStatus {
     COMPLETED,
 
     @SerialName("failed")
-    FAILED
+    FAILED,
 }
 
 /**
@@ -303,7 +330,7 @@ enum class PatchApplyStatus {
 @Serializable
 data class FileChangeItem(
     val changes: List<FileUpdateChange>,
-    val status: PatchApplyStatus
+    val status: PatchApplyStatus,
 )
 
 /**
@@ -318,7 +345,7 @@ enum class PatchChangeKind {
     DELETE,
 
     @SerialName("update")
-    UPDATE
+    UPDATE,
 }
 
 /**
@@ -333,7 +360,7 @@ enum class McpToolCallStatus {
     COMPLETED,
 
     @SerialName("failed")
-    FAILED;
+    FAILED,
 }
 
 /**
@@ -342,9 +369,8 @@ enum class McpToolCallStatus {
 @Serializable
 data class McpToolCallItemResult(
     val content: List<ContentBlock>,
-
     @SerialName("structured_content")
-    val structuredContent: JsonElement? = null
+    val structuredContent: JsonElement? = null,
 )
 
 /**
@@ -352,7 +378,7 @@ data class McpToolCallItemResult(
  */
 @Serializable
 data class McpToolCallItemError(
-    val message: String
+    val message: String,
 )
 
 /**
@@ -365,7 +391,7 @@ data class McpToolCallItem(
     val arguments: JsonElement = kotlinx.serialization.json.JsonNull,
     val result: McpToolCallItemResult? = null,
     val error: McpToolCallItemError? = null,
-    val status: McpToolCallStatus = McpToolCallStatus.IN_PROGRESS
+    val status: McpToolCallStatus = McpToolCallStatus.IN_PROGRESS,
 )
 
 /**
@@ -373,7 +399,7 @@ data class McpToolCallItem(
  */
 @Serializable
 data class WebSearchItem(
-    val query: String
+    val query: String,
 )
 
 /**
@@ -381,7 +407,7 @@ data class WebSearchItem(
  */
 @Serializable
 data class ErrorItem(
-    val message: String
+    val message: String,
 )
 
 /**
@@ -390,10 +416,10 @@ data class ErrorItem(
 @Serializable
 data class TodoItem(
     val text: String,
-    val completed: Boolean
+    val completed: Boolean,
 )
 
 @Serializable
 data class TodoListItem(
-    val items: List<TodoItem>
+    val items: List<TodoItem>,
 )

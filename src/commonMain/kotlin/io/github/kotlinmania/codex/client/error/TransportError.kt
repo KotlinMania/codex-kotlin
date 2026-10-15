@@ -1,7 +1,8 @@
 // port-lint: source error.rs
 package io.github.kotlinmania.codex.client.error
 
-import io.ktor.http.*
+import io.github.kotlinmania.http.StatusCode
+import io.ktor.http.Headers
 
 /**
  * Transport-level errors that can occur during HTTP communication.
@@ -13,12 +14,12 @@ internal sealed class TransportError : Exception() {
      * HTTP error with status code and optional response details.
      */
     data class Http(
-        val status: HttpStatusCode,
+        val status: StatusCode,
         val headers: Headers? = null,
         val body: String? = null,
     ) : TransportError() {
         override val message: String
-            get() = "http ${status.value}: ${body ?: "no body"}"
+            get() = "http ${status.asU16()}: ${body ?: "no body"}"
     }
 
     /**

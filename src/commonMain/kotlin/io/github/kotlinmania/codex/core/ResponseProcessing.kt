@@ -10,26 +10,26 @@ import io.github.kotlinmania.codex.protocol.ResponseItem
 data class ToolCallProcessorConfig(
     val enableParallelExecution: Boolean = false,
     val maxConcurrentCalls: Int = 1,
-    val defaultTimeoutMs: Long = 60000L
+    val defaultTimeoutMs: Long = 60000L,
 )
 
 data class ProcessedResponseItem(
     val item: ResponseItem,
-    val response: ResponseInputItem?
+    val response: ResponseInputItem?,
 )
 
 data class ProcessItemsResult(
     val responses: List<ResponseInputItem>,
-    val itemsToRecord: List<ResponseItem>
+    val itemsToRecord: List<ResponseItem>,
 )
 
 internal class ToolCallProcessor(
-    private val config: ToolCallProcessorConfig = ToolCallProcessorConfig()
+    private val config: ToolCallProcessorConfig = ToolCallProcessorConfig(),
 ) {
     suspend fun processItems(
         processedItems: List<ProcessedResponseItem>,
         session: Session,
-        turnContext: TurnContext
+        turnContext: TurnContext,
     ): ProcessItemsResult {
         val outputsToRecord = mutableListOf<ResponseItem>()
         val newInputsToRecord = mutableListOf<ResponseItem>()
@@ -48,42 +48,43 @@ internal class ToolCallProcessor(
                     newInputsToRecord.add(
                         ResponseItem.FunctionCallOutput(
                             callId = response.callId,
-                            output = response.output
-                        )
+                            output = response.output,
+                        ),
                     )
                 }
                 is ResponseInputItem.CustomToolCallOutput -> {
                     newInputsToRecord.add(
                         ResponseItem.CustomToolCallOutput(
                             callId = response.callId,
-                            output = response.output
-                        )
+                            output = response.output,
+                        ),
                     )
                 }
                 is ResponseInputItem.McpToolCallOutput -> {
-                    val output = when {
-                        response.result.isSuccess && response.result.value != null -> {
-                            FunctionCallOutputPayload.from(response.result.value)
+                    val output =
+                        when {
+                            response.result.isSuccess && response.result.value != null -> {
+                                FunctionCallOutputPayload.from(response.result.value)
+                            }
+                            response.result.isSuccess -> {
+                                FunctionCallOutputPayload(
+                                    content = "null result",
+                                    success = false,
+                                )
+                            }
+                            else -> {
+                                val error = response.result.error ?: "Unknown error"
+                                FunctionCallOutputPayload(
+                                    content = error,
+                                    success = false,
+                                )
+                            }
                         }
-                        response.result.isSuccess -> {
-                            FunctionCallOutputPayload(
-                                content = "null result",
-                                success = false
-                            )
-                        }
-                        else -> {
-                            val error = response.result.error ?: "Unknown error"
-                            FunctionCallOutputPayload(
-                                content = error,
-                                success = false
-                            )
-                        }
-                    }
                     newInputsToRecord.add(
                         ResponseItem.FunctionCallOutput(
                             callId = response.callId,
-                            output = output
-                        )
+                            output = output,
+                        ),
                     )
                 }
                 null -> {}
@@ -103,7 +104,7 @@ internal class ToolCallProcessor(
 
         return ProcessItemsResult(
             responses = responses,
-            itemsToRecord = allItemsToRecord
+            itemsToRecord = allItemsToRecord,
         )
     }
 }

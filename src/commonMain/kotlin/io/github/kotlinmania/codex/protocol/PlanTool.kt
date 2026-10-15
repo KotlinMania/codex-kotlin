@@ -19,17 +19,17 @@ enum class StepStatus {
     InProgress,
 
     @SerialName("completed")
-    Completed
+    Completed,
 }
 
 @Serializable
 data class PlanItemArg(
     val step: String,
-    val status: StepStatus
+    val status: StepStatus,
 )
 
 @Serializable
 data class UpdatePlanArgs(
     val explanation: String? = null,
-    val plan: List<PlanItemArg>
+    val plan: List<PlanItemArg>,
 )

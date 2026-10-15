@@ -1,8 +1,8 @@
 // port-lint: source core/src/tools/runtimes/unified_exec.rs
 package io.github.kotlinmania.codex.core.tools.runtimes
 
-import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.CodexErr
+import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.tools.Approvable
 import io.github.kotlinmania.codex.core.tools.ApprovalCtx
 import io.github.kotlinmania.codex.core.tools.ApprovalRequirement
@@ -23,48 +23,41 @@ import io.github.kotlinmania.codex.core.unifiedexec.UnifiedExecSessionManager
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 
 internal data class UnifiedExecRequest(
-        val command: List<String>,
-        val cwd: String,
-        val env: Map<String, String>,
-        val withEscalatedPermissions: Boolean?,
-        val justification: String?,
-        val approvalRequirement: ApprovalRequirement
+    val command: List<String>,
+    val cwd: String,
+    val env: Map<String, String>,
+    val withEscalatedPermissions: Boolean?,
+    val justification: String?,
+    val approvalRequirement: ApprovalRequirement,
 ) : ProvidesSandboxRetryData {
-    override fun sandboxRetryData(): SandboxRetryData? {
-        return SandboxRetryData(command = command, cwd = cwd)
-    }
+    override fun sandboxRetryData(): SandboxRetryData? = SandboxRetryData(command = command, cwd = cwd)
 }
 
 internal data class UnifiedExecApprovalKey(
-        val command: List<String>,
-        val cwd: String,
-        val escalated: Boolean
+    val command: List<String>,
+    val cwd: String,
+    val escalated: Boolean,
 )
 
-internal class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager) :
-        ToolRuntime<UnifiedExecRequest, UnifiedExecSession>,
-        Sandboxable,
-        Approvable<UnifiedExecRequest> {
+internal class UnifiedExecRuntime(
+    private val manager: UnifiedExecSessionManager,
+) : ToolRuntime<UnifiedExecRequest, UnifiedExecSession>,
+    Sandboxable,
+    Approvable<UnifiedExecRequest> {
+    override fun sandboxPreference(): SandboxablePreference = SandboxablePreference.Auto
 
-    override fun sandboxPreference(): SandboxablePreference {
-        return SandboxablePreference.Auto
-    }
+    override fun escalateOnFailure(): Boolean = true
 
-    override fun escalateOnFailure(): Boolean {
-        return true
-    }
-
-    fun approvalKey(req: UnifiedExecRequest): Any {
-        return UnifiedExecApprovalKey(
-                command = req.command,
-                cwd = req.cwd,
-                escalated = req.withEscalatedPermissions ?: false
+    fun approvalKey(req: UnifiedExecRequest): Any =
+        UnifiedExecApprovalKey(
+            command = req.command,
+            cwd = req.cwd,
+            escalated = req.withEscalatedPermissions ?: false,
         )
-    }
 
     override suspend fun startApprovalAsync(
-            req: UnifiedExecRequest,
-            ctx: ApprovalCtx
+        req: UnifiedExecRequest,
+        ctx: ApprovalCtx,
     ): ReviewDecision {
         val key = approvalKey(req)
         val session = ctx.session
@@ -80,15 +73,15 @@ internal class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager
         }
     }
 
-    override fun approvalRequirement(req: UnifiedExecRequest): ApprovalRequirement? {
-        return req.approvalRequirement
-    }
+    override fun approvalRequirement(req: UnifiedExecRequest): ApprovalRequirement? = req.approvalRequirement
 
     override fun sandboxModeForFirstAttempt(req: UnifiedExecRequest): SandboxOverride {
         val bypass =
-                req.withEscalatedPermissions == true ||
-                        (req.approvalRequirement is ApprovalRequirement.Skip &&
-                                req.approvalRequirement.bypassSandbox)
+            req.withEscalatedPermissions == true ||
+                (
+                    req.approvalRequirement is ApprovalRequirement.Skip &&
+                        req.approvalRequirement.bypassSandbox
+                )
 
         return if (bypass) {
             SandboxOverride.BypassSandboxFirstAttempt
@@ -99,19 +92,19 @@ internal class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager
 
     @Suppress("UNUSED_PARAMETER")
     override suspend fun run(
-            req: UnifiedExecRequest,
-            attempt: SandboxAttempt,
-            ctx: ToolCtx
+        req: UnifiedExecRequest,
+        attempt: SandboxAttempt,
+        ctx: ToolCtx,
     ): Result<UnifiedExecSession> {
         val specResult =
-                buildCommandSpec(
-                        req.command,
-                        req.cwd,
-                        req.env,
-                        ExecExpiration.DefaultTimeout,
-                        req.withEscalatedPermissions,
-                        req.justification
-                )
+            buildCommandSpec(
+                req.command,
+                req.cwd,
+                req.env,
+                ExecExpiration.DefaultTimeout,
+                req.withEscalatedPermissions,
+                req.justification,
+            )
         if (specResult.isFailure) {
             return Result.failure(ToolError.Rejected("missing command line for PTY"))
         }
@@ -120,35 +113,38 @@ internal class UnifiedExecRuntime(private val manager: UnifiedExecSessionManager
         val execEnvResult = attempt.envFor(spec)
         if (execEnvResult.isFailure) {
             return Result.failure(
-                    ToolError.Codex(
-                            CodexErr.Io(
-                                    execEnvResult.exceptionOrNull()?.message ?: "Unknown error"
-                            )
-                    )
+                ToolError.Codex(
+                    CodexErr.Io(
+                        execEnvResult.exceptionOrNull()?.message ?: "Unknown error",
+                    ),
+                ),
             )
         }
         val execEnv = execEnvResult.getOrNull()!!
 
         return try {
             val session =
-                    manager.openSessionWithExecEnv(
-                            execEnv
-                    ) // This method needs to be added to SessionManager
+                manager.openSessionWithExecEnv(
+                    execEnv,
+                ) // This method needs to be added to SessionManager
             Result.success(session)
         } catch (e: Exception) {
             when (e) {
                 is UnifiedExecError.SandboxDenied -> {
                     Result.failure(
-                            ToolError.Codex(
-                                    CodexErr.Sandbox(io.github.kotlinmania.codex.core.SandboxErr.Denied(e.output))
-                            )
+                        ToolError.Codex(
+                            CodexErr.Sandbox(
+                                io.github.kotlinmania.codex.core.SandboxErr
+                                    .Denied(e.output),
+                            ),
+                        ),
                     )
                 }
                 is UnifiedExecError.SandboxError -> {
                     Result.failure(
-                            ToolError.Codex(
-                                    CodexErr.Io(e.message)
-                            )
+                        ToolError.Codex(
+                            CodexErr.Io(e.message),
+                        ),
                     )
                 }
                 else -> {

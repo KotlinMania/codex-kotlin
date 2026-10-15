@@ -1,11 +1,9 @@
 // port-lint: source core/src/state/turn.rs
 package io.github.kotlinmania.codex.core.session
 
-import io.github.kotlinmania.codex.client.auth.AuthManager
+import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import io.github.kotlinmania.codex.utils.concurrent.CancellationToken
-import io.github.kotlinmania.codex.protocol.TurnAbortReason
-import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -22,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
 enum class TaskKind {
     Regular,
     Review,
-    Compact
+    Compact,
 }
 
 /**
@@ -69,7 +67,7 @@ internal data class RunningTask(
     val kind: TaskKind,
     val task: SessionTask,
     val cancellationToken: CancellationToken,
-    val turnContext: TurnContext
+    val turnContext: TurnContext,
 )
 
 /**
@@ -88,21 +86,19 @@ internal class TurnState {
      */
     suspend fun insertPendingApproval(
         key: String,
-        deferred: CompletableDeferred<ReviewDecision>
-    ): CompletableDeferred<ReviewDecision>? {
-        return mutex.withLock {
+        deferred: CompletableDeferred<ReviewDecision>,
+    ): CompletableDeferred<ReviewDecision>? =
+        mutex.withLock {
             pendingApprovals.put(key, deferred)
         }
-    }
 
     /**
      * Remove and return a pending approval by key.
      */
-    suspend fun removePendingApproval(key: String): CompletableDeferred<ReviewDecision>? {
-        return mutex.withLock {
+    suspend fun removePendingApproval(key: String): CompletableDeferred<ReviewDecision>? =
+        mutex.withLock {
             pendingApprovals.remove(key)
         }
-    }
 
     /**
      * Clear all pending approvals and input.
@@ -126,8 +122,8 @@ internal class TurnState {
     /**
      * Take all pending input, leaving the list empty.
      */
-    suspend fun takePendingInput(): List<ResponseInputItem> {
-        return mutex.withLock {
+    suspend fun takePendingInput(): List<ResponseInputItem> =
+        mutex.withLock {
             if (pendingInput.isEmpty()) {
                 emptyList()
             } else {
@@ -136,16 +132,14 @@ internal class TurnState {
                 result
             }
         }
-    }
 
     /**
      * Check if there are pending approvals.
      */
-    suspend fun hasPendingApprovals(): Boolean {
-        return mutex.withLock {
+    suspend fun hasPendingApprovals(): Boolean =
+        mutex.withLock {
             pendingApprovals.isNotEmpty()
         }
-    }
 }
 
 /**
@@ -154,12 +148,23 @@ internal class TurnState {
  * Ported from Rust codex-rs/core/src/state/turn.rs
  */
 sealed class UserInput {
-    data class Text(val content: String) : UserInput()
-    data class Image(val mimeType: String, val data: String = "") : UserInput()
-    data class FileRef(val path: String) : UserInput()
+    data class Text(
+        val content: String,
+    ) : UserInput()
+
+    data class Image(
+        val mimeType: String,
+        val data: String = "",
+    ) : UserInput()
+
+    data class FileRef(
+        val path: String,
+    ) : UserInput()
 }
 
-internal class SessionTaskContext(private val session: Session) {
+internal class SessionTaskContext(
+    private val session: Session,
+) {
     fun getSession(): Session = session
 }
 
@@ -170,11 +175,13 @@ internal class SessionTaskContext(private val session: Session) {
  */
 internal interface SessionTask {
     fun kind(): TaskKind
+
     suspend fun abort(sessionContext: SessionTaskContext, turnContext: TurnContext) {}
+
     suspend fun run(
         sessionContext: SessionTaskContext,
         turnContext: TurnContext,
         input: List<UserInput>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): String?
 }

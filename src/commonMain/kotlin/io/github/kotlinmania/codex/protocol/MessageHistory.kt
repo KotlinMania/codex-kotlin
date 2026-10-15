@@ -15,5 +15,5 @@ data class HistoryEntry(
     @SerialName("conversation_id")
     val conversationId: String,
     val ts: Long,
-    val text: String
+    val text: String,
 )

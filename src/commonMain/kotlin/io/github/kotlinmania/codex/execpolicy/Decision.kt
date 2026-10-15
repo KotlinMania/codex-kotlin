@@ -16,14 +16,17 @@ enum class Decision {
 
     /** Command is blocked without further consideration. */
     @SerialName("forbidden")
-    Forbidden;
+    Forbidden,
+
+    ;
 
     companion object {
-        fun parse(raw: String): Decision = when (raw) {
-            "allow" -> Allow
-            "prompt" -> Prompt
-            "forbidden" -> Forbidden
-            else -> throw ExecPolicyError.InvalidDecision(raw)
-        }
+        fun parse(raw: String): Decision =
+            when (raw) {
+                "allow" -> Allow
+                "prompt" -> Prompt
+                "forbidden" -> Forbidden
+                else -> throw ExecPolicyError.InvalidDecision(raw)
+            }
     }
 }

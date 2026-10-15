@@ -18,20 +18,22 @@ internal class TestSyncHandler : ToolHandler {
     override val kind: ToolKind = ToolKind.Function
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
-        val arguments = when (val p = invocation.payload) {
-            is ToolPayload.Function -> p.arguments
-            else -> return Result.failure(
-                IllegalArgumentException("test_sync_tool handler received unsupported payload")
-            )
-        }
+        val arguments =
+            when (val p = invocation.payload) {
+                is ToolPayload.Function -> p.arguments
+                else -> return Result.failure(
+                    IllegalArgumentException("test_sync_tool handler received unsupported payload"),
+                )
+            }
 
-        val args = try {
-            Json.decodeFromString<TestSyncArgs>(arguments)
-        } catch (err: Throwable) {
-            return Result.failure(
-                IllegalArgumentException("failed to parse function arguments: $err")
-            )
-        }
+        val args =
+            try {
+                Json.decodeFromString<TestSyncArgs>(arguments)
+            } catch (err: Throwable) {
+                return Result.failure(
+                    IllegalArgumentException("failed to parse function arguments: $err"),
+                )
+            }
 
         args.sleepBeforeMs?.let { delayMs ->
             if (delayMs > 0) delay(delayMs)
@@ -51,7 +53,7 @@ internal class TestSyncHandler : ToolHandler {
                 content = "ok",
                 contentItems = null,
                 success = true,
-            )
+            ),
         )
     }
 }
@@ -87,49 +89,51 @@ private val barrierMap = mutableMapOf<String, BarrierState>()
 private suspend fun waitOnBarrier(args: BarrierArgs): Result<Unit> {
     if (args.participants == 0) {
         return Result.failure(
-            IllegalArgumentException("barrier participants must be greater than zero")
+            IllegalArgumentException("barrier participants must be greater than zero"),
         )
     }
 
     if (args.timeoutMs == 0L) {
         return Result.failure(
-            IllegalArgumentException("barrier timeout must be greater than zero")
+            IllegalArgumentException("barrier timeout must be greater than zero"),
         )
     }
 
     val barrierId = args.id
-    val state = barrierMapMutex.withLock {
-        val existing = barrierMap[barrierId]
-        if (existing != null) {
-            if (existing.participants != args.participants) {
-                return Result.failure(
-                    IllegalArgumentException(
-                        "barrier $barrierId already registered with ${existing.participants} participants"
+    val state =
+        barrierMapMutex.withLock {
+            val existing = barrierMap[barrierId]
+            if (existing != null) {
+                if (existing.participants != args.participants) {
+                    return Result.failure(
+                        IllegalArgumentException(
+                            "barrier $barrierId already registered with ${existing.participants} participants",
+                        ),
                     )
-                )
+                }
+                existing
+            } else {
+                val fresh = BarrierState(args.participants)
+                barrierMap[barrierId] = fresh
+                fresh
             }
-            existing
-        } else {
-            val fresh = BarrierState(args.participants)
-            barrierMap[barrierId] = fresh
-            fresh
         }
-    }
 
-    val isLeader: Boolean = state.mutex.withLock {
-        state.arrived += 1
-        if (state.arrived >= state.participants) {
-            state.gate.complete(Unit)
-            if (!state.leaderClaimed) {
-                state.leaderClaimed = true
-                true
+    val isLeader: Boolean =
+        state.mutex.withLock {
+            state.arrived += 1
+            if (state.arrived >= state.participants) {
+                state.gate.complete(Unit)
+                if (!state.leaderClaimed) {
+                    state.leaderClaimed = true
+                    true
+                } else {
+                    false
+                }
             } else {
                 false
             }
-        } else {
-            false
         }
-    }
 
     val completed = withTimeoutOrNull(args.timeoutMs) { state.gate.await() }
     if (completed == null) {

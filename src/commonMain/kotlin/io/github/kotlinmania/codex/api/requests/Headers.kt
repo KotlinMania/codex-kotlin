@@ -1,7 +1,7 @@
 // port-lint: source codex-api/src/requests/headers.rs
 package io.github.kotlinmania.codex.api.requests
 
-import io.ktor.client.request.*
+import io.ktor.client.request.HttpRequestBuilder
 
 /** Build conversation-related headers. */
 internal fun buildConversationHeaders(conversationId: String?, builder: HttpRequestBuilder) {

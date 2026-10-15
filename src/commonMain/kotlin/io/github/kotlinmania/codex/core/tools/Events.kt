@@ -1,11 +1,10 @@
 // port-lint: source core/src/tools/events.rs
 package io.github.kotlinmania.codex.core.tools
 
+import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.FunctionCallError
-import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.Session
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.protocol.EventMsg
 import io.github.kotlinmania.codex.protocol.ExecCommandBeginEvent
@@ -23,18 +22,29 @@ internal class ToolEventCtx(
     val session: Session,
     val turn: TurnContext,
     val callId: String,
-    val turnDiffTracker: SharedTurnDiffTracker?
+    val turnDiffTracker: SharedTurnDiffTracker?,
 )
 
 internal sealed class ToolEventStage {
     object Begin : ToolEventStage()
-    data class Success(val output: ExecToolCallOutput) : ToolEventStage()
-    data class Failure(val failure: ToolEventFailure) : ToolEventStage()
+
+    data class Success(
+        val output: ExecToolCallOutput,
+    ) : ToolEventStage()
+
+    data class Failure(
+        val failure: ToolEventFailure,
+    ) : ToolEventStage()
 }
 
 internal sealed class ToolEventFailure {
-    data class Output(val output: ExecToolCallOutput) : ToolEventFailure()
-    data class Message(val message: String) : ToolEventFailure()
+    data class Output(
+        val output: ExecToolCallOutput,
+    ) : ToolEventFailure()
+
+    data class Message(
+        val message: String,
+    ) : ToolEventFailure()
 }
 
 internal suspend fun emitExecCommandBegin(
@@ -44,7 +54,7 @@ internal suspend fun emitExecCommandBegin(
     parsedCmd: List<ParsedCommand>,
     source: ExecCommandSource,
     interactionInput: String?,
-    processId: String?
+    processId: String?,
 ) {
     ctx.session.sendEvent(
         ctx.turn,
@@ -57,9 +67,9 @@ internal suspend fun emitExecCommandBegin(
                 cwd = cwd,
                 parsedCmd = parsedCmd,
                 source = source,
-                interactionInput = interactionInput
-            )
-        )
+                interactionInput = interactionInput,
+            ),
+        ),
     )
 }
 
@@ -69,12 +79,12 @@ internal sealed class ToolEmitter {
         val cwd: String,
         val source: ExecCommandSource,
         val parsedCmd: List<ParsedCommand>,
-        val freeform: Boolean
+        val freeform: Boolean,
     ) : ToolEmitter()
 
     data class ApplyPatch(
         val changes: Map<String, FileChange>, // PathBuf -> String
-        val autoApproved: Boolean
+        val autoApproved: Boolean,
     ) : ToolEmitter()
 
     data class UnifiedExec(
@@ -83,7 +93,7 @@ internal sealed class ToolEmitter {
         val source: ExecCommandSource,
         val interactionInput: String?,
         val parsedCmd: List<ParsedCommand>,
-        val processId: String?
+        val processId: String?,
     ) : ToolEmitter()
 
     companion object {
@@ -91,7 +101,7 @@ internal sealed class ToolEmitter {
             command: List<String>,
             cwd: String,
             source: ExecCommandSource,
-            freeform: Boolean
+            freeform: Boolean,
         ): ToolEmitter {
             val parsedCmd = parseCommand(command)
             return Shell(
@@ -99,20 +109,18 @@ internal sealed class ToolEmitter {
                 cwd = cwd,
                 source = source,
                 parsedCmd = parsedCmd,
-                freeform = freeform
+                freeform = freeform,
             )
         }
 
-        fun applyPatch(changes: Map<String, FileChange>, autoApproved: Boolean): ToolEmitter {
-            return ApplyPatch(changes, autoApproved)
-        }
+        fun applyPatch(changes: Map<String, FileChange>, autoApproved: Boolean): ToolEmitter = ApplyPatch(changes, autoApproved)
 
         fun unifiedExec(
             command: List<String>,
             cwd: String,
             source: ExecCommandSource,
             interactionInput: String?,
-            processId: String?
+            processId: String?,
         ): ToolEmitter {
             val parsedCmd = parseCommand(command)
             return UnifiedExec(
@@ -121,7 +129,7 @@ internal sealed class ToolEmitter {
                 source = source,
                 interactionInput = interactionInput,
                 parsedCmd = parsedCmd,
-                processId = processId
+                processId = processId,
             )
         }
     }
@@ -137,9 +145,9 @@ internal sealed class ToolEmitter {
                         parsedCmd = parsedCmd,
                         source = source,
                         interactionInput = null,
-                        processId = null
+                        processId = null,
                     ),
-                    stage
+                    stage,
                 )
             }
             is ApplyPatch -> {
@@ -153,9 +161,9 @@ internal sealed class ToolEmitter {
                                     callId = ctx.callId,
                                     turnId = ctx.turn.subId,
                                     autoApproved = autoApproved,
-                                    changes = changes
-                                )
-                            )
+                                    changes = changes,
+                                ),
+                            ),
                         )
                     }
                     is ToolEventStage.Success -> {
@@ -164,7 +172,7 @@ internal sealed class ToolEmitter {
                             changes,
                             stage.output.stdout.text,
                             stage.output.stderr.text,
-                            stage.output.exitCode == 0
+                            stage.output.exitCode == 0,
                         )
                     }
                     is ToolEventStage.Failure -> {
@@ -175,7 +183,7 @@ internal sealed class ToolEmitter {
                                     changes,
                                     failure.output.stdout.text,
                                     failure.output.stderr.text,
-                                    failure.output.exitCode == 0
+                                    failure.output.exitCode == 0,
                                 )
                             }
                             is ToolEventFailure.Message -> {
@@ -184,7 +192,7 @@ internal sealed class ToolEmitter {
                                     changes,
                                     "",
                                     failure.message,
-                                    false
+                                    false,
                                 )
                             }
                         }
@@ -200,9 +208,9 @@ internal sealed class ToolEmitter {
                         parsedCmd = parsedCmd,
                         source = source,
                         interactionInput = interactionInput,
-                        processId = processId
+                        processId = processId,
                     ),
-                    stage
+                    stage,
                 )
             }
         }
@@ -214,9 +222,9 @@ internal sealed class ToolEmitter {
 
     fun formatExecOutputForModel(
         output: ExecToolCallOutput,
-        ctx: ToolEventCtx
-    ): String {
-        return when (this) {
+        ctx: ToolEventCtx,
+    ): String =
+        when (this) {
             is Shell -> {
                 if (freeform) {
                     formatExecOutputForModelFreeform(output, ctx.turn.truncationPolicy)
@@ -226,77 +234,79 @@ internal sealed class ToolEmitter {
             }
             else -> formatExecOutputForModelStructured(output, ctx.turn.truncationPolicy)
         }
-    }
 
     suspend fun finish(
         ctx: ToolEventCtx,
-        out: Result<ExecToolCallOutput> // Using Result instead of specific ToolError for now
+        out: Result<ExecToolCallOutput>, // Using Result instead of specific ToolError for now
     ): Result<String> {
-        val (event, result) = out.fold(
-            onSuccess = { output ->
-                val content = formatExecOutputForModel(output, ctx)
-                val exitCode = output.exitCode
-                val event = ToolEventStage.Success(output)
-                val result = if (exitCode == 0) {
-                    Result.success(content)
-                } else {
-                    Result.failure(FunctionCallError.RespondToModel(content))
-                }
-                Pair(event, result)
-            },
-            onFailure = { err ->
-                when (err) {
-                    is io.github.kotlinmania.codex.core.tools.ToolError.Codex -> {
-                        when (val inner = err.error) {
-                            is CodexErr.Sandbox ->
-                                when (val sandboxErr = inner.error) {
-                                    is io.github.kotlinmania.codex.core.SandboxErr.Timeout -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
+        val (event, result) =
+            out.fold(
+                onSuccess = { output ->
+                    val content = formatExecOutputForModel(output, ctx)
+                    val exitCode = output.exitCode
+                    val event = ToolEventStage.Success(output)
+                    val result =
+                        if (exitCode == 0) {
+                            Result.success(content)
+                        } else {
+                            Result.failure(FunctionCallError.RespondToModel(content))
+                        }
+                    Pair(event, result)
+                },
+                onFailure = { err ->
+                    when (err) {
+                        is io.github.kotlinmania.codex.core.tools.ToolError.Codex -> {
+                            when (val inner = err.error) {
+                                is CodexErr.Sandbox ->
+                                    when (val sandboxErr = inner.error) {
+                                        is io.github.kotlinmania.codex.core.SandboxErr.Timeout -> {
+                                            val response = formatExecOutputForModel(sandboxErr.output, ctx)
+                                            val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
+                                            val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                            Pair(event, result)
+                                        }
+                                        is io.github.kotlinmania.codex.core.SandboxErr.Denied -> {
+                                            val response = formatExecOutputForModel(sandboxErr.output, ctx)
+                                            val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
+                                            val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
+                                            Pair(event, result)
+                                        }
+                                        else -> {
+                                            val message = "execution error: $inner"
+                                            val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
+                                            val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
+                                            Pair(event, result)
+                                        }
                                     }
-                                    is io.github.kotlinmania.codex.core.SandboxErr.Denied -> {
-                                        val response = formatExecOutputForModel(sandboxErr.output, ctx)
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Output(sandboxErr.output))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(response))
-                                        Pair(event, result)
-                                    }
-                                    else -> {
-                                        val message = "execution error: $inner"
-                                        val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                                        val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                        Pair(event, result)
-                                    }
+                                else -> {
+                                    val message = "execution error: $inner"
+                                    val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
+                                    val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
+                                    Pair(event, result)
                                 }
-                            else -> {
-                                val message = "execution error: $inner"
-                                val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                                val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                                Pair(event, result)
                             }
                         }
-                    }
-                    is io.github.kotlinmania.codex.core.tools.ToolError.Rejected -> {
-                        val msg = err.reason
-                        val normalized = if (msg == "rejected by user") {
-                            "exec command rejected by user"
-                        } else {
-                            msg
+                        is io.github.kotlinmania.codex.core.tools.ToolError.Rejected -> {
+                            val msg = err.reason
+                            val normalized =
+                                if (msg == "rejected by user") {
+                                    "exec command rejected by user"
+                                } else {
+                                    msg
+                                }
+                            val event = ToolEventStage.Failure(ToolEventFailure.Message(normalized))
+                            val result = Result.failure<String>(FunctionCallError.RespondToModel(normalized))
+                            Pair(event, result)
                         }
-                        val event = ToolEventStage.Failure(ToolEventFailure.Message(normalized))
-                        val result = Result.failure<String>(FunctionCallError.RespondToModel(normalized))
-                        Pair(event, result)
+                        else -> {
+                            val message = "execution error: $err"
+                            val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
+                            val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
+                            Pair(event, result)
+                        }
                     }
-                    else -> {
-                         val message = "execution error: $err"
-                         val event = ToolEventStage.Failure(ToolEventFailure.Message(message))
-                         val result = Result.failure<String>(FunctionCallError.RespondToModel(message))
-                         Pair(event, result)
-                    }
-                }
-            }
-        )
+                },
+            )
         emit(ctx, event)
         return result
     }
@@ -308,7 +318,7 @@ internal data class ExecCommandInput(
     val parsedCmd: List<ParsedCommand>,
     val source: ExecCommandSource,
     val interactionInput: String?,
-    val processId: String?
+    val processId: String?,
 )
 
 internal data class ExecCommandResult(
@@ -317,13 +327,13 @@ internal data class ExecCommandResult(
     val aggregatedOutput: String,
     val exitCode: Int,
     val duration: Duration,
-    val formattedOutput: String
+    val formattedOutput: String,
 )
 
 internal suspend fun emitExecStage(
     ctx: ToolEventCtx,
     execInput: ExecCommandInput,
-    stage: ToolEventStage
+    stage: ToolEventStage,
 ) {
     when (stage) {
         is ToolEventStage.Begin -> {
@@ -334,45 +344,48 @@ internal suspend fun emitExecStage(
                 execInput.parsedCmd,
                 execInput.source,
                 execInput.interactionInput,
-                execInput.processId
+                execInput.processId,
             )
         }
         is ToolEventStage.Success -> {
             val output = stage.output
-            val execResult = ExecCommandResult(
-                stdout = output.stdout.text,
-                stderr = output.stderr.text,
-                aggregatedOutput = output.aggregatedOutput.text,
-                exitCode = output.exitCode,
-                duration = output.duration,
-                formattedOutput = formatExecOutputStr(output, ctx.turn.truncationPolicy)
-            )
+            val execResult =
+                ExecCommandResult(
+                    stdout = output.stdout.text,
+                    stderr = output.stderr.text,
+                    aggregatedOutput = output.aggregatedOutput.text,
+                    exitCode = output.exitCode,
+                    duration = output.duration,
+                    formattedOutput = formatExecOutputStr(output, ctx.turn.truncationPolicy),
+                )
             emitExecEnd(ctx, execInput, execResult)
         }
         is ToolEventStage.Failure -> {
             when (val failure = stage.failure) {
                 is ToolEventFailure.Output -> {
                     val output = failure.output
-                    val execResult = ExecCommandResult(
-                        stdout = output.stdout.text,
-                        stderr = output.stderr.text,
-                        aggregatedOutput = output.aggregatedOutput.text,
-                        exitCode = output.exitCode,
-                        duration = output.duration,
-                        formattedOutput = formatExecOutputStr(output, ctx.turn.truncationPolicy)
-                    )
+                    val execResult =
+                        ExecCommandResult(
+                            stdout = output.stdout.text,
+                            stderr = output.stderr.text,
+                            aggregatedOutput = output.aggregatedOutput.text,
+                            exitCode = output.exitCode,
+                            duration = output.duration,
+                            formattedOutput = formatExecOutputStr(output, ctx.turn.truncationPolicy),
+                        )
                     emitExecEnd(ctx, execInput, execResult)
                 }
                 is ToolEventFailure.Message -> {
                     val text = failure.message
-                    val execResult = ExecCommandResult(
-                        stdout = "",
-                        stderr = text,
-                        aggregatedOutput = text,
-                        exitCode = -1,
-                        duration = Duration.ZERO,
-                        formattedOutput = text
-                    )
+                    val execResult =
+                        ExecCommandResult(
+                            stdout = "",
+                            stderr = text,
+                            aggregatedOutput = text,
+                            exitCode = -1,
+                            duration = Duration.ZERO,
+                            formattedOutput = text,
+                        )
                     emitExecEnd(ctx, execInput, execResult)
                 }
             }
@@ -383,7 +396,7 @@ internal suspend fun emitExecStage(
 internal suspend fun emitExecEnd(
     ctx: ToolEventCtx,
     execInput: ExecCommandInput,
-    execResult: ExecCommandResult
+    execResult: ExecCommandResult,
 ) {
     ctx.session.sendEvent(
         ctx.turn,
@@ -402,9 +415,9 @@ internal suspend fun emitExecEnd(
                 aggregatedOutput = execResult.aggregatedOutput,
                 exitCode = execResult.exitCode,
                 duration = execResult.duration.toString(),
-                formattedOutput = execResult.formattedOutput
-            )
-        )
+                formattedOutput = execResult.formattedOutput,
+            ),
+        ),
     )
 }
 
@@ -413,7 +426,7 @@ internal suspend fun emitPatchEnd(
     changes: Map<String, FileChange>,
     stdout: String,
     stderr: String,
-    success: Boolean
+    success: Boolean,
 ) {
     ctx.session.sendEvent(
         ctx.turn,
@@ -424,9 +437,9 @@ internal suspend fun emitPatchEnd(
                 stdout = stdout,
                 stderr = stderr,
                 success = success,
-                changes = changes
-            )
-        )
+                changes = changes,
+            ),
+        ),
     )
 
     ctx.turnDiffTracker?.let { tracker ->
@@ -434,7 +447,7 @@ internal suspend fun emitPatchEnd(
         if (unifiedDiff.isNotEmpty()) {
             ctx.session.sendEvent(
                 ctx.turn,
-                EventMsg.TurnDiff(TurnDiffEvent(unifiedDiff))
+                EventMsg.TurnDiff(TurnDiffEvent(unifiedDiff)),
             )
         }
     }
