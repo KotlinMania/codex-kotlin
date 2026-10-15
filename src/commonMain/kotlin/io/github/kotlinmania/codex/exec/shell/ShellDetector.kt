@@ -2,8 +2,8 @@
 package io.github.kotlinmania.codex.exec.shell
 
 import io.github.kotlinmania.codex.utils.Environment
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
 
 /**
  * Shell types supported by the system

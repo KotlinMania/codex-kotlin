@@ -1,10 +1,8 @@
 // port-lint: source login/src/pkce.rs
-@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
-
 package io.github.kotlinmania.codex.login
 
 import io.github.kotlinmania.codex.core.auth.Sha256MessageDigest
-import kotlin.io.encoding.Base64
+import io.github.kotlinmania.codex.utils.Base64Util
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -21,7 +19,7 @@ class PkceTest {
     fun challengeIsSha256OfVerifier() {
         val codes = generatePkce()
         val expected =
-            Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(
+            Base64Util.encodeUrlSafeNoPad(
                 Sha256MessageDigest().digest(codes.codeVerifier.encodeToByteArray()),
             )
         assertEquals(expected, codes.codeChallenge)

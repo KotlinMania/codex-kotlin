@@ -1,7 +1,7 @@
 // port-lint: source telemetry.rs
 package io.github.kotlinmania.codex.api.telemetry
 
-import io.ktor.http.HttpStatusCode
+import io.github.kotlinmania.http.StatusCode
 import kotlin.time.Duration
 
 /** Generic telemetry for SSE event streams. */
@@ -23,12 +23,11 @@ internal interface RequestTelemetry {
      * @param error Transport error if the request failed
      * @param duration Time taken for the request
      */
-    fun onRequest(attempt: Int, status: HttpStatusCode?, error: Throwable?, duration: Duration)
+    fun onRequest(attempt: Int, status: StatusCode?, error: Throwable?, duration: Duration)
 }
 
 /**
  * Execute a request with retry and telemetry.
- * TODO: Implement full retry policy and telemetry integration with Ktor client.
  */
 internal suspend fun <T> runWithRequestTelemetry(
     telemetry: RequestTelemetry?,

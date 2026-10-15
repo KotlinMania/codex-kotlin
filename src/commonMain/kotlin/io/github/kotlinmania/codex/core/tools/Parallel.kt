@@ -4,7 +4,6 @@ package io.github.kotlinmania.codex.core.tools
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.session.TurnContext
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.ResponseInputItem
 import kotlinx.coroutines.Job

@@ -14,11 +14,11 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
-import kotlinx.io.writeString
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readString
+import io.github.kotlinmania.io.writeString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 

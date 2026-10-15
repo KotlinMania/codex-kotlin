@@ -28,8 +28,7 @@ fun errorOrPanic(message: String) {
 fun tryParseErrorMessage(text: String): String {
     val parsed: JsonObject? =
         try {
-            val element = Json.parseToJsonElement(text)
-            if (element is JsonObject) element else null
+            Json.parseToJsonElement(text) as? JsonObject
         } catch (_: Throwable) {
             null
         }

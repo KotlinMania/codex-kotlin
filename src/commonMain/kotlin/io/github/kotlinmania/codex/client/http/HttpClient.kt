@@ -28,19 +28,6 @@ import kotlinx.serialization.json.Json
  * Handles POST to /responses endpoint and streaming SSE responses.
  *
  * Maps to the upstream backend-client and ModelClient functionality.
- *
- * TODO: Port from Rust codex-rs/core/src/client.rs and codex-rs/backend-client/:
- * - [ ] ModelClient trait with full streaming response handling
- * - [ ] Prompt construction with developer/base/user instructions
- * - [ ] Tool specification serialization for API
- * - [ ] Model provider detection (Anthropic, OpenAI, local OSS)
- * - [ ] WireApi enum (Anthropic, OpenAI, Google, Bedrock)
- * - [ ] Rate limit parsing from response headers
- * - [ ] Context window detection per model
- * - [ ] Exponential backoff with jitter for retries
- * - [ ] OpenTelemetry integration for tracing
- * - [ ] Response event parsing (AgentMessage, ToolCall, Reasoning, etc.)
- * - [ ] ModelProviderInfo for provider-specific configuration
  */
 internal class CodexHttpClient(
     private val baseUrl: String,

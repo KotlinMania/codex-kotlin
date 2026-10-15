@@ -63,5 +63,3 @@ internal typealias ResponsesRequest = io.github.kotlinmania.codex.api.requests.R
 
 /** Re-export from requests */
 internal typealias ResponsesRequestBuilder = io.github.kotlinmania.codex.api.requests.ResponsesRequestBuilder
-
-// TODO: streamFromFixture once SSE testing utils are ported

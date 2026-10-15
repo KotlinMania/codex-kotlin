@@ -1,8 +1,8 @@
 package io.github.kotlinmania.codex.core.auth
 
 import io.github.kotlinmania.codex.core.AuthDotJson
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals

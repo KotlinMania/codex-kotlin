@@ -5,7 +5,7 @@ import io.github.kotlinmania.codex.core.ForcedLoginMethod
 import io.github.kotlinmania.codex.core.auth.AuthCredentialsStoreMode
 import io.github.kotlinmania.codex.core.model.ModelFamily
 import io.github.kotlinmania.codex.protocol.Verbosity
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 import kotlinx.serialization.json.JsonElement
 
 data class Config(

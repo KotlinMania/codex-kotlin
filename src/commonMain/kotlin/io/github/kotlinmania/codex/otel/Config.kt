@@ -1,7 +1,7 @@
 // port-lint: source config.rs
 package io.github.kotlinmania.codex.otel
 
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 
 internal data class OtelSettings(
     val environment: String,

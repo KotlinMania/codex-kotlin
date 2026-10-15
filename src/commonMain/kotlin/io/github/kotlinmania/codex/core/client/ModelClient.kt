@@ -29,8 +29,8 @@ import io.github.kotlinmania.codex.protocol.ReasoningSummary
 import io.github.kotlinmania.codex.protocol.ResponseEvent
 import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.SessionSource
-import io.ktor.client.*
-import io.ktor.http.*
+import io.github.kotlinmania.http.StatusCode
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonElement
@@ -157,7 +157,7 @@ internal class ModelClient internal constructor(
                 streamResult.isSuccess -> streamResult
                 isUnauthorizedError(streamResult) -> {
                     handleUnauthorized(
-                        HttpStatusCode.Unauthorized,
+                        StatusCode.UNAUTHORIZED,
                         refreshed,
                         authManager,
                         auth,
@@ -258,7 +258,7 @@ internal class ModelClient internal constructor(
                 }
                 isUnauthorizedError(streamResult) -> {
                     handleUnauthorized(
-                        HttpStatusCode.Unauthorized,
+                        StatusCode.UNAUTHORIZED,
                         refreshed,
                         authManager,
                         auth,
@@ -403,7 +403,7 @@ private fun mapResponseStream(
  * Handles a 401 response by optionally refreshing ChatGPT tokens once.
  */
 private suspend fun handleUnauthorized(
-    status: HttpStatusCode,
+    status: StatusCode,
     refreshed: Boolean,
     authManager: AuthManager?,
     auth: CodexAuth?,
@@ -425,7 +425,7 @@ private suspend fun handleUnauthorized(
     return Result.failure(mapUnauthorizedStatus(status))
 }
 
-private fun mapUnauthorizedStatus(status: HttpStatusCode): Exception =
+private fun mapUnauthorizedStatus(status: StatusCode): Exception =
     ApiError.Transport(
         io.github.kotlinmania.codex.client.error.TransportError
             .Http(status = status),
@@ -436,7 +436,7 @@ private fun isUnauthorizedError(result: Result<*>): Boolean {
     if (error !is ApiError.Transport) return false
     val inner = error.error
     return inner is io.github.kotlinmania.codex.client.error.TransportError.Http &&
-        inner.status == HttpStatusCode.Unauthorized
+        inner.status == StatusCode.UNAUTHORIZED
 }
 
 /**
@@ -448,13 +448,13 @@ private class ApiTelemetry(
     SseTelemetry {
     override fun onRequest(
         attempt: Int,
-        status: HttpStatusCode?,
+        status: StatusCode?,
         error: Throwable?,
         duration: Duration,
     ) {
         otelEventManager.recordApiRequest(
             attempt = attempt.toLong(),
-            status = status?.value,
+            status = status?.asU16(),
             errorMessage = error?.message,
             duration = duration,
         )

@@ -20,7 +20,7 @@ The storage module handles the persistence of authentication credentials (`auth.
 #### Classes Ported
 1.  **`FileAuthStorage`** (Complete)
     *   **Functionality:** Reads/writes `auth.json` to the filesystem.
-    *   **Implementation:** Uses `kotlinx.io` for cross-platform file I/O.
+    *   **Implementation:** Uses `km-io` (`io.github.kotlinmania.io`) for cross-platform file I/O.
     *   **Key Features:**
         *   Creates parent directories automatically.
         *   Handles serialization/deserialization of `AuthDotJson`.

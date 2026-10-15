@@ -273,7 +273,7 @@ val canonical = codexHome.canonicalize() // or toRealPath()
 **Impact**: Hash will differ from Rust's output until paths are canonicalized the same way.
 
 **Solution**: 
-- Option A: Use `kotlinx.io.files.Path` real path resolution when available
+- Option A: Use `io.github.kotlinmania.io.Path` real path resolution when available
 - Option B: Platform-specific expect/actual implementation
 - Option C: Manual resolution (follow symlinks, make absolute, normalize)
 

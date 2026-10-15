@@ -3,11 +3,12 @@
 
 package io.github.kotlinmania.codex.protocol
 
+import io.github.kotlinmania.codex.utils.Base64Util
 import io.github.kotlinmania.codex.utils.git.GhostCommit
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readByteArray
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readByteArray
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -16,9 +17,12 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.*
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Represents input items that can be sent to the Responses API. Tagged union with discriminator
@@ -92,8 +96,7 @@ sealed class ResponseInputItem {
                                     )
                                 }
 
-                                @OptIn(ExperimentalEncodingApi::class)
-                                val encoded = Base64.encode(bytes)
+                                val encoded = Base64Util.encodeStandard(bytes)
                                 ContentItem.InputImage(
                                     imageUrl = "data:$mimeGuess;base64,$encoded",
                                 )

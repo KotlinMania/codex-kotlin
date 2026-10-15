@@ -1,10 +1,10 @@
 // port-lint: source codex-rs/core/src/skills/loader.rs
 package io.github.kotlinmania.codex.core.config
 
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 

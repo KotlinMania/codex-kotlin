@@ -6,7 +6,6 @@ import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.FunctionCallError
 import io.github.kotlinmania.codex.core.session.Session
 import io.github.kotlinmania.codex.core.session.TurnContext
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.protocol.EventMsg
 import io.github.kotlinmania.codex.protocol.ExecCommandBeginEvent
 import io.github.kotlinmania.codex.protocol.ExecCommandEndEvent

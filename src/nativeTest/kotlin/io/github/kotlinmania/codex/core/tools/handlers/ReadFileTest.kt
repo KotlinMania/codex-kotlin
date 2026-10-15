@@ -1,10 +1,10 @@
 package io.github.kotlinmania.codex.core.tools.handlers
 
 import io.github.kotlinmania.codex.utils.Environment
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.writeString
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.writeString
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.Test

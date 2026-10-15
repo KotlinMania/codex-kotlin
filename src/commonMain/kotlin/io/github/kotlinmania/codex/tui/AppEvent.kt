@@ -9,7 +9,7 @@ import io.github.kotlinmania.codex.protocol.Op
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import io.github.kotlinmania.codex.protocol.ReasoningEffort
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import kotlinx.io.files.Path
+import io.github.kotlinmania.io.files.Path
 
 /**
  * Application-level events used to coordinate UI actions.

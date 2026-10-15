@@ -1,14 +1,12 @@
 // port-lint: source login/src/pkce.rs
-@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
-
 package io.github.kotlinmania.codex.login
 
 import io.github.kotlinmania.codex.core.auth.Sha256MessageDigest
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readByteArray
-import kotlin.io.encoding.Base64
+import io.github.kotlinmania.codex.utils.Base64Util
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readByteArray
 
 data class PkceCodes(
     val codeVerifier: String,
@@ -20,11 +18,11 @@ fun generatePkce(): PkceCodes {
     secureRandomBytes(bytes)
 
     // Verifier: URL-safe base64 without padding (43..128 chars)
-    val codeVerifier = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(bytes)
+    val codeVerifier = Base64Util.encodeUrlSafeNoPad(bytes)
 
     // Challenge (S256): BASE64URL-ENCODE(SHA256(verifier)) without padding
     val digest = Sha256MessageDigest().digest(codeVerifier.encodeToByteArray())
-    val codeChallenge = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(digest)
+    val codeChallenge = Base64Util.encodeUrlSafeNoPad(digest)
 
     return PkceCodes(
         codeVerifier = codeVerifier,

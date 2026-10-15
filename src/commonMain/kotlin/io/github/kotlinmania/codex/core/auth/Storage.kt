@@ -4,11 +4,12 @@ package io.github.kotlinmania.codex.core.auth
 import io.github.kotlinmania.codex.core.AuthDotJson
 import io.github.kotlinmania.codex.core.platformSetOwnerReadWritePermissions
 import io.github.kotlinmania.codex.utils.canonicalizePath
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
-import kotlinx.io.writeString
+import io.github.kotlinmania.io.IOException
+import io.github.kotlinmania.io.buffered
+import io.github.kotlinmania.io.files.Path
+import io.github.kotlinmania.io.files.SystemFileSystem
+import io.github.kotlinmania.io.readString
+import io.github.kotlinmania.io.writeString
 import kotlinx.serialization.json.Json
 
 /**
@@ -40,7 +41,7 @@ internal fun deleteFileIfExists(codexHome: Path): Result<Boolean> {
     return try {
         SystemFileSystem.delete(authFile)
         Result.success(true)
-    } catch (_: kotlinx.io.IOException) {
+    } catch (_: IOException) {
         // File does not exist
         Result.success(false)
     } catch (e: Exception) {
