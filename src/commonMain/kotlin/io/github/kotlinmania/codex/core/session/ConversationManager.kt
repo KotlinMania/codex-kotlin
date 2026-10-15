@@ -5,18 +5,17 @@ import io.github.kotlinmania.codex.client.auth.AuthManager
 import io.github.kotlinmania.codex.client.auth.CodexAuth
 import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.CodexResult
-import io.github.kotlinmania.codex.protocol.ConversationId as ProtocolConversationId
 import io.github.kotlinmania.codex.protocol.ContentItem
-import io.github.kotlinmania.codex.protocol.Event
 import io.github.kotlinmania.codex.protocol.EventMsg
 import io.github.kotlinmania.codex.protocol.InitialHistory
-import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.ReasoningItemReasoningSummary
+import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.RolloutItem
 import io.github.kotlinmania.codex.protocol.SessionConfiguredEvent
 import io.github.kotlinmania.codex.protocol.SessionSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import io.github.kotlinmania.codex.protocol.ConversationId as ProtocolConversationId
 
 /**
  * Represents a newly created Codex conversation, including the first event
@@ -51,12 +50,11 @@ class ConversationManager(
         fun new(
             authManager: AuthManager,
             sessionSource: SessionSource,
-        ): ConversationManager {
-            return ConversationManager(
+        ): ConversationManager =
+            ConversationManager(
                 authManager = authManager,
                 sessionSource = sessionSource,
             )
-        }
 
         fun withAuth(auth: CodexAuth): ConversationManager =
             new(
@@ -74,12 +72,13 @@ class ConversationManager(
         config: Config,
         authManager: AuthManager,
     ): CodexResult<NewConversation> {
-        val spawnResult = spawnCodex(
-            config = config,
-            authManager = authManager,
-            conversationHistory = InitialHistory.New,
-            sessionSource = sessionSource,
-        )
+        val spawnResult =
+            spawnCodex(
+                config = config,
+                authManager = authManager,
+                conversationHistory = InitialHistory.New,
+                sessionSource = sessionSource,
+            )
         return when (spawnResult) {
             is CodexResult.Success -> finalizeSpawn(spawnResult.value.codex, spawnResult.value.conversationId)
             is CodexResult.Failure -> CodexResult.failure(spawnResult.error)
@@ -94,23 +93,26 @@ class ConversationManager(
         // to the caller so that they can display it in the conversation
         // history.
         val eventResult = codex.nextEvent()
-        val event = when (eventResult) {
-            is CodexResult.Success -> eventResult.value
-            is CodexResult.Failure -> return CodexResult.failure(eventResult.error)
-        }
-        val sessionConfigured = run {
-            val msg = event.msg
-            if (event.id == CODEX_INITIAL_SUBMIT_ID && msg is EventMsg.SessionConfigured) {
-                msg.payload
-            } else {
-                return CodexResult.failure(CodexErr.SessionConfiguredNotFirstEvent)
+        val event =
+            when (eventResult) {
+                is CodexResult.Success -> eventResult.value
+                is CodexResult.Failure -> return CodexResult.failure(eventResult.error)
             }
-        }
+        val sessionConfigured =
+            run {
+                val msg = event.msg
+                if (event.id == CODEX_INITIAL_SUBMIT_ID && msg is EventMsg.SessionConfigured) {
+                    msg.payload
+                } else {
+                    return CodexResult.failure(CodexErr.SessionConfiguredNotFirstEvent)
+                }
+            }
 
-        val conversation = CodexConversation(
-            codex = codex,
-            rolloutPath = sessionConfigured.rolloutPath,
-        )
+        val conversation =
+            CodexConversation(
+                codex = codex,
+                rolloutPath = sessionConfigured.rolloutPath,
+            )
         conversationsLock.withLock {
             conversations[conversationId] = conversation
         }
@@ -141,10 +143,11 @@ class ConversationManager(
         authManager: AuthManager,
     ): CodexResult<NewConversation> {
         val initialHistoryResult = RolloutRecorder.getRolloutHistory(rolloutPath)
-        val initialHistory = when (initialHistoryResult) {
-            is CodexResult.Success -> initialHistoryResult.value
-            is CodexResult.Failure -> return CodexResult.failure(initialHistoryResult.error)
-        }
+        val initialHistory =
+            when (initialHistoryResult) {
+                is CodexResult.Success -> initialHistoryResult.value
+                is CodexResult.Failure -> return CodexResult.failure(initialHistoryResult.error)
+            }
         return resumeConversationWithHistory(config, initialHistory, authManager)
     }
 
@@ -153,12 +156,13 @@ class ConversationManager(
         initialHistory: InitialHistory,
         authManager: AuthManager,
     ): CodexResult<NewConversation> {
-        val spawnResult = spawnCodex(
-            config = config,
-            authManager = authManager,
-            conversationHistory = initialHistory,
-            sessionSource = sessionSource,
-        )
+        val spawnResult =
+            spawnCodex(
+                config = config,
+                authManager = authManager,
+                conversationHistory = initialHistory,
+                sessionSource = sessionSource,
+            )
         return when (spawnResult) {
             is CodexResult.Success -> finalizeSpawn(spawnResult.value.codex, spawnResult.value.conversationId)
             is CodexResult.Failure -> CodexResult.failure(spawnResult.error)
@@ -186,25 +190,26 @@ class ConversationManager(
     ): CodexResult<NewConversation> {
         // Compute the prefix up to the cut point.
         val historyResult = RolloutRecorder.getRolloutHistory(path)
-        val history = when (historyResult) {
-            is CodexResult.Success -> historyResult.value
-            is CodexResult.Failure -> return CodexResult.failure(historyResult.error)
-        }
+        val history =
+            when (historyResult) {
+                is CodexResult.Success -> historyResult.value
+                is CodexResult.Failure -> return CodexResult.failure(historyResult.error)
+            }
         val truncated = truncateBeforeNthUserMessage(history, nthUserMessage)
 
         // Spawn a new conversation with the computed initial history.
-        val spawnResult = spawnCodex(
-            config = config,
-            authManager = authManager,
-            conversationHistory = truncated,
-            sessionSource = sessionSource,
-        )
+        val spawnResult =
+            spawnCodex(
+                config = config,
+                authManager = authManager,
+                conversationHistory = truncated,
+                sessionSource = sessionSource,
+            )
         return when (spawnResult) {
             is CodexResult.Success -> finalizeSpawn(spawnResult.value.codex, spawnResult.value.conversationId)
             is CodexResult.Failure -> CodexResult.failure(spawnResult.error)
         }
     }
-
 }
 
 /**
@@ -224,8 +229,8 @@ internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Init
             val payload = item.payload
             if (
                 payload is ResponseItem.Message &&
-                    payload.role == "user" &&
-                    !UserInstructions.isUserInstructions(payload.content)
+                payload.role == "user" &&
+                !UserInstructions.isUserInstructions(payload.content)
             ) {
                 userPositions.add(idx)
             }
@@ -248,29 +253,29 @@ internal fun truncateBeforeNthUserMessage(history: InitialHistory, n: Int): Init
     }
 }
 
-internal fun userMsg(text: String): ResponseItem {
-    return ResponseItem.Message(
+internal fun userMsg(text: String): ResponseItem =
+    ResponseItem.Message(
         id = null,
         role = "user",
-        content = listOf(
-            ContentItem.OutputText(
-                text = text,
+        content =
+            listOf(
+                ContentItem.OutputText(
+                    text = text,
+                ),
             ),
-        ),
     )
-}
 
-internal fun assistantMsg(text: String): ResponseItem {
-    return ResponseItem.Message(
+internal fun assistantMsg(text: String): ResponseItem =
+    ResponseItem.Message(
         id = null,
         role = "assistant",
-        content = listOf(
-            ContentItem.OutputText(
-                text = text,
+        content =
+            listOf(
+                ContentItem.OutputText(
+                    text = text,
+                ),
             ),
-        ),
     )
-}
 
 internal fun dropsFromLastUserOnly() {
     val items =
@@ -282,11 +287,12 @@ internal fun dropsFromLastUserOnly() {
             assistantMsg("a3"),
             ResponseItem.Reasoning(
                 id = "r1",
-                summary = listOf(
-                    ReasoningItemReasoningSummary.SummaryText(
-                        text = "s",
+                summary =
+                    listOf(
+                        ReasoningItemReasoningSummary.SummaryText(
+                            text = "s",
+                        ),
                     ),
-                ),
                 content = null,
                 encryptedContent = null,
             ),
@@ -324,11 +330,12 @@ internal fun ignoresSessionPrefixMessagesWhenTruncating() {
             ResponseItem.Message(
                 id = null,
                 role = "user",
-                content = listOf(
-                    ContentItem.InputText(
-                        text = "<environment_context>test_text</environment_context>",
+                content =
+                    listOf(
+                        ContentItem.InputText(
+                            text = "<environment_context>test_text</environment_context>",
+                        ),
                     ),
-                ),
             ),
         )
 

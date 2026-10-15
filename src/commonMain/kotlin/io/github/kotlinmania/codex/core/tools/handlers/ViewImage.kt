@@ -8,10 +8,10 @@ import io.github.kotlinmania.codex.core.tools.ToolInvocation
 import io.github.kotlinmania.codex.core.tools.ToolKind
 import io.github.kotlinmania.codex.core.tools.ToolOutput
 import io.github.kotlinmania.codex.core.tools.ToolPayload
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Handler for the viewImage tool. Attaches a local image file to the conversation.
@@ -19,31 +19,30 @@ import kotlinx.io.files.SystemFileSystem
  * Ported from Rust codex-rs/core/src/tools/handlers/viewImage.rs
  */
 internal class ViewImageHandler : ToolHandler {
-
     override val kind: ToolKind = ToolKind.Function
 
     override suspend fun handle(invocation: ToolInvocation): Result<ToolOutput> {
         val payload = invocation.payload
         if (payload !is ToolPayload.Function) {
             return Result.failure(
-                    ToolError.Codex(
-                            CodexErr.Fatal("view_image handler received unsupported payload")
-                    )
+                ToolError.Codex(
+                    CodexErr.Fatal("view_image handler received unsupported payload"),
+                ),
             )
         }
 
         val args =
-                try {
-                    VIEW_IMAGE_JSON.decodeFromString<ViewImageArgs>(payload.arguments)
-                } catch (e: Exception) {
-                    return Result.failure(
-                            ToolError.Codex(
-                                    CodexErr.Fatal(
-                                            "failed to parse function arguments: ${e.message}"
-                                    )
-                            )
-                    )
-                }
+            try {
+                VIEW_IMAGE_JSON.decodeFromString<ViewImageArgs>(payload.arguments)
+            } catch (e: Exception) {
+                return Result.failure(
+                    ToolError.Codex(
+                        CodexErr.Fatal(
+                            "failed to parse function arguments: ${e.message}",
+                        ),
+                    ),
+                )
+            }
 
         val absPath = invocation.turn.resolvePath(args.path)
         val path = Path(absPath)
@@ -51,11 +50,11 @@ internal class ViewImageHandler : ToolHandler {
         // Check if file exists
         if (!SystemFileSystem.exists(path)) {
             return Result.failure(
-                    ToolError.Codex(
-                            CodexErr.Fatal(
-                                    "unable to locate image at `$absPath`: path does not exist"
-                            )
-                    )
+                ToolError.Codex(
+                    CodexErr.Fatal(
+                        "unable to locate image at `$absPath`: path does not exist",
+                    ),
+                ),
             )
         }
 
@@ -63,7 +62,7 @@ internal class ViewImageHandler : ToolHandler {
         val metadata = SystemFileSystem.metadataOrNull(path)
         if (metadata == null || !metadata.isRegularFile) {
             return Result.failure(
-                    ToolError.Codex(CodexErr.Fatal("image path `$absPath` is not a file"))
+                ToolError.Codex(CodexErr.Fatal("image path `$absPath` is not a file")),
             )
         }
 
@@ -71,26 +70,29 @@ internal class ViewImageHandler : ToolHandler {
         val extension = path.name.substringAfterLast('.', "").lowercase()
         if (!VIEW_IMAGE_SUPPORTED_EXTENSIONS.contains(extension)) {
             return Result.failure(
-                    ToolError.Codex(CodexErr.Fatal("unsupported image format: .$extension"))
+                ToolError.Codex(CodexErr.Fatal("unsupported image format: .$extension")),
             )
         }
 
         return Result.success(
-                ToolOutput.Function(
-                        content = "attached local image path: $absPath",
-                        success = true
-                )
+            ToolOutput.Function(
+                content = "attached local image path: $absPath",
+                success = true,
+            ),
         )
     }
 }
 
 /** Arguments for the viewImage tool. */
-@Serializable private data class ViewImageArgs(val path: String)
+@Serializable private data class ViewImageArgs(
+    val path: String,
+)
 
-private val VIEW_IMAGE_JSON = Json {
-    ignoreUnknownKeys = true
-    isLenient = true
-}
+private val VIEW_IMAGE_JSON =
+    Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
 private val VIEW_IMAGE_SUPPORTED_EXTENSIONS =
-        setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif")
+    setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif")

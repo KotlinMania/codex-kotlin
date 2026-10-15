@@ -59,32 +59,33 @@ public data class TerminalInfo(
     public fun isZellij(): Boolean = multiplexer is Multiplexer.Zellij
 
     public fun userAgentToken(): String {
-        val raw = if (!termProgram.isNullOrEmpty()) {
-            if (!version.isNullOrEmpty()) {
-                "$termProgram/$version"
+        val raw =
+            if (!termProgram.isNullOrEmpty()) {
+                if (!version.isNullOrEmpty()) {
+                    "$termProgram/$version"
+                } else {
+                    termProgram
+                }
+            } else if (!term.isNullOrEmpty()) {
+                term
             } else {
-                termProgram
+                when (name) {
+                    TerminalName.AppleTerminal -> formatTerminalVersion("Apple_Terminal", version)
+                    TerminalName.Ghostty -> formatTerminalVersion("Ghostty", version)
+                    TerminalName.Iterm2 -> formatTerminalVersion("iTerm.app", version)
+                    TerminalName.WarpTerminal -> formatTerminalVersion("WarpTerminal", version)
+                    TerminalName.VsCode -> formatTerminalVersion("vscode", version)
+                    TerminalName.WezTerm -> formatTerminalVersion("WezTerm", version)
+                    TerminalName.Kitty -> "kitty"
+                    TerminalName.Alacritty -> "Alacritty"
+                    TerminalName.Konsole -> formatTerminalVersion("Konsole", version)
+                    TerminalName.GnomeTerminal -> "gnome-terminal"
+                    TerminalName.Vte -> formatTerminalVersion("VTE", version)
+                    TerminalName.WindowsTerminal -> "WindowsTerminal"
+                    TerminalName.Dumb -> "dumb"
+                    TerminalName.Unknown -> "unknown"
+                }
             }
-        } else if (!term.isNullOrEmpty()) {
-            term
-        } else {
-            when (name) {
-                TerminalName.AppleTerminal -> formatTerminalVersion("Apple_Terminal", version)
-                TerminalName.Ghostty -> formatTerminalVersion("Ghostty", version)
-                TerminalName.Iterm2 -> formatTerminalVersion("iTerm.app", version)
-                TerminalName.WarpTerminal -> formatTerminalVersion("WarpTerminal", version)
-                TerminalName.VsCode -> formatTerminalVersion("vscode", version)
-                TerminalName.WezTerm -> formatTerminalVersion("WezTerm", version)
-                TerminalName.Kitty -> "kitty"
-                TerminalName.Alacritty -> "Alacritty"
-                TerminalName.Konsole -> formatTerminalVersion("Konsole", version)
-                TerminalName.GnomeTerminal -> "gnome-terminal"
-                TerminalName.Vte -> formatTerminalVersion("VTE", version)
-                TerminalName.WindowsTerminal -> "WindowsTerminal"
-                TerminalName.Dumb -> "dumb"
-                TerminalName.Unknown -> "unknown"
-            }
-        }
         return sanitizeHeaderValue(raw)
     }
 
@@ -135,11 +136,12 @@ public data class TerminalInfo(
             term: String,
             multiplexer: Multiplexer? = null,
         ): TerminalInfo {
-            val name = when (term) {
-                "dumb" -> TerminalName.Dumb
-                "wezterm", "wezterm-mux" -> TerminalName.WezTerm
-                else -> TerminalName.Unknown
-            }
+            val name =
+                when (term) {
+                    "dumb" -> TerminalName.Dumb
+                    "wezterm", "wezterm-mux" -> TerminalName.WezTerm
+                    else -> TerminalName.Unknown
+                }
             return TerminalInfo(
                 name = name,
                 termProgram = null,
@@ -165,9 +167,13 @@ public data class TerminalInfo(
  */
 public interface Environment {
     public fun get(name: String): String?
+
     public fun has(name: String): Boolean = get(name) != null
+
     public fun getNonEmpty(name: String): String? = get(name)?.takeIf { it.isNotBlank() }
+
     public fun hasNonEmpty(name: String): Boolean = getNonEmpty(name) != null
+
     public fun tmuxClientInfo(): TmuxClientInfo = TmuxClientInfo()
 }
 
@@ -176,6 +182,7 @@ public class MapEnvironment(
     private val clientInfo: TmuxClientInfo = TmuxClientInfo(),
 ) : Environment {
     override fun get(name: String): String? = vars[name]
+
     override fun tmuxClientInfo(): TmuxClientInfo = clientInfo
 }
 
@@ -319,9 +326,11 @@ private fun isValidHeaderValueChar(c: Char): Boolean =
     c.isLetterOrDigit() || c == '-' || c == '_' || c == '.' || c == '/'
 
 public fun terminalNameFromTermProgram(value: String): TerminalName? {
-    val normalized = value.trim()
-        .filter { it != ' ' && it != '-' && it != '_' && it != '.' }
-        .lowercase()
+    val normalized =
+        value
+            .trim()
+            .filter { it != ' ' && it != '-' && it != '_' && it != '.' }
+            .lowercase()
 
     return when (normalized) {
         "appleterminal" -> TerminalName.AppleTerminal

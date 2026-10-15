@@ -20,4 +20,3 @@ enum class SandboxType {
     /** Windows restricted token sandbox (Windows only) */
     WindowsRestrictedToken,
 }
-

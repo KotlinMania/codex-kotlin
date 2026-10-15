@@ -6,18 +6,25 @@ import kotlinx.serialization.Serializable
 
 /** Matches a single command token, either a fixed string or one of several allowed alternatives. */
 sealed class PatternToken {
-    data class Single(val expected: String) : PatternToken()
-    data class Alts(val alternatives: List<String>) : PatternToken()
+    data class Single(
+        val expected: String,
+    ) : PatternToken()
 
-    fun matches(token: String): Boolean = when (this) {
-        is Single -> expected == token
-        is Alts -> alternatives.any { it == token }
-    }
+    data class Alts(
+        val alternatives: List<String>,
+    ) : PatternToken()
 
-    fun alternatives(): List<String> = when (this) {
-        is Single -> listOf(expected)
-        is Alts -> alternatives
-    }
+    fun matches(token: String): Boolean =
+        when (this) {
+            is Single -> expected == token
+            is Alts -> alternatives.any { it == token }
+        }
+
+    fun alternatives(): List<String> =
+        when (this) {
+            is Single -> listOf(expected)
+            is Alts -> alternatives
+        }
 }
 
 /**
@@ -53,9 +60,10 @@ sealed class RuleMatch {
         val decision: Decision,
     ) : RuleMatch()
 
-    fun decision(): Decision = when (this) {
-        is PrefixRuleMatch -> decision
-    }
+    fun decision(): Decision =
+        when (this) {
+            is PrefixRuleMatch -> decision
+        }
 }
 
 data class PrefixRule(
@@ -72,6 +80,7 @@ data class PrefixRule(
 
 interface Rule {
     fun program(): String
+
     fun matches(cmd: List<String>): RuleMatch?
 }
 

@@ -20,20 +20,16 @@ private const val LARGE_UNTRACKED_WARNING_THRESHOLD = 200
 data class CreateGhostCommitOptions(
     val repoPath: String,
     val message: String? = null,
-    val forceInclude: List<String> = emptyList()
+    val forceInclude: List<String> = emptyList(),
 ) {
     companion object {
         fun new(repoPath: String): CreateGhostCommitOptions =
             CreateGhostCommitOptions(repoPath = repoPath)
     }
 
-    fun withMessage(message: String): CreateGhostCommitOptions {
-        return copy(message = message)
-    }
+    fun withMessage(message: String): CreateGhostCommitOptions = copy(message = message)
 
-    fun withForceInclude(paths: List<String>): CreateGhostCommitOptions {
-        return copy(forceInclude = paths)
-    }
+    fun withForceInclude(paths: List<String>): CreateGhostCommitOptions = copy(forceInclude = paths)
 }
 
 /**
@@ -44,7 +40,7 @@ data class GhostCommit(
     val id: String,
     val parent: String?,
     val preexistingUntrackedFiles: List<String>,
-    val preexistingUntrackedDirs: List<String>
+    val preexistingUntrackedDirs: List<String>,
 )
 
 /**
@@ -52,7 +48,7 @@ data class GhostCommit(
  */
 @Serializable
 data class GhostSnapshotReport(
-    val largeUntrackedDirs: List<LargeUntrackedDir> = emptyList()
+    val largeUntrackedDirs: List<LargeUntrackedDir> = emptyList(),
 )
 
 /**
@@ -61,21 +57,33 @@ data class GhostSnapshotReport(
 @Serializable
 data class LargeUntrackedDir(
     val path: String,
-    val fileCount: Int
+    val fileCount: Int,
 )
 
 /**
  * Errors that can occur during git operations.
  */
 sealed class GitToolingError : Exception() {
-    data class NotAGitRepository(val path: String) : GitToolingError() {
+    data class NotAGitRepository(
+        val path: String,
+    ) : GitToolingError() {
         override val message: String get() = "Not a git repository: $path"
     }
-    data class CommandFailed(override val message: String, val exitCode: Int) : GitToolingError()
-    data class PathEscapesRepository(val path: String) : GitToolingError() {
+
+    data class CommandFailed(
+        override val message: String,
+        val exitCode: Int,
+    ) : GitToolingError()
+
+    data class PathEscapesRepository(
+        val path: String,
+    ) : GitToolingError() {
         override val message: String get() = "Path escapes repository: $path"
     }
-    data class IoError(override val message: String) : GitToolingError()
+
+    data class IoError(
+        override val message: String,
+    ) : GitToolingError()
 }
 
 /**
@@ -91,7 +99,7 @@ interface GitOperations {
      * Create a ghost commit and return both the commit and a snapshot report.
      */
     suspend fun createGhostCommitWithReport(
-        options: CreateGhostCommitOptions
+        options: CreateGhostCommitOptions,
     ): Result<Pair<GhostCommit, GhostSnapshotReport>>
 
     /**
@@ -110,15 +118,12 @@ interface GitOperations {
  * Executes git commands via subprocess calls.
  */
 class ShellGitOperations : GitOperations {
-
-    override suspend fun createGhostCommit(options: CreateGhostCommitOptions): Result<GhostCommit> {
-        return createGhostCommitWithReport(options).map { (commit, _) -> commit }
-    }
+    override suspend fun createGhostCommit(options: CreateGhostCommitOptions): Result<GhostCommit> = createGhostCommitWithReport(options).map { (commit, _) -> commit }
 
     override suspend fun createGhostCommitWithReport(
-        options: CreateGhostCommitOptions
-    ): Result<Pair<GhostCommit, GhostSnapshotReport>> {
-        return runCatching {
+        options: CreateGhostCommitOptions,
+    ): Result<Pair<GhostCommit, GhostSnapshotReport>> =
+        runCatching {
             ensureGitRepository(options.repoPath)
 
             val repoRoot = resolveRepositoryRoot(options.repoPath)
@@ -126,12 +131,14 @@ class ShellGitOperations : GitOperations {
             val parent = resolveHead(repoRoot)
             val existingUntracked = captureExistingUntracked(repoRoot, repoPrefix)
 
-            val warningFiles = existingUntracked.files.map { path ->
-                toSessionRelativePath(path, repoPrefix)
-            }
-            val warningDirs = existingUntracked.dirs.map { path ->
-                toSessionRelativePath(path, repoPrefix)
-            }
+            val warningFiles =
+                existingUntracked.files.map { path ->
+                    toSessionRelativePath(path, repoPrefix)
+                }
+            val warningDirs =
+                existingUntracked.dirs.map { path ->
+                    toSessionRelativePath(path, repoPrefix)
+                }
             val largeUntrackedDirs = detectLargeUntrackedDirs(warningFiles, warningDirs)
 
             // Validate forceInclude paths do not escape repository
@@ -151,7 +158,7 @@ class ShellGitOperations : GitOperations {
                     runGitCommand(
                         repoRoot,
                         listOf("read-tree", parentSha),
-                        baseEnv
+                        baseEnv,
                     )
                 }
 
@@ -165,9 +172,11 @@ class ShellGitOperations : GitOperations {
                 // Force-add any specified paths (e.g., ignored files)
                 if (options.forceInclude.isNotEmpty()) {
                     val forceArgs = mutableListOf("add", "--force")
-                    forceArgs.addAll(options.forceInclude.map { path ->
-                        repoPrefix?.let { "$it/$path" } ?: path
-                    })
+                    forceArgs.addAll(
+                        options.forceInclude.map { path ->
+                            repoPrefix?.let { "$it/$path" } ?: path
+                        },
+                    )
                     runGitCommand(repoRoot, forceArgs, baseEnv)
                 }
 
@@ -185,12 +194,13 @@ class ShellGitOperations : GitOperations {
 
                 val commitId = runGitCommandForOutput(repoRoot, commitArgs, commitEnv).trim()
 
-                val ghostCommit = GhostCommit(
-                    id = commitId,
-                    parent = parent,
-                    preexistingUntrackedFiles = existingUntracked.files,
-                    preexistingUntrackedDirs = existingUntracked.dirs
-                )
+                val ghostCommit =
+                    GhostCommit(
+                        id = commitId,
+                        parent = parent,
+                        preexistingUntrackedFiles = existingUntracked.files,
+                        preexistingUntrackedDirs = existingUntracked.dirs,
+                    )
 
                 val report = GhostSnapshotReport(largeUntrackedDirs = largeUntrackedDirs)
                 Pair(ghostCommit, report)
@@ -199,10 +209,9 @@ class ShellGitOperations : GitOperations {
                 deleteTempFile(tempIndexPath)
             }
         }
-    }
 
-    override suspend fun restoreGhostCommit(repoPath: String, commit: GhostCommit): Result<Unit> {
-        return runCatching {
+    override suspend fun restoreGhostCommit(repoPath: String, commit: GhostCommit): Result<Unit> =
+        runCatching {
             ensureGitRepository(repoPath)
 
             val repoRoot = resolveRepositoryRoot(repoPath)
@@ -217,31 +226,31 @@ class ShellGitOperations : GitOperations {
                 repoRoot,
                 commit.preexistingUntrackedFiles,
                 commit.preexistingUntrackedDirs,
-                currentUntracked
+                currentUntracked,
             )
         }
-    }
 
-    override suspend fun captureGhostSnapshotReport(options: CreateGhostCommitOptions): Result<GhostSnapshotReport> {
-        return runCatching {
+    override suspend fun captureGhostSnapshotReport(options: CreateGhostCommitOptions): Result<GhostSnapshotReport> =
+        runCatching {
             ensureGitRepository(options.repoPath)
 
             val repoRoot = resolveRepositoryRoot(options.repoPath)
             val repoPrefix = repoSubdir(repoRoot, options.repoPath)
             val existingUntracked = captureExistingUntracked(repoRoot, repoPrefix)
 
-            val warningFiles = existingUntracked.files.map { path ->
-                toSessionRelativePath(path, repoPrefix)
-            }
-            val warningDirs = existingUntracked.dirs.map { path ->
-                toSessionRelativePath(path, repoPrefix)
-            }
+            val warningFiles =
+                existingUntracked.files.map { path ->
+                    toSessionRelativePath(path, repoPrefix)
+                }
+            val warningDirs =
+                existingUntracked.dirs.map { path ->
+                    toSessionRelativePath(path, repoPrefix)
+                }
 
             GhostSnapshotReport(
-                largeUntrackedDirs = detectLargeUntrackedDirs(warningFiles, warningDirs)
+                largeUntrackedDirs = detectLargeUntrackedDirs(warningFiles, warningDirs),
             )
         }
-    }
 
     // ---- Internal helper functions ----
 
@@ -252,9 +261,7 @@ class ShellGitOperations : GitOperations {
         }
     }
 
-    private fun resolveRepositoryRoot(path: String): String {
-        return runGitCommandForOutput(path, listOf("rev-parse", "--show-toplevel")).trim()
-    }
+    private fun resolveRepositoryRoot(path: String): String = runGitCommandForOutput(path, listOf("rev-parse", "--show-toplevel")).trim()
 
     private fun resolveHead(repoRoot: String): String? {
         val exitCode = runGitCommandForExitCode(repoRoot, listOf("rev-parse", "HEAD"))
@@ -281,29 +288,29 @@ class ShellGitOperations : GitOperations {
         return path.trimEnd('/')
     }
 
-    private fun toSessionRelativePath(path: String, repoPrefix: String?): String {
-        return repoPrefix?.let { prefix ->
+    private fun toSessionRelativePath(path: String, repoPrefix: String?): String =
+        repoPrefix?.let { prefix ->
             if (path.startsWith(prefix)) {
                 path.removePrefix(prefix).trimStart('/')
             } else {
                 path
             }
         } ?: path
-    }
 
     private data class UntrackedSnapshot(
         val files: List<String>,
-        val dirs: List<String>
+        val dirs: List<String>,
     )
 
     private fun captureExistingUntracked(repoRoot: String, repoPrefix: String?): UntrackedSnapshot {
-        val args = mutableListOf(
-            "status",
-            "--porcelain=2",
-            "-z",
-            "--ignored=matching",
-            "--untracked-files=all"
-        )
+        val args =
+            mutableListOf(
+                "status",
+                "--porcelain=2",
+                "-z",
+                "--ignored=matching",
+                "--untracked-files=all",
+            )
         repoPrefix?.let { prefix ->
             args.addAll(listOf("--", prefix))
         }
@@ -371,13 +378,15 @@ class ShellGitOperations : GitOperations {
     }
 
     private fun restoreToCommitInner(repoRoot: String, repoPrefix: String?, commitId: String) {
-        val args = mutableListOf(
-            "restore",
-            "--source", commitId,
-            "--worktree",
-            "--staged",
-            "--"
-        )
+        val args =
+            mutableListOf(
+                "restore",
+                "--source",
+                commitId,
+                "--worktree",
+                "--staged",
+                "--",
+            )
         args.add(repoPrefix ?: ".")
 
         runGitCommand(repoRoot, args)
@@ -387,7 +396,7 @@ class ShellGitOperations : GitOperations {
         repoRoot: String,
         preservedFiles: List<String>,
         preservedDirs: List<String>,
-        current: UntrackedSnapshot
+        current: UntrackedSnapshot,
     ) {
         if (current.files.isEmpty() && current.dirs.isEmpty()) return
 
@@ -407,27 +416,26 @@ class ShellGitOperations : GitOperations {
     private fun shouldPreserve(
         path: String,
         preservedFiles: Set<String>,
-        preservedDirs: List<String>
+        preservedDirs: List<String>,
     ): Boolean {
         if (preservedFiles.contains(path)) return true
         return preservedDirs.any { dir -> path.startsWith("$dir/") || path == dir }
     }
 
-    private fun defaultCommitIdentity(): Map<String, String> {
-        return mapOf(
+    private fun defaultCommitIdentity(): Map<String, String> =
+        mapOf(
             "GIT_AUTHOR_NAME" to "Codex Snapshot",
             "GIT_AUTHOR_EMAIL" to "snapshot@codex.local",
             "GIT_COMMITTER_NAME" to "Codex Snapshot",
-            "GIT_COMMITTER_EMAIL" to "snapshot@codex.local"
+            "GIT_COMMITTER_EMAIL" to "snapshot@codex.local",
         )
-    }
 
     // ---- Process execution helpers ----
 
     private fun runGitCommand(
         cwd: String,
         args: List<String>,
-        extraEnv: Map<String, String> = emptyMap()
+        extraEnv: Map<String, String> = emptyMap(),
     ) {
         val exitCode = runGitCommandForExitCode(cwd, args, extraEnv)
         if (exitCode != 0) {
@@ -438,18 +446,14 @@ class ShellGitOperations : GitOperations {
     private fun runGitCommandForOutput(
         cwd: String,
         args: List<String>,
-        extraEnv: Map<String, String> = emptyMap()
-    ): String {
-        return executeGitCommand(cwd, args, extraEnv).first
-    }
+        extraEnv: Map<String, String> = emptyMap(),
+    ): String = executeGitCommand(cwd, args, extraEnv).first
 
     private fun runGitCommandForExitCode(
         cwd: String,
         args: List<String>,
-        extraEnv: Map<String, String> = emptyMap()
-    ): Int {
-        return executeGitCommand(cwd, args, extraEnv).second
-    }
+        extraEnv: Map<String, String> = emptyMap(),
+    ): Int = executeGitCommand(cwd, args, extraEnv).second
 
     /**
      * Execute git command and return (stdout, exitCode) pair.
@@ -458,7 +462,7 @@ class ShellGitOperations : GitOperations {
     private fun executeGitCommand(
         cwd: String,
         args: List<String>,
-        extraEnv: Map<String, String>
+        extraEnv: Map<String, String>,
     ): Pair<String, Int> {
         // Use platform-specific process execution
         return platformExecuteGit(cwd, args, extraEnv)
@@ -471,9 +475,7 @@ class ShellGitOperations : GitOperations {
         return "${Environment.TMPDIR}/codex-git-index-${kotlin.random.Random.nextLong()}"
     }
 
-    private fun isDirectory(path: String): Boolean {
-        return platformIsDirectory(path)
-    }
+    private fun isDirectory(path: String): Boolean = platformIsDirectory(path)
 
     private fun deleteTempFile(path: String) {
         platformDeleteFile(path)
@@ -506,7 +508,7 @@ internal expect fun platformDeleteFile(path: String): Boolean
 internal expect fun platformExecuteGit(
     cwd: String,
     args: List<String>,
-    extraEnv: Map<String, String>
+    extraEnv: Map<String, String>,
 ): Pair<String, Int>
 
 /**

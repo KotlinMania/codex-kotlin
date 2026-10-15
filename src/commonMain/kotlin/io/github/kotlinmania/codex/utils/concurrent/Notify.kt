@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.first
  */
 class Notify {
     private val _flow =
-            MutableSharedFlow<Unit>(
-                    replay = 0,
-                    extraBufferCapacity = 1,
-                    onBufferOverflow = BufferOverflow.DROP_OLDEST
-            )
+        MutableSharedFlow<Unit>(
+            replay = 0,
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
     /**
      * Wakes up all coroutines currently waiting on [notified].

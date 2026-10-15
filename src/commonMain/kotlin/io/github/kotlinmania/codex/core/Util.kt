@@ -1,15 +1,13 @@
 // port-lint: source util.rs
 package io.github.kotlinmania.codex.core
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.pow
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 private const val INITIAL_DELAY_MS: Long = 200L
 private const val BACKOFF_FACTOR: Double = 2.0
@@ -28,12 +26,13 @@ fun errorOrPanic(message: String) {
 }
 
 fun tryParseErrorMessage(text: String): String {
-    val parsed: JsonObject? = try {
-        val element = Json.parseToJsonElement(text)
-        if (element is JsonObject) element else null
-    } catch (_: Throwable) {
-        null
-    }
+    val parsed: JsonObject? =
+        try {
+            val element = Json.parseToJsonElement(text)
+            if (element is JsonObject) element else null
+        } catch (_: Throwable) {
+            null
+        }
     if (parsed != null) {
         val error = parsed["error"]
         if (error is JsonObject) {

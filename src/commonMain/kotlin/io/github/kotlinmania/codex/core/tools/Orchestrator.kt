@@ -1,15 +1,14 @@
 // port-lint: source core/src/tools/orchestrator.rs
 package io.github.kotlinmania.codex.core.tools
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.CodexErr
+import io.github.kotlinmania.codex.core.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.getErrorMessageUi
+import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.exec.process.SandboxType
 import io.github.kotlinmania.codex.exec.sandbox.SandboxManager
 import io.github.kotlinmania.codex.protocol.AskForApproval
 import io.github.kotlinmania.codex.protocol.ReviewDecision
-import io.github.kotlinmania.codex.protocol.SandboxPolicy
-import io.github.kotlinmania.codex.core.session.TurnContext
 
 internal class ToolOrchestrator {
     private val sandbox = SandboxManager()
@@ -19,7 +18,7 @@ internal class ToolOrchestrator {
         req: Req,
         toolCtx: ToolCtx,
         turnCtx: TurnContext,
-        approvalPolicy: AskForApproval
+        approvalPolicy: AskForApproval,
     ): Result<Out> where T : ToolRuntime<Req, Out>, Req : ProvidesSandboxRetryData {
         val otel = turnCtx.client?.getOtelEventManager()
         val otelTn = toolCtx.toolName
@@ -31,7 +30,7 @@ internal class ToolOrchestrator {
         var alreadyApproved = false
 
         val requirement = tool.approvalRequirement(req) ?: defaultApprovalRequirement(approvalPolicy, turnCtx.sandboxPolicy)
-        
+
         when (requirement) {
             is ApprovalRequirement.Skip -> {
                 // otel.toolDecision(otelTn, otelCi, ReviewDecision.Approved, otelCfg)
@@ -43,21 +42,23 @@ internal class ToolOrchestrator {
                 var risk: io.github.kotlinmania.codex.protocol.SandboxCommandAssessment? = null
 
                 req.sandboxRetryData()?.let { metadata ->
-                    risk = toolCtx.session.assessSandboxCommand(
-                        turnCtx,
-                        toolCtx.callId,
-                        metadata.command,
-                        null
-                    )
+                    risk =
+                        toolCtx.session.assessSandboxCommand(
+                            turnCtx,
+                            toolCtx.callId,
+                            metadata.command,
+                            null,
+                        )
                 }
 
-                val approvalCtx = ApprovalCtx(
-                    session = toolCtx.session,
-                    turn = turnCtx,
-                    callId = toolCtx.callId,
-                    retryReason = requirement.reason,
-                    risk = risk
-                )
+                val approvalCtx =
+                    ApprovalCtx(
+                        session = toolCtx.session,
+                        turn = turnCtx,
+                        callId = toolCtx.callId,
+                        retryReason = requirement.reason,
+                        risk = risk,
+                    )
                 val decision = tool.startApprovalAsync(req, approvalCtx)
 
                 // otel.toolDecision(otelTn, otelCi, decision, otelUser)
@@ -73,28 +74,31 @@ internal class ToolOrchestrator {
         }
 
         // 2) First attempt under the selected sandbox.
-        val initialSandbox = when (tool.sandboxModeForFirstAttempt(req)) {
-            SandboxOverride.BypassSandboxFirstAttempt -> SandboxType.None
-            SandboxOverride.NoOverride -> {
-                val pref = when (tool.sandboxPreference()) {
-                    SandboxablePreference.Auto -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Auto
-                    SandboxablePreference.Require -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Require
-                    SandboxablePreference.Forbid -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Forbid
+        val initialSandbox =
+            when (tool.sandboxModeForFirstAttempt(req)) {
+                SandboxOverride.BypassSandboxFirstAttempt -> SandboxType.None
+                SandboxOverride.NoOverride -> {
+                    val pref =
+                        when (tool.sandboxPreference()) {
+                            SandboxablePreference.Auto -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Auto
+                            SandboxablePreference.Require -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Require
+                            SandboxablePreference.Forbid -> io.github.kotlinmania.codex.exec.sandbox.SandboxPreference.Forbid
+                        }
+                    sandbox.selectInitialSandbox(turnCtx.sandboxPolicy, pref)
                 }
-                sandbox.selectInitialSandbox(turnCtx.sandboxPolicy, pref)
             }
-        }
 
-        val initialAttempt = SandboxAttempt(
-            sandbox = initialSandbox,
-            policy = turnCtx.sandboxPolicy,
-            manager = sandbox,
-            sandboxCwd = turnCtx.cwd,
-            codexLinuxSandboxExe = turnCtx.codexLinuxSandboxExe
-        )
+        val initialAttempt =
+            SandboxAttempt(
+                sandbox = initialSandbox,
+                policy = turnCtx.sandboxPolicy,
+                manager = sandbox,
+                sandboxCwd = turnCtx.cwd,
+                codexLinuxSandboxExe = turnCtx.codexLinuxSandboxExe,
+            )
 
         val result = tool.run(req, initialAttempt, toolCtx)
-        
+
         return result.fold(
             onSuccess = { Result.success(it) },
             onFailure = { err ->
@@ -114,7 +118,7 @@ internal class ToolOrchestrator {
                     if (!tool.escalateOnFailure()) {
                         return Result.failure(err)
                     }
-                    
+
                     if (!tool.wantsNoSandboxApproval(approvalPolicy)) {
                         return Result.failure(err)
                     }
@@ -126,22 +130,24 @@ internal class ToolOrchestrator {
                             val friendly = getErrorMessageUi(codexError)
                             val failureSummary = "failed in sandbox: $friendly"
 
-                            risk = toolCtx.session.assessSandboxCommand(
-                                turnCtx,
-                                toolCtx.callId,
-                                metadata.command,
-                                failureSummary
-                            )
+                            risk =
+                                toolCtx.session.assessSandboxCommand(
+                                    turnCtx,
+                                    toolCtx.callId,
+                                    metadata.command,
+                                    failureSummary,
+                                )
                         }
 
                         val reasonMsg = buildDenialReasonFromOutput(output)
-                        val approvalCtx = ApprovalCtx(
-                            session = toolCtx.session,
-                            turn = turnCtx,
-                            callId = toolCtx.callId,
-                            retryReason = reasonMsg,
-                            risk = risk
-                        )
+                        val approvalCtx =
+                            ApprovalCtx(
+                                session = toolCtx.session,
+                                turn = turnCtx,
+                                callId = toolCtx.callId,
+                                retryReason = reasonMsg,
+                                risk = risk,
+                            )
 
                         val decision = tool.startApprovalAsync(req, approvalCtx)
                         // otel.toolDecision(...)
@@ -154,26 +160,27 @@ internal class ToolOrchestrator {
                         }
                     }
 
-                    val escalatedAttempt = SandboxAttempt(
-                        sandbox = SandboxType.None,
-                        policy = turnCtx.sandboxPolicy,
-                        manager = sandbox,
-                        sandboxCwd = turnCtx.cwd,
-                        codexLinuxSandboxExe = null
-                    )
+                    val escalatedAttempt =
+                        SandboxAttempt(
+                            sandbox = SandboxType.None,
+                            policy = turnCtx.sandboxPolicy,
+                            manager = sandbox,
+                            sandboxCwd = turnCtx.cwd,
+                            codexLinuxSandboxExe = null,
+                        )
 
                     tool.run(req, escalatedAttempt, toolCtx)
                 } else {
                     Result.failure(err)
                 }
-            }
+            },
         )
     }
 }
 
-fun buildDenialReasonFromOutput(_output: ExecToolCallOutput): String {
-    return "command failed; retry without sandbox?"
-}
+fun buildDenialReasonFromOutput(_output: ExecToolCallOutput): String = "command failed; retry without sandbox?"
 
 // Helper exception to wrap ToolError for Result<T> compatibility if needed
-class ToolErrorException(val error: ToolError) : Exception(error.toString())
+class ToolErrorException(
+    val error: ToolError,
+) : Exception(error.toString())

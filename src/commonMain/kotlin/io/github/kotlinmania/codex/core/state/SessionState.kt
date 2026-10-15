@@ -1,13 +1,13 @@
 // port-lint: source core/src/state/session.rs
 package io.github.kotlinmania.codex.core.state
 
-import io.github.kotlinmania.codex.core.session.SessionConfiguration
 import io.github.kotlinmania.codex.core.context.ContextManager
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
+import io.github.kotlinmania.codex.core.session.SessionConfiguration
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
+import io.github.kotlinmania.codex.protocol.ResponseItem
 import io.github.kotlinmania.codex.protocol.TokenUsage
 import io.github.kotlinmania.codex.protocol.TokenUsageInfo
-import io.github.kotlinmania.codex.protocol.ResponseItem
 
 /**
  * Persistent, session-scoped state previously stored directly on `Session`.
@@ -15,7 +15,7 @@ import io.github.kotlinmania.codex.protocol.ResponseItem
 internal class SessionState(
     var sessionConfiguration: SessionConfiguration,
     val history: ContextManager = ContextManager(),
-    var latestRateLimits: RateLimitSnapshot? = null
+    var latestRateLimits: RateLimitSnapshot? = null,
 ) {
     /**
      * Create a new session state mirroring previous `State::default()` semantics.
@@ -23,7 +23,7 @@ internal class SessionState(
     constructor(sessionConfiguration: SessionConfiguration) : this(
         sessionConfiguration = sessionConfiguration,
         history = ContextManager(),
-        latestRateLimits = null
+        latestRateLimits = null,
     )
 
     // History helpers
@@ -31,9 +31,7 @@ internal class SessionState(
         history.recordItems(items, policy)
     }
 
-    fun cloneHistory(): ContextManager {
-        return history.clone()
-    }
+    fun cloneHistory(): ContextManager = history.clone()
 
     fun replaceHistory(items: List<ResponseItem>) {
         history.replace(items)
@@ -46,28 +44,22 @@ internal class SessionState(
     // Token/rate limit helpers
     fun updateTokenInfoFromUsage(
         usage: TokenUsage,
-        modelContextWindow: Long?
+        modelContextWindow: Long?,
     ) {
         history.updateTokenInfo(usage, modelContextWindow)
     }
 
-    fun tokenInfo(): TokenUsageInfo? {
-        return history.tokenInfo()
-    }
+    fun tokenInfo(): TokenUsageInfo? = history.tokenInfo()
 
     fun setRateLimits(snapshot: RateLimitSnapshot) {
         this.latestRateLimits = snapshot
     }
 
-    fun tokenInfoAndRateLimits(): Pair<TokenUsageInfo?, RateLimitSnapshot?> {
-        return Pair(tokenInfo(), latestRateLimits)
-    }
+    fun tokenInfoAndRateLimits(): Pair<TokenUsageInfo?, RateLimitSnapshot?> = Pair(tokenInfo(), latestRateLimits)
 
     fun setTokenUsageFull(contextWindow: Long) {
         history.setTokenUsageFull(contextWindow)
     }
 
-    fun getTotalTokenUsage(): Long {
-        return history.getTotalTokenUsage()
-    }
+    fun getTotalTokenUsage(): Long = history.getTotalTokenUsage()
 }

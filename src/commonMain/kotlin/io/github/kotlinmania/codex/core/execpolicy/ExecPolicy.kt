@@ -36,18 +36,19 @@ private fun evaluateWithPolicy(
 ): ApprovalRequirement? {
     val commands = parseShellLcPlainCommands(command) ?: listOf(command)
     return when (val evaluation = policy.checkMultiple(commands)) {
-        is Evaluation.Match -> when (evaluation.decision) {
-            Decision.Forbidden -> ApprovalRequirement.Forbidden(reason = FORBIDDEN_REASON)
-            Decision.Prompt -> {
-                val reason = PROMPT_REASON
-                if (approvalPolicy == AskForApproval.Never) {
-                    ApprovalRequirement.Forbidden(reason = reason)
-                } else {
-                    ApprovalRequirement.NeedsApproval(reason = reason)
+        is Evaluation.Match ->
+            when (evaluation.decision) {
+                Decision.Forbidden -> ApprovalRequirement.Forbidden(reason = FORBIDDEN_REASON)
+                Decision.Prompt -> {
+                    val reason = PROMPT_REASON
+                    if (approvalPolicy == AskForApproval.Never) {
+                        ApprovalRequirement.Forbidden(reason = reason)
+                    } else {
+                        ApprovalRequirement.NeedsApproval(reason = reason)
+                    }
                 }
+                Decision.Allow -> ApprovalRequirement.Skip(bypassSandbox = true)
             }
-            Decision.Allow -> ApprovalRequirement.Skip(bypassSandbox = true)
-        }
         Evaluation.NoMatch -> null
     }
 }

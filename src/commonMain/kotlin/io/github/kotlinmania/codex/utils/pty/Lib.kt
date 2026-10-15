@@ -1,24 +1,17 @@
 // transliterated from upstream module root (utils/pty crate)
 package io.github.kotlinmania.codex.utils.pty
 
-import io.github.kotlinmania.codex.core.CodexResult
+import io.github.kotlinmania.codex.core.createPlatformProcess
+import io.github.kotlinmania.codex.core.killPlatformChildProcessGroup
+import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-
-import io.github.kotlinmania.codex.core.createPlatformProcess
-import io.github.kotlinmania.codex.core.ProcessHandle
-import io.github.kotlinmania.codex.core.killPlatformChildProcessGroup
-
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Represents an active execution session.
@@ -32,13 +25,13 @@ internal class ExecCommandSession(
     private val writerJob: Job,
     private val waitJob: Job,
     private val exitStatus: kotlinx.atomicfu.AtomicBoolean,
-    private val exitCode: kotlinx.atomicfu.AtomicInt
+    private val exitCode: kotlinx.atomicfu.AtomicInt,
 ) {
     // Rust uses broadcast channel for output, allowing multiple subscribers.
     // We'll expose a flow or similar mechanism.
     // For parity with the upstream `outputReceiver() -> broadcast::Receiver`, we might need a broadcast channel.
     // But for now, let assume single consumer or handle it in the manager.
-    
+
     fun writerSender(): SendChannel<ByteArray> = writerTx
 
     // We'll return the channel for now, or a flow.
@@ -51,7 +44,7 @@ internal class ExecCommandSession(
         val code = exitCode.value
         return if (code == -1 && !hasExited()) null else code
     }
-    
+
     fun kill() {
         killer.kill()
     }
@@ -64,7 +57,7 @@ internal interface ProcessKiller {
 internal data class SpawnedPty(
     val session: ExecCommandSession,
     val outputRx: ReceiveChannel<ByteArray>,
-    val exitRx: ReceiveChannel<Int>
+    val exitRx: ReceiveChannel<Int>,
 )
 
 internal suspend fun spawnPtyProcess(
@@ -72,82 +65,89 @@ internal suspend fun spawnPtyProcess(
     args: List<String>,
     cwd: String,
     env: Map<String, String>,
-    scope: CoroutineScope
+    scope: CoroutineScope,
 ): SpawnedPty {
     val process = createPlatformProcess(command, args, cwd, env)
-    
+
     val writerCh = Channel<ByteArray>(Channel.UNLIMITED)
     val outputCh = Channel<ByteArray>(Channel.UNLIMITED)
     val exitCh = Channel<Int>(Channel.BUFFERED)
-    
+
     val exitStatus = atomic(false)
     val exitCode = atomic(-1)
-    
-    val killer = object : ProcessKiller {
-        override fun kill() {
-            killPlatformChildProcessGroup(process)
+
+    val killer =
+        object : ProcessKiller {
+            override fun kill() {
+                killPlatformChildProcessGroup(process)
+            }
         }
-    }
-    
+
     // Reader Jobs (Stdout/Stderr)
     // We launch separate jobs for stdout and stderr because read() is blocking
-    val stdoutJob = scope.launch(Dispatchers.Default) {
-        val buffer = ByteArray(4096)
-        while (isActive) {
-            val n = process.readStdout(buffer)
-            if (n > 0) {
-                outputCh.send(buffer.copyOfRange(0, n))
-            } else {
-                break
+    val stdoutJob =
+        scope.launch(Dispatchers.Default) {
+            val buffer = ByteArray(4096)
+            while (isActive) {
+                val n = process.readStdout(buffer)
+                if (n > 0) {
+                    outputCh.send(buffer.copyOfRange(0, n))
+                } else {
+                    break
+                }
             }
         }
-    }
 
-    val stderrJob = scope.launch(Dispatchers.Default) {
-        val buffer = ByteArray(4096)
-        while (isActive) {
-            val n = process.readStderr(buffer)
-            if (n > 0) {
-                outputCh.send(buffer.copyOfRange(0, n))
-            } else {
-                break
+    val stderrJob =
+        scope.launch(Dispatchers.Default) {
+            val buffer = ByteArray(4096)
+            while (isActive) {
+                val n = process.readStderr(buffer)
+                if (n > 0) {
+                    outputCh.send(buffer.copyOfRange(0, n))
+                } else {
+                    break
+                }
             }
         }
-    }
 
     // Waiter Job: waits for process exit and ensures streams are drained
-    val waiterJob = scope.launch(Dispatchers.Default) {
-        val code = process.onAwait()
-        exitCode.value = code
-        exitStatus.value = true
-        exitCh.send(code)
-        
-        // Wait for readers to finish draining
-        stdoutJob.join()
-        stderrJob.join()
-        outputCh.close()
-    }
-    
-    val writerJob = scope.launch(Dispatchers.Default) {
-        for (data in writerCh) {
-            // TODO: Implement writing to process stdin
+    val waiterJob =
+        scope.launch(Dispatchers.Default) {
+            val code = process.onAwait()
+            exitCode.value = code
+            exitStatus.value = true
+            exitCh.send(code)
+
+            // Wait for readers to finish draining
+            stdoutJob.join()
+            stderrJob.join()
+            outputCh.close()
         }
-    }
-    
-    val waitJob = scope.launch(Dispatchers.Default) {
-        // Already handled in readerJob for now
-    }
-    
-    val session = ExecCommandSession(
-        writerTx = writerCh,
-        outputTx = outputCh,
-        killer = killer,
-        readerJob = stdoutJob, // Just a handle, waiterJob manages lifecycle
-        writerJob = writerJob,
-        waitJob = waiterJob,
-        exitStatus = exitStatus,
-        exitCode = exitCode
-    )
-    
+
+    val writerJob =
+        scope.launch(Dispatchers.Default) {
+            for (data in writerCh) {
+                // TODO: Implement writing to process stdin
+            }
+        }
+
+    val waitJob =
+        scope.launch(Dispatchers.Default) {
+            // Already handled in readerJob for now
+        }
+
+    val session =
+        ExecCommandSession(
+            writerTx = writerCh,
+            outputTx = outputCh,
+            killer = killer,
+            readerJob = stdoutJob, // Just a handle, waiterJob manages lifecycle
+            writerJob = writerJob,
+            waitJob = waiterJob,
+            exitStatus = exitStatus,
+            exitCode = exitCode,
+        )
+
     return SpawnedPty(session, outputCh, exitCh)
 }

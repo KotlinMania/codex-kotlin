@@ -41,7 +41,7 @@ private fun formatDurationLine(duration: kotlin.time.Duration): String {
 private fun formatUserShellCommandBody(
     command: String,
     execOutput: ExecToolCallOutput,
-    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy
+    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy,
 ): String {
     val sections = mutableListOf<String>()
     sections.add("<command>")
@@ -62,7 +62,7 @@ private fun formatUserShellCommandBody(
 fun formatUserShellCommandRecord(
     command: String,
     execOutput: ExecToolCallOutput,
-    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy
+    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy,
 ): String {
     val body = formatUserShellCommandBody(command, execOutput, truncationPolicy)
     return "$USER_SHELL_COMMAND_OPEN\n$body\n$USER_SHELL_COMMAND_CLOSE"
@@ -74,41 +74,43 @@ fun formatUserShellCommandRecord(
 fun userShellCommandRecordItem(
     command: String,
     execOutput: ExecToolCallOutput,
-    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy
-): ResponseItem {
-    return ResponseItem.Message(
+    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy,
+): ResponseItem =
+    ResponseItem.Message(
         id = null,
         role = "user",
-        content = listOf(
-            ContentItem.InputText(
-                formatUserShellCommandRecord(command, execOutput, truncationPolicy)
-            )
-        )
+        content =
+            listOf(
+                ContentItem.InputText(
+                    formatUserShellCommandRecord(command, execOutput, truncationPolicy),
+                ),
+            ),
     )
-}
 
 /**
  * Format execution output string with truncation.
  */
 private fun formatExecOutputStr(
     output: ExecToolCallOutput,
-    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy
+    truncationPolicy: io.github.kotlinmania.codex.core.context.TruncationPolicy,
 ): String {
     // Use aggregated output if available, otherwise combine stdout/stderr
-    val content = if (output.aggregatedOutput.text.isNotEmpty()) {
-        output.aggregatedOutput.text
-    } else {
-        buildString {
-            if (output.stdout.text.isNotEmpty()) {
-                append(output.stdout.text)
-            }
-            if (output.stderr.text.isNotEmpty()) {
-                if (isNotEmpty()) append("\n")
-                append(output.stderr.text)
+    val content =
+        if (output.aggregatedOutput.text.isNotEmpty()) {
+            output.aggregatedOutput.text
+        } else {
+            buildString {
+                if (output.stdout.text.isNotEmpty()) {
+                    append(output.stdout.text)
+                }
+                if (output.stderr.text.isNotEmpty()) {
+                    if (isNotEmpty()) append("\n")
+                    append(output.stderr.text)
+                }
             }
         }
-    }
-    return io.github.kotlinmania.codex.core.context.truncateText(content, truncationPolicy)
+    return io.github.kotlinmania.codex.core.context
+        .truncateText(content, truncationPolicy)
 }
 
 // ExecToolCallOutput is now imported from io.github.kotlinmania.codex.exec.process

@@ -2,9 +2,7 @@
 package io.github.kotlinmania.codex.ollama
 
 /** Identify whether a baseUrl points at an OpenAI-compatible root (".../v1"). */
-internal fun isOpenaiCompatibleBaseUrl(baseUrl: String): Boolean {
-    return baseUrl.trimEnd('/').endsWith("/v1")
-}
+internal fun isOpenaiCompatibleBaseUrl(baseUrl: String): Boolean = baseUrl.trimEnd('/').endsWith("/v1")
 
 /**
  * Convert a provider baseUrl into the native Ollama host root.

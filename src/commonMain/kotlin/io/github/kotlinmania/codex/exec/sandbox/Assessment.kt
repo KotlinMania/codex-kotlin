@@ -14,7 +14,7 @@ fun assessCommand(command: List<String>, policy: SandboxPolicy): SandboxCommandA
 
     // High risk commands
     val highRisk =
-            setOf("rm", "dd", "mkfs", "fdisk", "mount", "umount", "chown", "chmod", "sudo", "su")
+        setOf("rm", "dd", "mkfs", "fdisk", "mount", "umount", "chown", "chmod", "sudo", "su")
 
     // Medium risk commands
     val mediumRisk = setOf("mv", "cp", "ln", "kill", "pkill", "killall", "shutdown", "reboot")

@@ -2,7 +2,7 @@
 package io.github.kotlinmania.codex.api.error
 
 import io.github.kotlinmania.codex.client.error.TransportError
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import kotlin.time.Duration
 
 /**

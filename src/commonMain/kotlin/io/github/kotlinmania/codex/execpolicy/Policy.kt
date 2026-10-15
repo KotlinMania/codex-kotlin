@@ -24,12 +24,13 @@ data class Policy(
     }
 
     fun checkMultiple(commands: Iterable<List<String>>): Evaluation {
-        val matchedRules: List<RuleMatch> = commands.flatMap { command ->
-            when (val ev = check(command)) {
-                is Evaluation.Match -> ev.matchedRules
-                Evaluation.NoMatch -> emptyList()
+        val matchedRules: List<RuleMatch> =
+            commands.flatMap { command ->
+                when (val ev = check(command)) {
+                    is Evaluation.Match -> ev.matchedRules
+                    Evaluation.NoMatch -> emptyList()
+                }
             }
-        }
 
         val bestDecision = matchedRules.map { it.decision() }.maxOrNull()
         return if (bestDecision != null) {

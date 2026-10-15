@@ -31,7 +31,7 @@ enum class ReasoningEffort {
     High,
 
     @SerialName("xhigh")
-    XHigh
+    XHigh,
 }
 
 /**
@@ -50,7 +50,7 @@ enum class ReasoningSummary {
     Detailed,
 
     @SerialName("none")
-    None
+    None,
 }
 
 /**
@@ -65,7 +65,7 @@ enum class Verbosity {
     Medium,
 
     @SerialName("high")
-    High
+    High,
 }
 
 /**
@@ -80,7 +80,7 @@ enum class SandboxMode {
     WorkspaceWrite,
 
     @SerialName("danger-full-access")
-    DangerFullAccess
+    DangerFullAccess,
 }
 
 /**
@@ -92,7 +92,7 @@ enum class ForcedLoginMethod {
     Chatgpt,
 
     @SerialName("api")
-    Api
+    Api,
 }
 
 /**
@@ -105,5 +105,5 @@ enum class TrustLevel {
     Trusted,
 
     @SerialName("untrusted")
-    Untrusted
+    Untrusted,
 }

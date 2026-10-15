@@ -20,11 +20,10 @@ class ApprovalStore {
     private val mutex = Mutex()
     private val map = mutableMapOf<String, ReviewDecision>()
 
-    suspend fun get(key: Any): ReviewDecision? {
-        return mutex.withLock {
+    suspend fun get(key: Any): ReviewDecision? =
+        mutex.withLock {
             map[key.toString()]
         }
-    }
 
     suspend fun put(key: Any, value: ReviewDecision) {
         mutex.withLock {
@@ -34,9 +33,9 @@ class ApprovalStore {
 }
 
 internal suspend fun withCachedApproval(
-        services: SessionServices,
-        key: Any,
-        fetch: suspend () -> ReviewDecision
+    services: SessionServices,
+    key: Any,
+    fetch: suspend () -> ReviewDecision,
 ): ReviewDecision {
     val store = services.toolApprovals
 
@@ -54,29 +53,37 @@ internal suspend fun withCachedApproval(
 }
 
 internal data class ApprovalCtx(
-        val session: Session,
-        val turn: TurnContext,
-        val callId: String,
-        val retryReason: String?,
-        val risk: SandboxCommandAssessment?
+    val session: Session,
+    val turn: TurnContext,
+    val callId: String,
+    val retryReason: String?,
+    val risk: SandboxCommandAssessment?,
 )
 
 sealed class ApprovalRequirement {
-    data class Skip(val bypassSandbox: Boolean) : ApprovalRequirement()
-    data class NeedsApproval(val reason: String?) : ApprovalRequirement()
-    data class Forbidden(val reason: String) : ApprovalRequirement()
+    data class Skip(
+        val bypassSandbox: Boolean,
+    ) : ApprovalRequirement()
+
+    data class NeedsApproval(
+        val reason: String?,
+    ) : ApprovalRequirement()
+
+    data class Forbidden(
+        val reason: String,
+    ) : ApprovalRequirement()
 }
 
 fun defaultApprovalRequirement(
-        policy: AskForApproval,
-        sandboxPolicy: SandboxPolicy
+    policy: AskForApproval,
+    sandboxPolicy: SandboxPolicy,
 ): ApprovalRequirement {
     val needsApproval =
-            when (policy) {
-                AskForApproval.Never, AskForApproval.OnFailure -> false
-                AskForApproval.OnRequest -> sandboxPolicy != SandboxPolicy.DangerFullAccess
-                AskForApproval.UnlessTrusted -> true
-            }
+        when (policy) {
+            AskForApproval.Never, AskForApproval.OnFailure -> false
+            AskForApproval.OnRequest -> sandboxPolicy != SandboxPolicy.DangerFullAccess
+            AskForApproval.UnlessTrusted -> true
+        }
 
     return if (needsApproval) {
         ApprovalRequirement.NeedsApproval(null)
@@ -87,7 +94,7 @@ fun defaultApprovalRequirement(
 
 enum class SandboxOverride {
     NoOverride,
-    BypassSandboxFirstAttempt
+    BypassSandboxFirstAttempt,
 }
 
 internal interface Approvable<Req> {
@@ -95,9 +102,7 @@ internal interface Approvable<Req> {
     // fun approvalKey(req: Req): ApprovalKey
 
     @Suppress("UNUSED_PARAMETER")
-    fun sandboxModeForFirstAttempt(req: Req): SandboxOverride {
-        return SandboxOverride.NoOverride
-    }
+    fun sandboxModeForFirstAttempt(req: Req): SandboxOverride = SandboxOverride.NoOverride
 
     fun shouldBypassApproval(policy: AskForApproval, alreadyApproved: Boolean): Boolean {
         if (alreadyApproved) {
@@ -106,13 +111,9 @@ internal interface Approvable<Req> {
         return policy == AskForApproval.Never
     }
 
-    fun approvalRequirement(req: Req): ApprovalRequirement? {
-        return null
-    }
+    fun approvalRequirement(req: Req): ApprovalRequirement? = null
 
-    fun wantsNoSandboxApproval(policy: AskForApproval): Boolean {
-        return policy != AskForApproval.Never && policy != AskForApproval.OnRequest
-    }
+    fun wantsNoSandboxApproval(policy: AskForApproval): Boolean = policy != AskForApproval.Never && policy != AskForApproval.OnRequest
 
     suspend fun startApprovalAsync(req: Req, ctx: ApprovalCtx): ReviewDecision
 }
@@ -120,26 +121,25 @@ internal interface Approvable<Req> {
 enum class SandboxablePreference {
     Auto,
     Require,
-    Forbid
+    Forbid,
 }
 
 interface Sandboxable {
     fun sandboxPreference(): SandboxablePreference
-    fun escalateOnFailure(): Boolean {
-        return true
-    }
+
+    fun escalateOnFailure(): Boolean = true
 }
 
 internal data class ToolCtx(
-        val session: Session,
-        val turn: TurnContext,
-        val callId: String,
-        val toolName: String
+    val session: Session,
+    val turn: TurnContext,
+    val callId: String,
+    val toolName: String,
 )
 
 data class SandboxRetryData(
-        val command: List<String>,
-        val cwd: String // PathBuf -> String
+    val command: List<String>,
+    val cwd: String, // PathBuf -> String
 )
 
 interface ProvidesSandboxRetryData {
@@ -147,28 +147,35 @@ interface ProvidesSandboxRetryData {
 }
 
 sealed class ToolError : Exception() {
-    data class Rejected(val reason: String) : ToolError() {
+    data class Rejected(
+        val reason: String,
+    ) : ToolError() {
         override val message: String = reason
     }
-    data class Codex(val error: CodexErr) : ToolError() {
+
+    data class Codex(
+        val error: CodexErr,
+    ) : ToolError() {
         override val message: String = error.toString()
     }
 }
 
-internal interface ToolRuntime<Req, Out> : Approvable<Req>, Sandboxable {
+internal interface ToolRuntime<Req, Out> :
+    Approvable<Req>,
+    Sandboxable {
     suspend fun run(
-            req: Req,
-            attempt: SandboxAttempt,
-            ctx: ToolCtx
+        req: Req,
+        attempt: SandboxAttempt,
+        ctx: ToolCtx,
     ): Result<Out> // Using Result<Out> which can wrap ToolError logic or throw
 }
 
 class SandboxAttempt(
-        val sandbox: SandboxType,
-        val policy: SandboxPolicy,
-        val manager: SandboxManager,
-        val sandboxCwd: String, // Path -> String
-        val codexLinuxSandboxExe: String? // PathBuf -> String
+    val sandbox: SandboxType,
+    val policy: SandboxPolicy,
+    val manager: SandboxManager,
+    val sandboxCwd: String, // Path -> String
+    val codexLinuxSandboxExe: String?, // PathBuf -> String
 ) {
     fun envFor(spec: CommandSpec): Result<ExecEnv> {
         val res = manager.transform(spec, policy, sandbox, sandboxCwd, codexLinuxSandboxExe)

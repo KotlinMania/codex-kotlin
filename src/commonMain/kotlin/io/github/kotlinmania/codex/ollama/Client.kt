@@ -75,11 +75,12 @@ internal class OllamaClient(
             } else {
                 "$trimmed/api/tags"
             }
-        val resp = try {
-            client.get(url)
-        } catch (e: Exception) {
-            throw IllegalStateException(OLLAMA_CONNECTION_ERROR)
-        }
+        val resp =
+            try {
+                client.get(url)
+            } catch (e: Exception) {
+                throw IllegalStateException(OLLAMA_CONNECTION_ERROR)
+            }
         if (resp.status.isSuccess()) {
             return
         }
@@ -89,11 +90,12 @@ internal class OllamaClient(
     /** Return the list of model names known to the local Ollama instance. */
     suspend fun fetchModels(): List<String> {
         val tagsUrl = "${hostRoot.trimEnd('/')}/api/tags"
-        val resp = try {
-            client.get(tagsUrl)
-        } catch (_: Exception) {
-            return emptyList()
-        }
+        val resp =
+            try {
+                client.get(tagsUrl)
+            } catch (_: Exception) {
+                return emptyList()
+            }
         if (!resp.status.isSuccess()) {
             return emptyList()
         }
@@ -110,42 +112,44 @@ internal class OllamaClient(
      * Start a model pull and emit streaming events. The returned stream ends when
      * a Success event is observed or the server closes the connection.
      */
-    suspend fun pullModelStream(model: String): Flow<PullEvent> = flow {
-        val trimmed = hostRoot.trimEnd('/')
-        val url = "$trimmed/api/pull"
-        val resp: HttpResponse =
-            client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody("""{"model":"$model","stream":true}""")
+    suspend fun pullModelStream(model: String): Flow<PullEvent> =
+        flow {
+            val trimmed = hostRoot.trimEnd('/')
+            val url = "$trimmed/api/pull"
+            val resp: HttpResponse =
+                client.post(url) {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"model":"$model","stream":true}""")
+                }
+            if (!resp.status.isSuccess()) {
+                throw IllegalStateException("failed to start pull: HTTP ${resp.status.value}")
             }
-        if (!resp.status.isSuccess()) {
-            throw IllegalStateException("failed to start pull: HTTP ${resp.status.value}")
+            val bodyText = resp.body<String>()
+            val json = Json { ignoreUnknownKeys = true }
+            for (line in bodyText.split('\n')) {
+                val text = line.trim()
+                if (text.isEmpty()) continue
+                val value: JsonElement =
+                    try {
+                        json.parseToJsonElement(text)
+                    } catch (_: Exception) {
+                        continue
+                    }
+                for (ev in pullEventsFromValue(value)) {
+                    emit(ev)
+                }
+                val errMsg = (value as? JsonObject)?.get("error")?.let { (it as? JsonPrimitive)?.contentOrNull }
+                if (errMsg != null) {
+                    emit(PullEvent.Error(errMsg))
+                    return@flow
+                }
+                val status = (value as? JsonObject)?.get("status")?.let { (it as? JsonPrimitive)?.contentOrNull }
+                if (status != null && status == "success") {
+                    emit(PullEvent.Success)
+                    return@flow
+                }
+            }
         }
-        val bodyText = resp.body<String>()
-        val json = Json { ignoreUnknownKeys = true }
-        for (line in bodyText.split('\n')) {
-            val text = line.trim()
-            if (text.isEmpty()) continue
-            val value: JsonElement = try {
-                json.parseToJsonElement(text)
-            } catch (_: Exception) {
-                continue
-            }
-            for (ev in pullEventsFromValue(value)) {
-                emit(ev)
-            }
-            val errMsg = (value as? JsonObject)?.get("error")?.let { (it as? JsonPrimitive)?.contentOrNull }
-            if (errMsg != null) {
-                emit(PullEvent.Error(errMsg))
-                return@flow
-            }
-            val status = (value as? JsonObject)?.get("status")?.let { (it as? JsonPrimitive)?.contentOrNull }
-            if (status != null && status == "success") {
-                emit(PullEvent.Success)
-                return@flow
-            }
-        }
-    }
 
     /** High-level helper to pull a model and drive a progress reporter. */
     suspend fun pullWithReporter(model: String, reporter: PullProgressReporter) {

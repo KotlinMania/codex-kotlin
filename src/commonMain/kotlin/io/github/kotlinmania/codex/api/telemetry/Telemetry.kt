@@ -1,7 +1,7 @@
 // port-lint: source telemetry.rs
 package io.github.kotlinmania.codex.api.telemetry
 
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import kotlin.time.Duration
 
 /** Generic telemetry for SSE event streams. */

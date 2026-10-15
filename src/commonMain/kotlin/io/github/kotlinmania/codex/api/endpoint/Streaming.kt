@@ -7,9 +7,12 @@ import io.github.kotlinmania.codex.api.common.ResponseStream
 import io.github.kotlinmania.codex.api.provider.Provider
 import io.github.kotlinmania.codex.api.telemetry.RequestTelemetry
 import io.github.kotlinmania.codex.api.telemetry.SseTelemetry
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.setBody
+import io.ktor.client.request.takeFrom
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import kotlinx.serialization.json.JsonElement
 import kotlin.time.Duration
 

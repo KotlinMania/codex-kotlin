@@ -12,12 +12,13 @@ internal actual fun platformExecuteGit(
     cwd: String,
     args: List<String>,
     extraEnv: Map<String, String>,
-): Pair<String, Int> {
-    return try {
+): Pair<String, Int> =
+    try {
         val processArgs = listOf("git") + args
-        val processBuilder = ProcessBuilder(processArgs)
-            .directory(File(cwd))
-            .redirectErrorStream(true)
+        val processBuilder =
+            ProcessBuilder(processArgs)
+                .directory(File(cwd))
+                .redirectErrorStream(true)
 
         processBuilder.environment().putAll(extraEnv)
 
@@ -29,13 +30,11 @@ internal actual fun platformExecuteGit(
     } catch (_: Throwable) {
         Pair("", 1)
     }
-}
 
-internal actual fun platformExecuteCommand(args: List<String>): Int {
-    return try {
+internal actual fun platformExecuteCommand(args: List<String>): Int =
+    try {
         val process = ProcessBuilder(args).start()
         process.waitFor()
     } catch (_: Throwable) {
         1
     }
-}

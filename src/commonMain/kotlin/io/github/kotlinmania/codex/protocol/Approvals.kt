@@ -19,13 +19,16 @@ enum class SandboxRiskLevel {
     Medium,
 
     @SerialName("high")
-    High;
+    High,
 
-    fun asStr(): String = when (this) {
-        Low -> "low"
-        Medium -> "medium"
-        High -> "high"
-    }
+    ;
+
+    fun asStr(): String =
+        when (this) {
+            Low -> "low"
+            Medium -> "medium"
+            High -> "high"
+        }
 }
 
 @Serializable
@@ -33,7 +36,7 @@ data class SandboxCommandAssessment(
     @SerialName("description")
     val descriptionText: String,
     @SerialName("risk_level")
-    val riskLevel: SandboxRiskLevel
+    val riskLevel: SandboxRiskLevel,
 )
 
 @Serializable
@@ -47,7 +50,7 @@ data class ExecApprovalRequestEvent(
     val reason: String? = null,
     val risk: SandboxCommandAssessment? = null,
     @SerialName("parsed_cmd")
-    val parsedCmd: List<ParsedCommand>
+    val parsedCmd: List<ParsedCommand>,
 )
 
 @Serializable
@@ -55,7 +58,7 @@ data class ElicitationRequestEvent(
     @SerialName("server_name")
     val serverName: String,
     val id: String,
-    val message: String
+    val message: String,
 )
 
 @Serializable
@@ -67,7 +70,7 @@ enum class ElicitationAction {
     Decline,
 
     @SerialName("cancel")
-    Cancel
+    Cancel,
 }
 
 @Serializable
@@ -79,5 +82,5 @@ data class ApplyPatchApprovalRequestEvent(
     val changes: Map<String, FileChange>,
     val reason: String? = null,
     @SerialName("grant_root")
-    val grantRoot: String? = null
+    val grantRoot: String? = null,
 )

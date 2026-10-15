@@ -1,34 +1,34 @@
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.exec.sandbox
 
-import io.github.kotlinmania.codex.core.ExecExpiration
-import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.CodexResult
+import io.github.kotlinmania.codex.core.ExecExpiration
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied
 import io.github.kotlinmania.codex.exec.process.SandboxType
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.protocol.SandboxPolicy
 
 /** Command specification for sandbox transformation */
 data class CommandSpec(
-        val program: String,
-        val args: List<String>,
-        val cwd: String,
-        val env: Map<String, String>,
-        val expiration: ExecExpiration,
-        val withEscalatedPermissions: Boolean?,
-        val justification: String?
+    val program: String,
+    val args: List<String>,
+    val cwd: String,
+    val env: Map<String, String>,
+    val expiration: ExecExpiration,
+    val withEscalatedPermissions: Boolean?,
+    val justification: String?,
 )
 
 /** Execution environment after sandbox transformation */
 data class ExecEnv(
-        val command: List<String>,
-        val cwd: String,
-        val env: Map<String, String>,
-        val expiration: ExecExpiration,
-        val sandbox: SandboxType,
-        val withEscalatedPermissions: Boolean?,
-        val justification: String?,
-        val arg0: String?
+    val command: List<String>,
+    val cwd: String,
+    val env: Map<String, String>,
+    val expiration: ExecExpiration,
+    val sandbox: SandboxType,
+    val withEscalatedPermissions: Boolean?,
+    val justification: String?,
+    val arg0: String?,
 )
 
 /**
@@ -49,20 +49,18 @@ enum class SandboxPreference {
 /** Sandbox permissions levels */
 enum class SandboxPermissions {
     UseDefault,
-    RequireEscalated;
+    RequireEscalated,
+    ;
 
-    fun requiresEscalatedPermissions(): Boolean {
-        return this == RequireEscalated
-    }
+    fun requiresEscalatedPermissions(): Boolean = this == RequireEscalated
 
     companion object {
-        fun from(withEscalatedPermissions: Boolean): SandboxPermissions {
-            return if (withEscalatedPermissions) {
+        fun from(withEscalatedPermissions: Boolean): SandboxPermissions =
+            if (withEscalatedPermissions) {
                 RequireEscalated
             } else {
                 UseDefault
             }
-        }
     }
 }
 
@@ -79,20 +77,20 @@ class SandboxManager {
 
     /** Transform a command specification for sandboxed execution */
     fun transform(
-            spec: CommandSpec,
-            policy: SandboxPolicy,
-            preference: SandboxType = SandboxType.None,
-            sandboxPolicyCwd: String = ".",
-            @Suppress("UNUSED_PARAMETER") codexLinuxSandboxExe: String? = null
+        spec: CommandSpec,
+        policy: SandboxPolicy,
+        preference: SandboxType = SandboxType.None,
+        sandboxPolicyCwd: String = ".",
+        @Suppress("UNUSED_PARAMETER") codexLinuxSandboxExe: String? = null,
     ): CodexResult<ExecEnv> {
         val mutEnv = spec.env.toMutableMap()
 
         // Convert SandboxType back to SandboxPreference if needed, or just import SandboxType
         val sandboxPref =
-                when (preference) {
-                    SandboxType.None -> SandboxPreference.Forbid
-                    else -> SandboxPreference.Auto
-                }
+            when (preference) {
+                SandboxType.None -> SandboxPreference.Forbid
+                else -> SandboxPreference.Auto
+            }
 
         // Apply network restrictions
         if (!policy.hasFullNetworkAccess()) {
@@ -103,71 +101,69 @@ class SandboxManager {
 
         val sandboxType = selectInitialSandbox(policy, sandboxPref)
         val (command, sandboxEnv, arg0Override) =
-                when (sandboxType) {
-                    SandboxType.None -> {
-                        Triple(mutCommand, emptyMap<String, String>(), null)
-                    }
-                    SandboxType.MacosSeatbelt -> {
-                        createSeatbeltCommand(mutCommand, policy, sandboxPolicyCwd)
-                    }
-                    SandboxType.LinuxSeccomp -> {
-                        createLinuxSandboxCommand(mutCommand, policy, sandboxPolicyCwd)
-                    }
-                    SandboxType.WindowsRestrictedToken -> {
-                        Triple(mutCommand, emptyMap<String, String>(), null)
-                    }
+            when (sandboxType) {
+                SandboxType.None -> {
+                    Triple(mutCommand, emptyMap<String, String>(), null)
                 }
+                SandboxType.MacosSeatbelt -> {
+                    createSeatbeltCommand(mutCommand, policy, sandboxPolicyCwd)
+                }
+                SandboxType.LinuxSeccomp -> {
+                    createLinuxSandboxCommand(mutCommand, policy, sandboxPolicyCwd)
+                }
+                SandboxType.WindowsRestrictedToken -> {
+                    Triple(mutCommand, emptyMap<String, String>(), null)
+                }
+            }
 
         mutEnv.putAll(sandboxEnv)
 
         return CodexResult.Success(
-                ExecEnv(
-                        command = command,
-                        cwd = spec.cwd,
-                        env = mutEnv,
-                        expiration = spec.expiration,
-                        sandbox = sandboxType,
-                        withEscalatedPermissions = spec.withEscalatedPermissions,
-                        justification = spec.justification,
-                        arg0 = arg0Override
-                )
+            ExecEnv(
+                command = command,
+                cwd = spec.cwd,
+                env = mutEnv,
+                expiration = spec.expiration,
+                sandbox = sandboxType,
+                withEscalatedPermissions = spec.withEscalatedPermissions,
+                justification = spec.justification,
+                arg0 = arg0Override,
+            ),
         )
     }
 
     /** Select initial sandbox type based on policy and preference */
-    fun selectInitialSandbox(policy: SandboxPolicy, preference: SandboxPreference): SandboxType {
-        return when (preference) {
+    fun selectInitialSandbox(policy: SandboxPolicy, preference: SandboxPreference): SandboxType =
+        when (preference) {
             SandboxPreference.Forbid -> SandboxType.None
             SandboxPreference.Require -> {
                 getPlatformSandbox() ?: SandboxType.None
             }
             SandboxPreference.Auto ->
-                    when (policy) {
-                        is SandboxPolicy.DangerFullAccess -> SandboxType.None
-                        else -> getPlatformSandbox() ?: SandboxType.None
-                    }
+                when (policy) {
+                    is SandboxPolicy.DangerFullAccess -> SandboxType.None
+                    else -> getPlatformSandbox() ?: SandboxType.None
+                }
         }
-    }
 
     /** Get the platform-specific sandbox type if available. */
     private fun getPlatformSandbox(): SandboxType? {
         // Minimal implementation: prefer macOS seatbelt when running on macOS, else none.
         return when {
-            io.github.kotlinmania.codex.core.platformIsMacOS() -> SandboxType.MacosSeatbelt
+            io.github.kotlinmania.codex.core
+                .platformIsMacOS() -> SandboxType.MacosSeatbelt
             else -> null
         }
     }
 
     /** Check if execution was likely denied by sandbox */
-    fun denied(sandbox: SandboxType, output: ExecToolCallOutput): Boolean {
-        return isLikelySandboxDenied(sandbox, output)
-    }
+    fun denied(sandbox: SandboxType, output: ExecToolCallOutput): Boolean = isLikelySandboxDenied(sandbox, output)
 
     /** Create Seatbelt command for macOS */
     private fun createSeatbeltCommand(
-            command: List<String>,
-            policy: SandboxPolicy,
-            sandboxPolicyCwd: String
+        command: List<String>,
+        policy: SandboxPolicy,
+        sandboxPolicyCwd: String,
     ): Triple<List<String>, Map<String, String>, String?> {
         val seatbeltEnv = mutableMapOf<String, String>()
         seatbeltEnv[CODEX_SANDBOX_ENV_VAR] = "seatbelt"
@@ -180,9 +176,9 @@ class SandboxManager {
 
     /** Create Linux sandbox command */
     private fun createLinuxSandboxCommand(
-            command: List<String>,
-            policy: SandboxPolicy,
-            sandboxPolicyCwd: String
+        command: List<String>,
+        policy: SandboxPolicy,
+        sandboxPolicyCwd: String,
     ): Triple<List<String>, Map<String, String>, String?> {
         // This would need the codex-linux-sandbox executable path
         // For now, we will create the args structure
@@ -194,64 +190,67 @@ class SandboxManager {
 
     /** Create Seatbelt command arguments */
     private fun createSeatbeltCommandArgs(
-            command: List<String>,
-            policy: SandboxPolicy,
-            sandboxPolicyCwd: String
+        command: List<String>,
+        policy: SandboxPolicy,
+        sandboxPolicyCwd: String,
     ): List<String> {
         val (fileWritePolicy, fileWriteDirParams) =
-                if (policy.hasFullDiskWriteAccess()) {
-                    Pair("(allow file-write* (regex #\"^/\"))", emptyList<Pair<String, String>>())
-                } else {
-                    val writableRoots = policy.getWritableRootsWithCwd(sandboxPolicyCwd)
-                    val writableFolderPolicies = mutableListOf<String>()
-                    val fileWriteParams = mutableListOf<Pair<String, String>>()
+            if (policy.hasFullDiskWriteAccess()) {
+                Pair("(allow file-write* (regex #\"^/\"))", emptyList<Pair<String, String>>())
+            } else {
+                val writableRoots = policy.getWritableRootsWithCwd(sandboxPolicyCwd)
+                val writableFolderPolicies = mutableListOf<String>()
+                val fileWriteParams = mutableListOf<Pair<String, String>>()
 
-                    for ((index, wr) in writableRoots.withIndex()) {
-                        val rootParam = "WRITABLE_ROOT_$index"
-                        fileWriteParams.add(rootParam to wr.root)
+                for ((index, wr) in writableRoots.withIndex()) {
+                    val rootParam = "WRITABLE_ROOT_$index"
+                    fileWriteParams.add(rootParam to wr.root)
 
-                        if (wr.readOnlySubpaths.isEmpty()) {
-                            writableFolderPolicies.add("(subpath (param \"$rootParam\"))")
-                        } else {
-                            val requireParts = mutableListOf<String>()
-                            requireParts.add("(subpath (param \"$rootParam\"))")
-                            for ((subpathIndex, ro) in wr.readOnlySubpaths.withIndex()) {
-                                val roParam = "WRITABLE_ROOT_${index}_RO_$subpathIndex"
-                                requireParts.add("(require-not (subpath (param \"$roParam\")))")
-                                fileWriteParams.add(roParam to ro)
-                            }
-                            val policyComponent = "(require-all ${requireParts.joinToString(" ")} )"
-                            writableFolderPolicies.add(policyComponent)
-                        }
-                    }
-
-                    if (writableFolderPolicies.isEmpty()) {
-                        Pair("", emptyList())
+                    if (wr.readOnlySubpaths.isEmpty()) {
+                        writableFolderPolicies.add("(subpath (param \"$rootParam\"))")
                     } else {
-                        val fileWritePolicy =
-                                "(allow file-write*\n${writableFolderPolicies.joinToString(" ")}\n)"
-                        Pair(fileWritePolicy, fileWriteParams)
+                        val requireParts = mutableListOf<String>()
+                        requireParts.add("(subpath (param \"$rootParam\"))")
+                        for ((subpathIndex, ro) in wr.readOnlySubpaths.withIndex()) {
+                            val roParam = "WRITABLE_ROOT_${index}_RO_$subpathIndex"
+                            requireParts.add("(require-not (subpath (param \"$roParam\")))")
+                            fileWriteParams.add(roParam to ro)
+                        }
+                        val policyComponent = "(require-all ${requireParts.joinToString(" ")} )"
+                        writableFolderPolicies.add(policyComponent)
                     }
                 }
+
+                if (writableFolderPolicies.isEmpty()) {
+                    Pair("", emptyList())
+                } else {
+                    val fileWritePolicy =
+                        "(allow file-write*\n${writableFolderPolicies.joinToString(" ")}\n)"
+                    Pair(fileWritePolicy, fileWriteParams)
+                }
+            }
 
         val fileReadPolicy =
-                if (policy.hasFullDiskReadAccess()) {
-                    "; allow read-only file operations\n(allow file-read*)"
-                } else {
-                    ""
-                }
+            if (policy.hasFullDiskReadAccess()) {
+                "; allow read-only file operations\n(allow file-read*)"
+            } else {
+                ""
+            }
 
         val networkPolicy =
-                if (policy.hasFullNetworkAccess()) {
-                    getSeatbeltNetworkPolicy()
-                } else {
-                    ""
-                }
+            if (policy.hasFullNetworkAccess()) {
+                getSeatbeltNetworkPolicy()
+            } else {
+                ""
+            }
 
         val basePolicy = getSeatbeltBasePolicy()
         val fullPolicy = "$basePolicy\n$fileReadPolicy\n$fileWritePolicy\n$networkPolicy"
 
-        val dirParams = fileWriteDirParams + io.github.kotlinmania.codex.core.platformGetMacosDirParams()
+        val dirParams =
+            fileWriteDirParams +
+                io.github.kotlinmania.codex.core
+                    .platformGetMacosDirParams()
 
         val seatbeltArgs = mutableListOf("-p", fullPolicy)
         val definitionArgs = dirParams.map { (key, value) -> "-D$key=$value" }
@@ -264,18 +263,18 @@ class SandboxManager {
 
     /** Create Linux sandbox command arguments */
     private fun createLinuxSandboxCommandArgs(
-            command: List<String>,
-            policy: SandboxPolicy,
-            sandboxPolicyCwd: String
+        command: List<String>,
+        policy: SandboxPolicy,
+        sandboxPolicyCwd: String,
     ): List<String> {
         val sandboxPolicyJson = serializeSandboxPolicy(policy)
 
         return listOf(
-                "--sandbox-policy-cwd",
-                sandboxPolicyCwd,
-                "--sandbox-policy",
-                sandboxPolicyJson,
-                "--"
+            "--sandbox-policy-cwd",
+            sandboxPolicyCwd,
+            "--sandbox-policy",
+            sandboxPolicyJson,
+            "--",
         ) + command
     }
 
@@ -287,8 +286,7 @@ class SandboxManager {
     }
 
     /** Get Seatbelt base policy Transliterated from codex-rs/core/src/seatbeltBasePolicy.sbpl */
-    private fun getSeatbeltBasePolicy(): String {
-        return """
+    private fun getSeatbeltBasePolicy(): String = """
 (version 1)
 
 ; inspired by Chrome's sandbox policy:
@@ -385,14 +383,12 @@ class SandboxManager {
   (global-name "com.apple.PowerManagement.control")
 )
 """
-    }
 
     /**
      * Get Seatbelt network policy Transliterated from
      * codex-rs/core/src/seatbeltNetworkPolicy.sbpl
      */
-    private fun getSeatbeltNetworkPolicy(): String {
-        return """
+    private fun getSeatbeltNetworkPolicy(): String = """
 ; when network access is enabled, these policies are added after those in seatbelt_base_policy.sbpl
 ; Ref https://source.chromium.org/chromium/chromium/src/+/main:sandbox/policy/mac/network.sb;drc=f8f264d5e4e7509c913f4c60c2639d15905a07e4
 
@@ -424,10 +420,9 @@ class SandboxManager {
   (subpath (param "DARWIN_USER_CACHE_DIR"))
 )
 """
-    }
 
     /** Get macOS directory parameters */
-    private fun getMacosDirParams(): List<Pair<String, String>> {
-        return io.github.kotlinmania.codex.core.platformGetMacosDirParams()
-    }
+    private fun getMacosDirParams(): List<Pair<String, String>> =
+        io.github.kotlinmania.codex.core
+            .platformGetMacosDirParams()
 }

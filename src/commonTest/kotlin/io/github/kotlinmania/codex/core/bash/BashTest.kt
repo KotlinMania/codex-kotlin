@@ -1,10 +1,11 @@
+// port-lint: tests shell-command/src/bash.rs
 package io.github.kotlinmania.codex.core.bash
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class BashParserTest {
+class BashTest {
     private fun parseSeq(src: String): List<List<String>>? = parseShellLcPlainCommands(listOf("bash", "-lc", src))
 
     @Test
@@ -52,10 +53,10 @@ class BashParserTest {
 
     @Test
     fun rejectsCommandAndProcessSubstitutionsAndExpansions() {
-        assertNull(parseSeq("echo $(pwd)"))
+        assertNull(parseSeq("echo \$(pwd)"))
         assertNull(parseSeq("echo `pwd`"))
-        assertNull(parseSeq("echo $HOME"))
-        assertNull(parseSeq("echo \"hi $USER\""))
+        assertNull(parseSeq("echo \$HOME"))
+        assertNull(parseSeq("echo \"hi \$USER\""))
     }
 
     @Test

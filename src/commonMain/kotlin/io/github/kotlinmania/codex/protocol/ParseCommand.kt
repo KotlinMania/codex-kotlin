@@ -23,14 +23,14 @@ sealed class ParsedCommand {
          * be resolved against the `cwd` that will be used to run the command
          * to derive the absolute path.
          */
-        val path: String
+        val path: String,
     ) : ParsedCommand()
 
     @Serializable
     @SerialName("list_files")
     data class ListFiles(
         val cmd: String,
-        val path: String? = null
+        val path: String? = null,
     ) : ParsedCommand()
 
     @Serializable
@@ -38,13 +38,13 @@ sealed class ParsedCommand {
     data class Search(
         val cmd: String,
         val query: String? = null,
-        val path: String? = null
+        val path: String? = null,
     ) : ParsedCommand()
 
     @Serializable
     @SerialName("unknown")
     data class Unknown(
-        val cmd: String
+        val cmd: String,
     ) : ParsedCommand()
 }
 

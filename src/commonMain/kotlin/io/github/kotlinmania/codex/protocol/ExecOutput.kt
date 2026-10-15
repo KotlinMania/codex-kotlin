@@ -2,8 +2,8 @@
 package io.github.kotlinmania.codex.protocol
 
 import io.github.kotlinmania.codex.utils.encoding.bytesToStringSmart
-import kotlin.time.Duration
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration
 
 @Serializable
 data class StreamOutput(
@@ -12,6 +12,7 @@ data class StreamOutput(
 ) {
     companion object {
         fun of(text: String): StreamOutput = StreamOutput(text = text)
+
         fun fromUtf8Lossy(bytes: ByteArray, truncatedAfterLines: Long? = null): StreamOutput =
             StreamOutput(
                 text = bytesToStringSmart(bytes),

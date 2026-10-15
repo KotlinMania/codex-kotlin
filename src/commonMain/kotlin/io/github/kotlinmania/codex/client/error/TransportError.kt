@@ -1,7 +1,8 @@
 // port-lint: source error.rs
 package io.github.kotlinmania.codex.client.error
 
-import io.ktor.http.*
+import io.ktor.http.Headers
+import io.ktor.http.HttpStatusCode
 
 /**
  * Transport-level errors that can occur during HTTP communication.

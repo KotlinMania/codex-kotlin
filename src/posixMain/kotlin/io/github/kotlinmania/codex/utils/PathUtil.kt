@@ -1,5 +1,3 @@
-// port-lint: ignore
-// Native (POSIX) path canonicalization via realpath(3).
 package io.github.kotlinmania.codex.utils
 
 import kotlinx.cinterop.ByteVar

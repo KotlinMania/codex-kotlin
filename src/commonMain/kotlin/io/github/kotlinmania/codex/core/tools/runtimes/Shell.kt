@@ -1,11 +1,10 @@
 // port-lint: source core/src/tools/runtimes/shell.rs
 package io.github.kotlinmania.codex.core.tools.runtimes
 
+import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.Exec
 import io.github.kotlinmania.codex.core.ExecExpiration
-import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.StdoutStream
-import io.github.kotlinmania.codex.core.CodexErr
 import io.github.kotlinmania.codex.core.tools.Approvable
 import io.github.kotlinmania.codex.core.tools.ApprovalCtx
 import io.github.kotlinmania.codex.core.tools.ApprovalRequirement
@@ -21,43 +20,43 @@ import io.github.kotlinmania.codex.core.tools.ToolRuntime
 import io.github.kotlinmania.codex.core.tools.buildCommandSpec
 import io.github.kotlinmania.codex.core.tools.withCachedApproval
 import io.github.kotlinmania.codex.exec.sandbox.ExecEnv
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.protocol.ReviewDecision
 import kotlin.time.Duration.Companion.milliseconds
 
 internal data class ShellRequest(
-        val command: List<String>,
-        val cwd: String,
-        val timeoutMs: Long?,
-        val env: Map<String, String>,
-        val withEscalatedPermissions: Boolean?,
-        val justification: String?,
-        val approvalRequirement: ApprovalRequirement
+    val command: List<String>,
+    val cwd: String,
+    val timeoutMs: Long?,
+    val env: Map<String, String>,
+    val withEscalatedPermissions: Boolean?,
+    val justification: String?,
+    val approvalRequirement: ApprovalRequirement,
 ) : ProvidesSandboxRetryData {
-    override fun sandboxRetryData(): SandboxRetryData? {
-        return SandboxRetryData(command = command, cwd = cwd)
-    }
+    override fun sandboxRetryData(): SandboxRetryData? = SandboxRetryData(command = command, cwd = cwd)
 }
 
-internal data class ShellApprovalKey(val command: List<String>, val cwd: String, val escalated: Boolean)
+internal data class ShellApprovalKey(
+    val command: List<String>,
+    val cwd: String,
+    val escalated: Boolean,
+)
 
-internal class ShellRuntime(private val processExecutor: Exec) :
-        ToolRuntime<ShellRequest, ExecToolCallOutput>, Sandboxable, Approvable<ShellRequest> {
+internal class ShellRuntime(
+    private val processExecutor: Exec,
+) : ToolRuntime<ShellRequest, ExecToolCallOutput>,
+    Sandboxable,
+    Approvable<ShellRequest> {
+    override fun sandboxPreference(): SandboxablePreference = SandboxablePreference.Auto
 
-    override fun sandboxPreference(): SandboxablePreference {
-        return SandboxablePreference.Auto
-    }
+    override fun escalateOnFailure(): Boolean = true
 
-    override fun escalateOnFailure(): Boolean {
-        return true
-    }
-
-    fun approvalKey(req: ShellRequest): Any {
-        return ShellApprovalKey(
-                command = req.command,
-                cwd = req.cwd,
-                escalated = req.withEscalatedPermissions ?: false
+    fun approvalKey(req: ShellRequest): Any =
+        ShellApprovalKey(
+            command = req.command,
+            cwd = req.cwd,
+            escalated = req.withEscalatedPermissions ?: false,
         )
-    }
 
     override suspend fun startApprovalAsync(req: ShellRequest, ctx: ApprovalCtx): ReviewDecision {
         val key = approvalKey(req)
@@ -74,15 +73,15 @@ internal class ShellRuntime(private val processExecutor: Exec) :
         }
     }
 
-    override fun approvalRequirement(req: ShellRequest): ApprovalRequirement? {
-        return req.approvalRequirement
-    }
+    override fun approvalRequirement(req: ShellRequest): ApprovalRequirement? = req.approvalRequirement
 
     override fun sandboxModeForFirstAttempt(req: ShellRequest): SandboxOverride {
         val bypass =
-                req.withEscalatedPermissions == true ||
-                        (req.approvalRequirement is ApprovalRequirement.Skip &&
-                                req.approvalRequirement.bypassSandbox)
+            req.withEscalatedPermissions == true ||
+                (
+                    req.approvalRequirement is ApprovalRequirement.Skip &&
+                        req.approvalRequirement.bypassSandbox
+                )
 
         return if (bypass) {
             SandboxOverride.BypassSandboxFirstAttempt
@@ -92,26 +91,28 @@ internal class ShellRuntime(private val processExecutor: Exec) :
     }
 
     override suspend fun run(
-            req: ShellRequest,
-            attempt: SandboxAttempt,
-            ctx: ToolCtx
+        req: ShellRequest,
+        attempt: SandboxAttempt,
+        ctx: ToolCtx,
     ): Result<ExecToolCallOutput> {
         val specResult =
-                buildCommandSpec(
-                        req.command,
-                        req.cwd,
-                        req.env,
-                        if (req.timeoutMs != null)
-                                ExecExpiration.Timeout(req.timeoutMs.milliseconds)
-                        else ExecExpiration.DefaultTimeout,
-                        req.withEscalatedPermissions,
-                        req.justification
-                )
+            buildCommandSpec(
+                req.command,
+                req.cwd,
+                req.env,
+                if (req.timeoutMs != null) {
+                    ExecExpiration.Timeout(req.timeoutMs.milliseconds)
+                } else {
+                    ExecExpiration.DefaultTimeout
+                },
+                req.withEscalatedPermissions,
+                req.justification,
+            )
         if (specResult.isFailure) {
             return Result.failure(
-                    ToolError.Rejected(
-                            specResult.exceptionOrNull()?.message ?: "Invalid command spec"
-                    )
+                ToolError.Rejected(
+                    specResult.exceptionOrNull()?.message ?: "Invalid command spec",
+                ),
             )
         }
         val spec = specResult.getOrNull()!!
@@ -119,9 +120,9 @@ internal class ShellRuntime(private val processExecutor: Exec) :
         val envResult = attempt.envFor(spec)
         if (envResult.isFailure) {
             return Result.failure(
-                    ToolError.Codex(
-                            CodexErr.Io(envResult.exceptionOrNull()?.message ?: "Unknown error")
-                    )
+                ToolError.Codex(
+                    CodexErr.Io(envResult.exceptionOrNull()?.message ?: "Unknown error"),
+                ),
             )
         }
         val env = envResult.getOrNull()!!
@@ -132,32 +133,31 @@ internal class ShellRuntime(private val processExecutor: Exec) :
             Result.failure(ToolError.Codex(e.error))
         } catch (e: Exception) {
             Result.failure(
-                    ToolError.Codex(
-                            CodexErr.Io(e.message ?: "Execution failed")
-                    )
+                ToolError.Codex(
+                    CodexErr.Io(e.message ?: "Execution failed"),
+                ),
             )
         }
     }
 
-    private fun stdoutStream(ctx: ToolCtx): StdoutStream {
-        return StdoutStream(
-                subId = ctx.turn.subId,
-                callId = ctx.callId,
-                txEvent = ctx.session.getTxEvent()
+    private fun stdoutStream(ctx: ToolCtx): StdoutStream =
+        StdoutStream(
+            subId = ctx.turn.subId,
+            callId = ctx.callId,
+            txEvent = ctx.session.getTxEvent(),
         )
-    }
 
     // Helper to execute env using Exec
     private suspend fun executeEnv(
-            env: ExecEnv,
-            policy: io.github.kotlinmania.codex.protocol.SandboxPolicy,
-            stdoutStream: StdoutStream?
+        env: ExecEnv,
+        policy: io.github.kotlinmania.codex.protocol.SandboxPolicy,
+        stdoutStream: StdoutStream?,
     ): Result<ExecToolCallOutput> {
         val result = processExecutor.executeExecEnv(env, policy, stdoutStream)
         return when (result) {
             is io.github.kotlinmania.codex.core.CodexResult.Success<ExecToolCallOutput> -> Result.success(result.value)
             is io.github.kotlinmania.codex.core.CodexResult.Failure ->
-                    Result.failure(result.error.toException())
+                Result.failure(result.error.toException())
         }
     }
 }

@@ -12,14 +12,17 @@ internal enum class UpdateAction {
     BunGlobalLatest,
 
     /** Update via `brew upgrade codex`. */
-    BrewUpgrade;
+    BrewUpgrade,
+
+    ;
 
     /** Returns the list of command-line arguments for invoking the update. */
-    fun commandArgs(): Pair<String, List<String>> = when (this) {
-        NpmGlobalLatest -> "npm" to listOf("install", "-g", "@openai/codex")
-        BunGlobalLatest -> "bun" to listOf("install", "-g", "@openai/codex")
-        BrewUpgrade -> "brew" to listOf("upgrade", "codex")
-    }
+    fun commandArgs(): Pair<String, List<String>> =
+        when (this) {
+            NpmGlobalLatest -> "npm" to listOf("install", "-g", "@openai/codex")
+            BunGlobalLatest -> "bun" to listOf("install", "-g", "@openai/codex")
+            BrewUpgrade -> "brew" to listOf("upgrade", "codex")
+        }
 
     /** Returns string representation of the command-line arguments for invoking the update. */
     fun commandStr(): String {
@@ -39,13 +42,14 @@ internal fun detectUpdateAction(
     currentExe: String,
     managedByNpm: Boolean,
     managedByBun: Boolean,
-): UpdateAction? = when {
-    managedByNpm -> UpdateAction.NpmGlobalLatest
-    managedByBun -> UpdateAction.BunGlobalLatest
-    isMacos && (currentExe.startsWith("/opt/homebrew") || currentExe.startsWith("/usr/local")) ->
-        UpdateAction.BrewUpgrade
-    else -> null
-}
+): UpdateAction? =
+    when {
+        managedByNpm -> UpdateAction.NpmGlobalLatest
+        managedByBun -> UpdateAction.BunGlobalLatest
+        isMacos && (currentExe.startsWith("/opt/homebrew") || currentExe.startsWith("/usr/local")) ->
+            UpdateAction.BrewUpgrade
+        else -> null
+    }
 
 /**
  * Resolve an `UpdateAction` from the current process environment. Callers

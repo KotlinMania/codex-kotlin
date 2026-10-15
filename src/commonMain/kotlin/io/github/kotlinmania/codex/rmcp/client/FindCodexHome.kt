@@ -25,10 +25,11 @@ fun findCodexHome(): Result<String> {
         }
     }
 
-    val home = Environment.HOME
-        ?: return Result.failure(
-            IllegalStateException("Could not find home directory")
-        )
+    val home =
+        Environment.HOME
+            ?: return Result.failure(
+                IllegalStateException("Could not find home directory"),
+            )
     val separator = if (home.endsWith('/')) "" else "/"
     return Result.success("$home$separator.codex")
 }

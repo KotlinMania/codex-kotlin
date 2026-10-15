@@ -4,6 +4,8 @@ package io.github.kotlinmania.codex.core
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
@@ -11,8 +13,6 @@ import kotlinx.serialization.descriptors.listSerialDescriptor
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
@@ -29,7 +29,7 @@ sealed class UserNotification {
         /** Messages that the user sent to the agent to initiate the turn. */
         val inputMessages: List<String>,
         /** The last message sent by the assistant in the turn. */
-        val lastAssistantMessage: String?
+        val lastAssistantMessage: String?,
     ) : UserNotification()
 }
 
@@ -62,7 +62,7 @@ internal object UserNotificationSerializer : KSerializer<UserNotification> {
                     descriptor,
                     4,
                     ListSerializer(String.serializer()),
-                    value.inputMessages
+                    value.inputMessages,
                 )
                 if (value.lastAssistantMessage != null) {
                     out.encodeStringElement(descriptor, 5, value.lastAssistantMessage)
@@ -72,13 +72,11 @@ internal object UserNotificationSerializer : KSerializer<UserNotification> {
         out.endStructure(descriptor)
     }
 
-    override fun deserialize(decoder: Decoder): UserNotification {
-        throw UnsupportedOperationException("UserNotification deserialization is not supported")
-    }
+    override fun deserialize(decoder: Decoder): UserNotification = throw UnsupportedOperationException("UserNotification deserialization is not supported")
 }
 
 class UserNotifier(
-    private val notifyCommand: List<String>? = null
+    private val notifyCommand: List<String>? = null,
 ) {
     fun notify(notification: UserNotification) {
         val cmd = notifyCommand
@@ -88,18 +86,20 @@ class UserNotifier(
     }
 
     private fun invokeNotify(notifyCommand: List<String>, notification: UserNotification) {
-        val json = try {
-            Json.encodeToString(UserNotificationSerializer, notification)
-        } catch (_: Throwable) {
-            println("ERROR: failed to serialise notification payload")
-            return
-        }
+        val json =
+            try {
+                Json.encodeToString(UserNotificationSerializer, notification)
+            } catch (_: Throwable) {
+                println("ERROR: failed to serialise notification payload")
+                return
+            }
 
         val program = notifyCommand[0]
-        val args: List<String> = buildList {
-            if (notifyCommand.size > 1) addAll(notifyCommand.drop(1))
-            add(json)
-        }
+        val args: List<String> =
+            buildList {
+                if (notifyCommand.size > 1) addAll(notifyCommand.drop(1))
+                add(json)
+            }
 
         // Fire-and-forget – we do not wait for completion.
         try {

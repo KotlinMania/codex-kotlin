@@ -16,8 +16,13 @@ fun extractBashCommand(command: List<String>): Pair<String, String>? {
 
     val shellNormalized = shell.replace('\\', '/').lowercase()
     val shellName = shellNormalized.substringAfterLast('/')
-    if (shellName != "bash" && shellName != "zsh" && shellName != "sh" &&
-        !shellName.startsWith("bash.") && !shellName.startsWith("zsh.") && !shellName.startsWith("sh.")) {
+    if (shellName != "bash" &&
+        shellName != "zsh" &&
+        shellName != "sh" &&
+        !shellName.startsWith("bash.") &&
+        !shellName.startsWith("zsh.") &&
+        !shellName.startsWith("sh.")
+    ) {
         return null
     }
 
@@ -61,11 +66,22 @@ private fun parseWordOnlyScript(script: String): List<List<String>>? {
 
     val commands = mutableListOf<MutableList<String>>()
     var currentCommand = mutableListOf<String>()
+    var lastWasBinaryOp = false
+    var hasError = false
 
     fun finishWord() {
         if (currentWord.isNotEmpty()) {
-            currentCommand.add(currentWord.toString())
+            val word = currentWord.toString()
+            if (currentCommand.isEmpty()) {
+                val eqIdx = word.indexOf('=')
+                if (eqIdx > 0 && word.substring(0, eqIdx).all { it.isLetterOrDigit() || it == '_' }) {
+                    hasError = true
+                    return
+                }
+            }
+            currentCommand.add(word)
             currentWord.clear()
+            lastWasBinaryOp = false
         }
     }
 
@@ -135,11 +151,13 @@ private fun parseWordOnlyScript(script: String): List<List<String>>? {
             }
             ';' -> {
                 finishCommand()
+                lastWasBinaryOp = false
                 i++
             }
             '&' -> {
                 if (i + 1 < script.length && script[i + 1] == '&') {
                     finishCommand()
+                    lastWasBinaryOp = true
                     i += 2
                 } else {
                     return null // background job & not allowed
@@ -148,9 +166,11 @@ private fun parseWordOnlyScript(script: String): List<List<String>>? {
             '|' -> {
                 if (i + 1 < script.length && script[i + 1] == '|') {
                     finishCommand()
+                    lastWasBinaryOp = true
                     i += 2
                 } else {
                     finishCommand()
+                    lastWasBinaryOp = true
                     i++
                 }
             }
@@ -170,9 +190,11 @@ private fun parseWordOnlyScript(script: String): List<List<String>>? {
         }
     }
 
-    if (inSingleQuote || inDoubleQuote) return null // Unclosed quote
+    if (inSingleQuote || inDoubleQuote || hasError || lastWasBinaryOp) return null // Unclosed quote or trailing operator
 
     finishCommand()
+
+    if (hasError || lastWasBinaryOp) return null
 
     return if (commands.isEmpty()) null else commands
 }

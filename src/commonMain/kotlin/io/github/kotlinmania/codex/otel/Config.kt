@@ -14,6 +14,7 @@ internal data class OtelSettings(
 internal enum class OtelHttpProtocol {
     /** HTTP protocol with binary protobuf */
     Binary,
+
     /** HTTP protocol with JSON payload */
     Json,
 }

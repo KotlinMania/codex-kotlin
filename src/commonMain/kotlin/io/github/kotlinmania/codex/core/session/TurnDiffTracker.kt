@@ -75,8 +75,8 @@ class TurnDiffTracker {
     /**
      * Compute the aggregated unified diff for all tracked changes.
      */
-    suspend fun computeUnifiedDiff(): String {
-        return mutex.withLock {
+    suspend fun computeUnifiedDiff(): String =
+        mutex.withLock {
             val diffs = mutableListOf<String>()
 
             for ((internal, baseline) in baselineFileInfo) {
@@ -84,12 +84,13 @@ class TurnDiffTracker {
                 val currentContent = readFileContent(currentPath)
 
                 if (baseline.content != currentContent) {
-                    val diff = computeDiff(
-                        oldPath = baseline.path,
-                        newPath = currentPath,
-                        oldContent = baseline.content,
-                        newContent = currentContent
-                    )
+                    val diff =
+                        computeDiff(
+                            oldPath = baseline.path,
+                            newPath = currentPath,
+                            oldContent = baseline.content,
+                            newContent = currentContent,
+                        )
                     if (diff.isNotEmpty()) {
                         diffs.add(diff)
                     }
@@ -98,37 +99,38 @@ class TurnDiffTracker {
 
             diffs.joinToString("\n")
         }
-    }
 
     /**
      * Get the list of changed files.
      */
-    suspend fun getChangedFiles(): List<ChangedFile> {
-        return mutex.withLock {
+    suspend fun getChangedFiles(): List<ChangedFile> =
+        mutex.withLock {
             val result = mutableListOf<ChangedFile>()
 
             for ((internal, baseline) in baselineFileInfo) {
                 val currentPath = tempNameToCurrentPath[internal] ?: continue
                 val currentContent = readFileContent(currentPath)
 
-                val changeType = when {
-                    baseline.content.isEmpty() && currentContent.isNotEmpty() -> ChangeType.Added
-                    baseline.content.isNotEmpty() && currentContent.isEmpty() -> ChangeType.Deleted
-                    baseline.path != currentPath -> ChangeType.Renamed
-                    baseline.content != currentContent -> ChangeType.Modified
-                    else -> continue
-                }
+                val changeType =
+                    when {
+                        baseline.content.isEmpty() && currentContent.isNotEmpty() -> ChangeType.Added
+                        baseline.content.isNotEmpty() && currentContent.isEmpty() -> ChangeType.Deleted
+                        baseline.path != currentPath -> ChangeType.Renamed
+                        baseline.content != currentContent -> ChangeType.Modified
+                        else -> continue
+                    }
 
-                result.add(ChangedFile(
-                    path = currentPath,
-                    originalPath = if (baseline.path != currentPath) baseline.path else null,
-                    changeType = changeType
-                ))
+                result.add(
+                    ChangedFile(
+                        path = currentPath,
+                        originalPath = if (baseline.path != currentPath) baseline.path else null,
+                        changeType = changeType,
+                    ),
+                )
             }
 
             result
         }
-    }
 
     /**
      * Clear all tracked changes.
@@ -144,11 +146,10 @@ class TurnDiffTracker {
     /**
      * Check if there are any tracked changes.
      */
-    suspend fun hasChanges(): Boolean {
-        return mutex.withLock {
+    suspend fun hasChanges(): Boolean =
+        mutex.withLock {
             baselineFileInfo.isNotEmpty()
         }
-    }
 
     private fun createBaseline(path: String): BaselineFileInfo? {
         val content = readFileContent(path)
@@ -157,25 +158,24 @@ class TurnDiffTracker {
             path = path,
             content = content,
             mode = FileMode.Regular,
-            oid = oid
+            oid = oid,
         )
     }
 
-    private fun readFileContent(_path: String): String {
-        return try {
+    private fun readFileContent(_path: String): String =
+        try {
             // Platform-specific file reading would go here
             // For now, return empty string as placeholder
             ""
         } catch (e: Exception) {
             ""
         }
-    }
 
     private fun computeDiff(
         oldPath: String,
         newPath: String,
         oldContent: String,
-        newContent: String
+        newContent: String,
     ): String {
         // Simple unified diff implementation
         if (oldContent == newContent) return ""
@@ -228,7 +228,7 @@ private data class BaselineFileInfo(
     val path: String,
     val content: String,
     val mode: FileMode,
-    val oid: String
+    val oid: String,
 )
 
 /**
@@ -237,7 +237,7 @@ private data class BaselineFileInfo(
 private enum class FileMode {
     Regular,
     Executable,
-    Symlink
+    Symlink,
 }
 
 /**
@@ -246,7 +246,7 @@ private enum class FileMode {
 data class ChangedFile(
     val path: String,
     val originalPath: String?,
-    val changeType: ChangeType
+    val changeType: ChangeType,
 )
 
 /**
@@ -256,7 +256,7 @@ enum class ChangeType {
     Added,
     Modified,
     Deleted,
-    Renamed
+    Renamed,
 }
 
 // FileChange is imported from io.github.kotlinmania.codex.protocol.FileChange

@@ -31,9 +31,7 @@ internal class FrameRequester private constructor(
         }
 
         /** Create a no-op frame requester for tests. */
-        fun testDummy(): FrameRequester {
-            return FrameRequester(Channel(Channel.UNLIMITED))
-        }
+        fun testDummy(): FrameRequester = FrameRequester(Channel(Channel.UNLIMITED))
     }
 
     /** Schedule a frame draw as soon as possible. */
@@ -93,16 +91,17 @@ internal class FrameScheduler(
         }
     }
 
-    private suspend fun receiveUntil(delayDuration: Duration): ScheduledReceive {
-        return withTimeoutOrNull(delayDuration) {
+    private suspend fun receiveUntil(delayDuration: Duration): ScheduledReceive =
+        withTimeoutOrNull(delayDuration) {
             receiver.receiveCatching().getOrNull()?.let { ScheduledReceive.Value(it) }
                 ?: ScheduledReceive.Closed
         } ?: ScheduledReceive.Timeout
-    }
 }
 
 internal sealed interface ScheduledReceive {
-    data class Value(val instant: Instant) : ScheduledReceive
+    data class Value(
+        val instant: Instant,
+    ) : ScheduledReceive
 
     data object Timeout : ScheduledReceive
 

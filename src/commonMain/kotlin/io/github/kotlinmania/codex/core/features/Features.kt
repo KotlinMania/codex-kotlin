@@ -20,7 +20,7 @@ enum class Stage {
     Beta,
     Stable,
     Deprecated,
-    Removed
+    Removed,
 }
 
 /**
@@ -29,7 +29,7 @@ enum class Stage {
 enum class Feature(
     val key: String,
     val stage: Stage,
-    val defaultEnabled: Boolean
+    val defaultEnabled: Boolean,
 ) {
     /** Create a ghost commit at each turn. */
     GhostCommit("undo", Stage.Stable, true),
@@ -65,7 +65,8 @@ enum class Feature(
     ShellTool("shell_tool", Stage.Stable, true),
 
     /** Allow model to call multiple tools in parallel (only for models supporting it). */
-    ParallelToolCalls("parallel", Stage.Experimental, false);
+    ParallelToolCalls("parallel", Stage.Experimental, false),
+    ;
 
     companion object {
         private val keyMap: Map<String, Feature> = entries.associateBy { it.key }
@@ -83,8 +84,8 @@ enum class Feature(
         /**
          * Legacy key mappings for backwards compatibility.
          */
-        private fun forLegacyKey(key: String): Feature? {
-            return when (key) {
+        private fun forLegacyKey(key: String): Feature? =
+            when (key) {
                 "use_experimental_unified_exec_tool" -> UnifiedExec
                 "experimental_use_unified_exec_tool" -> UnifiedExec
                 "include_apply_patch_tool" -> ApplyPatchFreeform
@@ -94,7 +95,6 @@ enum class Feature(
                 "tools_view_image" -> ViewImageTool
                 else -> null
             }
-        }
     }
 }
 
@@ -103,7 +103,7 @@ enum class Feature(
  */
 data class LegacyFeatureUsage(
     val alias: String,
-    val feature: Feature
+    val feature: Feature,
 )
 
 /**
@@ -154,9 +154,7 @@ class Features {
     /**
      * Get iterator of legacy feature usages.
      */
-    fun legacyFeatureUsages(): Sequence<Pair<String, Feature>> {
-        return legacyUsages.asSequence().map { it.alias to it.feature }
-    }
+    fun legacyFeatureUsages(): Sequence<Pair<String, Feature>> = legacyUsages.asSequence().map { it.alias to it.feature }
 
     /**
      * Apply a map of key -> bool toggles.
@@ -217,7 +215,7 @@ class Features {
 data class FeatureOverrides(
     val includeApplyPatchTool: Boolean? = null,
     val webSearchRequest: Boolean? = null,
-    val experimentalSandboxCommandAssessment: Boolean? = null
+    val experimentalSandboxCommandAssessment: Boolean? = null,
 ) {
     /**
      * Apply overrides to a Features instance.

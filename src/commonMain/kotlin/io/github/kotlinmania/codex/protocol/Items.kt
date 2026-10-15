@@ -16,107 +16,117 @@ import kotlin.uuid.Uuid
 sealed class TurnItem {
     @Serializable
     @SerialName("UserMessage")
-    data class UserMessage(val item: UserMessageItem) : TurnItem()
+    data class UserMessage(
+        val item: UserMessageItem,
+    ) : TurnItem()
 
     @Serializable
     @SerialName("AgentMessage")
-    data class AgentMessage(val item: AgentMessageItem) : TurnItem()
+    data class AgentMessage(
+        val item: AgentMessageItem,
+    ) : TurnItem()
 
     @Serializable
     @SerialName("Reasoning")
-    data class Reasoning(val item: ReasoningItem) : TurnItem()
+    data class Reasoning(
+        val item: ReasoningItem,
+    ) : TurnItem()
 
     @Serializable
     @SerialName("WebSearch")
-    data class WebSearch(val item: WebSearchItem) : TurnItem()
+    data class WebSearch(
+        val item: WebSearchItem,
+    ) : TurnItem()
 
-    fun id(): String = when (this) {
-        is UserMessage -> item.id
-        is AgentMessage -> item.id
-        is Reasoning -> item.id
-        is WebSearch -> item.id
-    }
+    fun id(): String =
+        when (this) {
+            is UserMessage -> item.id
+            is AgentMessage -> item.id
+            is Reasoning -> item.id
+            is WebSearch -> item.id
+        }
 
-    fun asLegacyEvents(showRawAgentReasoning: Boolean): List<EventMsg> = when (this) {
-        is UserMessage -> listOf(item.asLegacyEvent())
-        is AgentMessage -> item.asLegacyEvents()
-        is WebSearch -> listOf(item.asLegacyEvent())
-        is Reasoning -> item.asLegacyEvents(showRawAgentReasoning)
-    }
+    fun asLegacyEvents(showRawAgentReasoning: Boolean): List<EventMsg> =
+        when (this) {
+            is UserMessage -> listOf(item.asLegacyEvent())
+            is AgentMessage -> item.asLegacyEvents()
+            is WebSearch -> listOf(item.asLegacyEvent())
+            is Reasoning -> item.asLegacyEvents(showRawAgentReasoning)
+        }
 }
 
 @Serializable
 data class UserMessageItem(
     val id: String,
-    val content: List<UserInput>
+    val content: List<UserInput>,
 ) {
     companion object {
         @OptIn(ExperimentalUuidApi::class)
-        fun new(content: List<UserInput>): UserMessageItem {
-            return UserMessageItem(
+        fun new(content: List<UserInput>): UserMessageItem =
+            UserMessageItem(
                 id = Uuid.random().toString(),
-                content = content
+                content = content,
             )
-        }
     }
 
-    fun asLegacyEvent(): EventMsg {
-        return EventMsg.UserMessage(UserMessageEvent(
-            message = message(),
-            images = imageUrls().ifEmpty { null }
-        ))
-    }
+    fun asLegacyEvent(): EventMsg =
+        EventMsg.UserMessage(
+            UserMessageEvent(
+                message = message(),
+                images = imageUrls().ifEmpty { null },
+            ),
+        )
 
-    fun message(): String {
-        return content.map { c ->
-            when (c) {
-                is UserInput.Text -> c.text
-                else -> ""
-            }
-        }.joinToString("")
-    }
+    fun message(): String =
+        content
+            .map { c ->
+                when (c) {
+                    is UserInput.Text -> c.text
+                    else -> ""
+                }
+            }.joinToString("")
 
-    fun imageUrls(): List<String> {
-        return content.mapNotNull { c ->
+    fun imageUrls(): List<String> =
+        content.mapNotNull { c ->
             when (c) {
                 is UserInput.Image -> c.imageUrl
                 else -> null
             }
         }
-    }
 }
 
 @Serializable
 sealed class AgentMessageContent {
     @Serializable
     @SerialName("Text")
-    data class Text(val text: String) : AgentMessageContent()
+    data class Text(
+        val text: String,
+    ) : AgentMessageContent()
 }
 
 @Serializable
 data class AgentMessageItem(
     val id: String,
-    val content: List<AgentMessageContent>
+    val content: List<AgentMessageContent>,
 ) {
     companion object {
         @OptIn(ExperimentalUuidApi::class)
-        fun new(content: List<AgentMessageContent>): AgentMessageItem {
-            return AgentMessageItem(
+        fun new(content: List<AgentMessageContent>): AgentMessageItem =
+            AgentMessageItem(
                 id = Uuid.random().toString(),
-                content = content
+                content = content,
             )
-        }
     }
 
-    fun asLegacyEvents(): List<EventMsg> {
-        return content.map { c ->
+    fun asLegacyEvents(): List<EventMsg> =
+        content.map { c ->
             when (c) {
-                is AgentMessageContent.Text -> EventMsg.AgentMessage(
-                    AgentMessageEvent(message = c.text)
-                )
+                is AgentMessageContent.Text ->
+                    EventMsg.AgentMessage(
+                        AgentMessageEvent(message = c.text),
+                    )
             }
         }
-    }
 }
 
 @Serializable
@@ -125,7 +135,7 @@ data class ReasoningItem(
     @SerialName("summary_text")
     val summaryText: List<String>,
     @SerialName("raw_content")
-    val rawContent: List<String> = emptyList()
+    val rawContent: List<String> = emptyList(),
 ) {
     fun asLegacyEvents(showRawAgentReasoning: Boolean): List<EventMsg> {
         val events = mutableListOf<EventMsg>()
@@ -136,9 +146,11 @@ data class ReasoningItem(
 
         if (showRawAgentReasoning) {
             for (entry in rawContent) {
-                events.add(EventMsg.AgentReasoningRawContent(
-                    AgentReasoningRawContentEvent(text = entry)
-                ))
+                events.add(
+                    EventMsg.AgentReasoningRawContent(
+                        AgentReasoningRawContentEvent(text = entry),
+                    ),
+                )
             }
         }
 
@@ -149,12 +161,13 @@ data class ReasoningItem(
 @Serializable
 data class WebSearchItem(
     val id: String,
-    val query: String
+    val query: String,
 ) {
-    fun asLegacyEvent(): EventMsg {
-        return EventMsg.WebSearchEnd(WebSearchEndEvent(
-            callId = id,
-            query = query
-        ))
-    }
+    fun asLegacyEvent(): EventMsg =
+        EventMsg.WebSearchEnd(
+            WebSearchEndEvent(
+                callId = id,
+                query = query,
+            ),
+        )
 }

@@ -10,7 +10,7 @@ import io.github.kotlinmania.codex.protocol.ResponseInputItem
  */
 internal enum class ToolKind {
     Function,
-    Mcp
+    Mcp,
 }
 
 /**
@@ -27,12 +27,11 @@ internal interface ToolHandler {
     /**
      * Check if this handler matches the given payload kind.
      */
-    fun matchesKind(payload: ToolPayload): Boolean {
-        return when (kind) {
+    fun matchesKind(payload: ToolPayload): Boolean =
+        when (kind) {
             ToolKind.Function -> payload is ToolPayload.Function
             ToolKind.Mcp -> payload is ToolPayload.Mcp
         }
-    }
 
     /**
      * Whether this tool invocation is mutating (requires waiting for tool gate).
@@ -49,7 +48,7 @@ internal interface ToolHandler {
  * Registry of tool handlers keyed by tool name.
  */
 internal class ToolRegistry(
-    private val handlers: Map<String, ToolHandler>
+    private val handlers: Map<String, ToolHandler>,
 ) {
     /**
      * Get a handler by tool name.
@@ -62,7 +61,7 @@ internal class ToolRegistry(
      * This follows the Rust implementation pattern from registry.rs dispatch().
      */
     suspend fun dispatch(
-        invocation: ToolInvocation
+        invocation: ToolInvocation,
     ): Result<ResponseInputItem> {
         val toolName = invocation.toolName
         val callIdOwned = invocation.callId
@@ -71,12 +70,13 @@ internal class ToolRegistry(
         // In a full implementation, this would be:
         // val otel = invocation.turn.client.getOtelEventManager()
 
-        val handler = handler(toolName)
-            ?: return Result.failure(
-                FunctionCallError.RespondToModel(
-                    unsupportedToolCallMessage(invocation.payload, toolName)
+        val handler =
+            handler(toolName)
+                ?: return Result.failure(
+                    FunctionCallError.RespondToModel(
+                        unsupportedToolCallMessage(invocation.payload, toolName),
+                    ),
                 )
-            )
 
         if (!handler.matchesKind(invocation.payload)) {
             val message = "tool $toolName invoked with incompatible payload"
@@ -103,7 +103,7 @@ internal class ToolRegistry(
                 } else {
                     Result.failure(FunctionCallError.Fatal(err.message ?: "Unknown error"))
                 }
-            }
+            },
         )
     }
 }
@@ -113,7 +113,7 @@ internal class ToolRegistry(
  */
 internal data class ConfiguredToolSpec(
     val spec: ToolSpec,
-    val supportsParallelToolCalls: Boolean
+    val supportsParallelToolCalls: Boolean,
 ) {
     companion object {
         /**
@@ -143,7 +143,7 @@ internal class ToolRegistryBuilder {
      */
     fun pushSpecWithParallelSupport(
         spec: ToolSpec,
-        supportsParallelToolCalls: Boolean
+        supportsParallelToolCalls: Boolean,
     ) {
         specs.add(ConfiguredToolSpec.new(spec, supportsParallelToolCalls))
     }
@@ -174,9 +174,8 @@ internal class ToolRegistryBuilder {
     }
 }
 
-private fun unsupportedToolCallMessage(payload: ToolPayload, toolName: String): String {
-    return when (payload) {
+private fun unsupportedToolCallMessage(payload: ToolPayload, toolName: String): String =
+    when (payload) {
         is ToolPayload.Custom -> "unsupported custom tool call: $toolName"
         else -> "unsupported call: $toolName"
     }
-}

@@ -501,6 +501,13 @@ kotlin {
                 implementation(commonTestDependencyBundle)
             }
         }
+        val posixMain =
+            create("posixMain") {
+                dependsOn(findByName("nativeMain") ?: commonMain.get())
+            }
+        findByName("appleMain")?.dependsOn(posixMain)
+        findByName("linuxMain")?.dependsOn(posixMain)
+        findByName("androidNativeMain")?.dependsOn(posixMain)
         if (benchmarkEnabled) {
             val commonBenchmark = maybeCreate("commonBenchmark")
             commonBenchmark.dependencies {
@@ -902,13 +909,20 @@ val publishToCentralPortal by tasks.registering {
 // Tasks
 // ============================================================================
 
-// Exact test lifecycle task. Without this, ./gradlew test is ambiguous between
-// Android test task names. This runs commonTest through the KMP allTests
-// lifecycle and adds the Android host + Swift Export parity tests.
 tasks.register("setupAndroidSdk") {
     group = "setup"
     description = "Downloads and configures the project-local Android SDK. (Alias for ensureAndroidSdk)"
     dependsOn("ensureAndroidSdk")
+}
+
+// Exact test lifecycle task. Without this, ./gradlew test is ambiguous between
+// Android test task names. This runs commonTest through the KMP allTests
+// lifecycle and adds the Android host + Swift Export parity tests.
+tasks.register("test") {
+    group = "verification"
+    description = "Runs the commonTest-backed KMP suite, Android host tests, and Swift Export smoke test."
+    dependsOn("hostTests")
+    dependsOn("swiftExportSmokeTest")
 }
 
 // Explicit test runner. Named hostTests to avoid shadowing the KMP allTests
@@ -938,18 +952,23 @@ tasks.register("swiftExportSmokeTest") {
 
     doLast {
         val execOperations = serviceOf<ExecOperations>()
-        val swiftBuildDir =
+        val swiftBuildFile =
             layout.buildDirectory
                 .dir("swift-test")
                 .get()
                 .asFile
-                .absolutePath
+        if (swiftBuildFile.exists()) {
+            swiftBuildFile.deleteRecursively()
+        }
+        swiftBuildFile.mkdirs()
+        val swiftBuildDir = swiftBuildFile.absolutePath
         execOperations
             .exec {
                 workingDir = projectDir
                 commandLine(
                     "./gradlew",
                     "embedSwiftExportForXcode",
+                    "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g",
                     "--no-configuration-cache",
                     "--no-daemon",
                     "--console=plain",

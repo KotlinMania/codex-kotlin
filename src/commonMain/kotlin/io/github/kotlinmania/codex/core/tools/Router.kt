@@ -3,9 +3,9 @@ package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.FunctionCallError
 import io.github.kotlinmania.codex.core.session.Session
-import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.core.session.ToolSpec
 import io.github.kotlinmania.codex.core.session.TurnContext
+import io.github.kotlinmania.codex.core.tools.SharedTurnDiffTracker
 import io.github.kotlinmania.codex.protocol.FunctionCallOutputPayload
 import io.github.kotlinmania.codex.protocol.LocalShellAction
 import io.github.kotlinmania.codex.protocol.McpTool
@@ -16,17 +16,17 @@ import io.github.kotlinmania.codex.protocol.ShellToolCallParams
 internal data class ToolCall(
     val toolName: String,
     val callId: String,
-    val payload: ToolPayload
+    val payload: ToolPayload,
 )
 
 internal class ToolRouter(
     private val registry: ToolRegistry,
-    private val specs: List<ConfiguredToolSpec>
+    private val specs: List<ConfiguredToolSpec>,
 ) {
     companion object {
         fun fromConfig(
             config: ToolsConfig,
-            mcpTools: Map<String, McpTool>?
+            mcpTools: Map<String, McpTool>?,
         ): ToolRouter {
             val builder = buildSpecs(config, mcpTools)
             val (specs, registry) = builder.build()
@@ -34,19 +34,16 @@ internal class ToolRouter(
         }
     }
 
-    fun specs(): List<ToolSpec> {
-        return specs.map { it.spec }
-    }
+    fun specs(): List<ToolSpec> = specs.map { it.spec }
 
-    fun toolSupportsParallel(toolName: String): Boolean {
-        return specs
+    fun toolSupportsParallel(toolName: String): Boolean =
+        specs
             .filter { it.supportsParallelToolCalls }
             .any { it.spec.name() == toolName }
-    }
 
     internal suspend fun buildToolCall(
         session: Session,
-        item: ResponseItem
+        item: ResponseItem,
     ): Result<ToolCall?> {
         return when (item) {
             is ResponseItem.FunctionCall -> {
@@ -57,52 +54,63 @@ internal class ToolRouter(
                 val mcpTool = session.parseMcpToolName(name)
                 if (mcpTool != null) {
                     val (server, tool) = mcpTool
-                    Result.success(ToolCall(
-                        toolName = name,
-                        callId = callId,
-                        payload = ToolPayload.Mcp(
-                            server = server,
-                            tool = tool,
-                            rawArguments = arguments
-                        )
-                    ))
+                    Result.success(
+                        ToolCall(
+                            toolName = name,
+                            callId = callId,
+                            payload =
+                                ToolPayload.Mcp(
+                                    server = server,
+                                    tool = tool,
+                                    rawArguments = arguments,
+                                ),
+                        ),
+                    )
                 } else {
-                    val payload = if (name == "unified_exec") {
-                        ToolPayload.UnifiedExec(arguments)
-                    } else {
-                        ToolPayload.Function(arguments)
-                    }
-                    Result.success(ToolCall(
-                        toolName = name,
-                        callId = callId,
-                        payload = payload
-                    ))
+                    val payload =
+                        if (name == "unified_exec") {
+                            ToolPayload.UnifiedExec(arguments)
+                        } else {
+                            ToolPayload.Function(arguments)
+                        }
+                    Result.success(
+                        ToolCall(
+                            toolName = name,
+                            callId = callId,
+                            payload = payload,
+                        ),
+                    )
                 }
             }
             is ResponseItem.CustomToolCall -> {
-                Result.success(ToolCall(
-                    toolName = item.name,
-                    callId = item.callId,
-                    payload = ToolPayload.Custom(item.input)
-                ))
+                Result.success(
+                    ToolCall(
+                        toolName = item.name,
+                        callId = item.callId,
+                        payload = ToolPayload.Custom(item.input),
+                    ),
+                )
             }
             is ResponseItem.LocalShellCall -> {
                 val callId = item.callId ?: item.id ?: return Result.failure(FunctionCallError.MissingLocalShellCallId)
-                
+
                 when (val action = item.action) {
                     is LocalShellAction.Exec -> {
-                        val params = ShellToolCallParams(
-                            command = action.command,
-                            workdir = action.workingDirectory,
-                            timeoutMs = action.timeoutMs,
-                            withEscalatedPermissions = null,
-                            justification = null
+                        val params =
+                            ShellToolCallParams(
+                                command = action.command,
+                                workdir = action.workingDirectory,
+                                timeoutMs = action.timeoutMs,
+                                withEscalatedPermissions = null,
+                                justification = null,
+                            )
+                        Result.success(
+                            ToolCall(
+                                toolName = "local_shell",
+                                callId = callId,
+                                payload = ToolPayload.LocalShell(params),
+                            ),
                         )
-                        Result.success(ToolCall(
-                            toolName = "local_shell",
-                            callId = callId,
-                            payload = ToolPayload.LocalShell(params)
-                        ))
                     }
                 }
             }
@@ -114,7 +122,7 @@ internal class ToolRouter(
         session: Session,
         turn: TurnContext,
         tracker: SharedTurnDiffTracker,
-        call: ToolCall
+        call: ToolCall,
     ): Result<ResponseInputItem> {
         val toolName = call.toolName
         val callId = call.callId
@@ -122,14 +130,15 @@ internal class ToolRouter(
         val payloadOutputsCustom = payload is ToolPayload.Custom
         val failureCallId = callId
 
-        val invocation = ToolInvocation(
-            session = session,
-            turn = turn,
-            tracker = tracker,
-            callId = callId,
-            toolName = toolName,
-            payload = payload
-        )
+        val invocation =
+            ToolInvocation(
+                session = session,
+                turn = turn,
+                tracker = tracker,
+                callId = callId,
+                toolName = toolName,
+                payload = payload,
+            )
 
         return try {
             val result = registry.dispatch(invocation)
@@ -143,33 +152,34 @@ internal class ToolRouter(
                         val err = if (e is FunctionCallError) e else FunctionCallError.Fatal(e.message ?: "Unknown error")
                         Result.success(failureResponse(failureCallId, payloadOutputsCustom, err))
                     }
-                }
+                },
             )
         } catch (e: Exception) {
             // Should not happen if dispatch catches everything, but just in case
             val err = if (e is FunctionCallError) e else FunctionCallError.Fatal(e.message ?: "Unknown error")
-             Result.success(failureResponse(failureCallId, payloadOutputsCustom, err))
+            Result.success(failureResponse(failureCallId, payloadOutputsCustom, err))
         }
     }
 
     private fun failureResponse(
         callId: String,
         payloadOutputsCustom: Boolean,
-        err: FunctionCallError
+        err: FunctionCallError,
     ): ResponseInputItem {
         val message = err.toString()
         return if (payloadOutputsCustom) {
             ResponseInputItem.CustomToolCallOutput(
                 callId = callId,
-                output = message
+                output = message,
             )
         } else {
             ResponseInputItem.FunctionCallOutput(
                 callId = callId,
-                output = FunctionCallOutputPayload(
-                    content = message,
-                    success = false
-                )
+                output =
+                    FunctionCallOutputPayload(
+                        content = message,
+                        success = false,
+                    ),
             )
         }
     }

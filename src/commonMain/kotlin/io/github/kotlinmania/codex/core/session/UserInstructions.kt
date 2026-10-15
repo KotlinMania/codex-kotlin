@@ -11,15 +11,17 @@ data class UserInstructions(
     val directory: String,
     val text: String,
 ) {
-    fun toResponseItem(): ResponseItem = ResponseItem.Message(
-        id = null,
-        role = "user",
-        content = listOf(
-            ContentItem.InputText(
-                text = "${USER_INSTRUCTIONS_PREFIX}$directory\n\n<INSTRUCTIONS>\n$text\n</INSTRUCTIONS>",
-            ),
-        ),
-    )
+    fun toResponseItem(): ResponseItem =
+        ResponseItem.Message(
+            id = null,
+            role = "user",
+            content =
+                listOf(
+                    ContentItem.InputText(
+                        text = "${USER_INSTRUCTIONS_PREFIX}$directory\n\n<INSTRUCTIONS>\n$text\n</INSTRUCTIONS>",
+                    ),
+                ),
+        )
 
     companion object {
         fun isUserInstructions(message: List<ContentItem>): Boolean {
@@ -32,14 +34,18 @@ data class UserInstructions(
     }
 }
 
-data class DeveloperInstructions(private val text: String) {
+data class DeveloperInstructions(
+    private val text: String,
+) {
     fun intoText(): String = text
 
-    fun toResponseItem(): ResponseItem = ResponseItem.Message(
-        id = null,
-        role = "developer",
-        content = listOf(
-            ContentItem.InputText(text = intoText()),
-        ),
-    )
+    fun toResponseItem(): ResponseItem =
+        ResponseItem.Message(
+            id = null,
+            role = "developer",
+            content =
+                listOf(
+                    ContentItem.InputText(text = intoText()),
+                ),
+        )
 }

@@ -48,11 +48,12 @@ fun formatSiSuffix(n: Long): String {
         return value.toString()
     }
 
-    val units = listOf(
-        1_000L to "K",
-        1_000_000L to "M",
-        1_000_000_000L to "G",
-    )
+    val units =
+        listOf(
+            1_000L to "K",
+            1_000_000L to "M",
+            1_000_000_000L to "G",
+        )
     val floating = value.toDouble()
     for ((scale, suffix) in units) {
         if (round(100.0 * floating / scale.toDouble()) < 1000.0) {

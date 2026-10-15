@@ -1,8 +1,9 @@
 // port-lint: source provider.rs
 package io.github.kotlinmania.codex.api.provider
 
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.url
+import io.ktor.http.HttpMethod
 import kotlin.time.Duration
 
 /** Wire-level APIs supported by a Provider. */

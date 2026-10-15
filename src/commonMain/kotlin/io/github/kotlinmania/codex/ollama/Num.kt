@@ -7,11 +7,12 @@ internal fun formatDouble(value: Double, decimals: Int): String {
     if (decimals == 0) {
         return value.toLong().toString()
     }
-    val multiplier = when (decimals) {
-        1 -> 10.0
-        2 -> 100.0
-        else -> 10.0.pow(decimals.toDouble())
-    }
+    val multiplier =
+        when (decimals) {
+            1 -> 10.0
+            2 -> 100.0
+            else -> 10.0.pow(decimals.toDouble())
+        }
     val rounded = round(value * multiplier) / multiplier
     val str = rounded.toString()
     val dotIndex = str.indexOf('.')

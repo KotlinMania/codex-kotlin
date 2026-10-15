@@ -16,10 +16,11 @@ internal fun userMessageStyleFor(terminalBg: Triple<UByte, UByte, UByte>?): Styl
     }
 
 internal fun userMessageBg(terminalBg: Triple<UByte, UByte, UByte>): Color {
-    val top = if (isLight(terminalBg)) {
-        Triple(0.toUByte(), 0.toUByte(), 0.toUByte())
-    } else {
-        Triple(255.toUByte(), 255.toUByte(), 255.toUByte())
-    }
+    val top =
+        if (isLight(terminalBg)) {
+            Triple(0.toUByte(), 0.toUByte(), 0.toUByte())
+        } else {
+            Triple(255.toUByte(), 255.toUByte(), 255.toUByte())
+        }
     return bestColor(blend(top, terminalBg, 0.1f))
 }

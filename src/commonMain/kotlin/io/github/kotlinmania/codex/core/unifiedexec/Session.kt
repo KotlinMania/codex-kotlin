@@ -1,17 +1,15 @@
 // port-lint: source core/src/unifiedExec/session.rs
 package io.github.kotlinmania.codex.core.unifiedexec
 
-import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
-import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.isLikelySandboxDenied
 import io.github.kotlinmania.codex.exec.process.SandboxType
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.utils.concurrent.Notify
 import io.github.kotlinmania.codex.utils.pty.ExecCommandSession
 import io.github.kotlinmania.codex.utils.pty.SpawnedPty
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,6 +19,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 // Constants from mod.rs (need to be defined somewhere, assuming in UnifiedExec.kt or here)
 const val UNIFIED_EXEC_OUTPUT_MAX_BYTES = 1024 * 1024 // Placeholder value
@@ -73,21 +73,19 @@ internal class OutputBufferState {
         return result
     }
 
-    fun cloneChunks(): List<ByteArray> {
-        return chunks.toList()
-    }
+    fun cloneChunks(): List<ByteArray> = chunks.toList()
 }
 
 internal data class UnifiedExecOutput(
-        val output: StreamOutput,
-        val hasMore: Boolean
+    val output: StreamOutput,
+    val hasMore: Boolean,
 )
 
 internal data class DrainHistoryOutput(
-        val totalBytes: Int,
-        val output: String,
-        val outputBuffer: ByteArray,
-        val hasMore: Boolean
+    val totalBytes: Int,
+    val output: String,
+    val outputBuffer: ByteArray,
+    val hasMore: Boolean,
 )
 
 internal class OutputBufferStateWrapper {
@@ -96,25 +94,25 @@ internal class OutputBufferStateWrapper {
 }
 
 internal data class OutputHandles(
-        val outputState: OutputBufferStateWrapper,
-        val outputNotify: Notify,
-        val cancellationToken: Job
+    val outputState: OutputBufferStateWrapper,
+    val outputNotify: Notify,
+    val cancellationToken: Job,
 )
 
 internal class UnifiedExecSession(
-        private val session: ExecCommandSession,
-        private val outputBuffer: OutputBufferStateWrapper,
-        private val outputNotify: Notify,
-        private val cancellationToken: Job,
-        private val outputJob: Job,
-        private val sandboxType: SandboxType
+    private val session: ExecCommandSession,
+    private val outputBuffer: OutputBufferStateWrapper,
+    private val outputNotify: Notify,
+    private val cancellationToken: Job,
+    private val outputJob: Job,
+    private val sandboxType: SandboxType,
 ) {
     companion object {
         fun new(
-                session: ExecCommandSession,
-                initialOutputRx: ReceiveChannel<ByteArray>,
-                sandboxType: SandboxType,
-                scope: CoroutineScope
+            session: ExecCommandSession,
+            initialOutputRx: ReceiveChannel<ByteArray>,
+            sandboxType: SandboxType,
+            scope: CoroutineScope,
         ): UnifiedExecSession {
             val outputBuffer = OutputBufferStateWrapper()
             val outputNotify = Notify()
@@ -122,34 +120,34 @@ internal class UnifiedExecSession(
             val bufferWrapper = outputBuffer
 
             val outputJob =
-                    scope.launch(Dispatchers.Default) {
-                        try {
-                            for (chunk in initialOutputRx) {
-                                bufferWrapper.mutex.withLock {
-                                    bufferWrapper.state.pushChunk(chunk)
-                                }
-                                outputNotify.notifyWaiters()
+                scope.launch(Dispatchers.Default) {
+                    try {
+                        for (chunk in initialOutputRx) {
+                            bufferWrapper.mutex.withLock {
+                                bufferWrapper.state.pushChunk(chunk)
                             }
-                        } catch (e: Exception) {
-                            // Channel closed or error
-                            cancellationToken.cancel()
+                            outputNotify.notifyWaiters()
                         }
+                    } catch (e: Exception) {
+                        // Channel closed or error
+                        cancellationToken.cancel()
                     }
+                }
 
             return UnifiedExecSession(
-                    session,
-                    outputBuffer,
-                    outputNotify,
-                    cancellationToken,
-                    outputJob,
-                    sandboxType
+                session,
+                outputBuffer,
+                outputNotify,
+                cancellationToken,
+                outputJob,
+                sandboxType,
             )
         }
 
         suspend fun fromSpawned(
-                spawned: SpawnedPty,
-                sandboxType: SandboxType,
-                scope: CoroutineScope
+            spawned: SpawnedPty,
+            sandboxType: SandboxType,
+            scope: CoroutineScope,
         ): Result<UnifiedExecSession> {
             val managed = new(spawned.session, spawned.outputRx, sandboxType, scope)
 
@@ -180,20 +178,18 @@ internal class UnifiedExecSession(
         }
     }
 
-    fun outputHandles(): OutputHandles {
-        return OutputHandles(
-                outputState = outputBuffer,
-                outputNotify = outputNotify,
-                cancellationToken = cancellationToken
+    fun outputHandles(): OutputHandles =
+        OutputHandles(
+            outputState = outputBuffer,
+            outputNotify = outputNotify,
+            cancellationToken = cancellationToken,
         )
-    }
 
     fun hasExited(): Boolean = session.hasExited()
+
     fun exitCode(): Int? = session.exitCode()
 
-    suspend fun snapshotOutput(): List<ByteArray> {
-        return outputBuffer.mutex.withLock { outputBuffer.state.cloneChunks() }
-    }
+    suspend fun snapshotOutput(): List<ByteArray> = outputBuffer.mutex.withLock { outputBuffer.state.cloneChunks() }
 
     fun sandboxType(): SandboxType = sandboxType
 
@@ -213,23 +209,23 @@ internal class UnifiedExecSession(
         val exitCode = exitCode() ?: -1
 
         val execOutput =
-                ExecToolCallOutput(
-                        exitCode = exitCode,
-                        stdout = StreamOutput(aggregatedText),
-                        stderr = StreamOutput(""),
-                        aggregatedOutput = StreamOutput(aggregatedText),
-                        duration = kotlin.time.Duration.ZERO,
-                        timedOut = false
-                )
+            ExecToolCallOutput(
+                exitCode = exitCode,
+                stdout = StreamOutput(aggregatedText),
+                stderr = StreamOutput(""),
+                aggregatedOutput = StreamOutput(aggregatedText),
+                duration = kotlin.time.Duration.ZERO,
+                timedOut = false,
+            )
 
         val isDenied = isLikelySandboxDenied(sandboxType, execOutput)
 
         if (isDenied) {
             val snippet =
-                    formattedTruncateText(
-                            aggregatedText,
-                            TruncationPolicy.Tokens(UNIFIED_EXEC_OUTPUT_MAX_TOKENS)
-                    )
+                formattedTruncateText(
+                    aggregatedText,
+                    TruncationPolicy.Tokens(UNIFIED_EXEC_OUTPUT_MAX_TOKENS),
+                )
             val message = if (snippet.isEmpty()) "exit code $exitCode" else snippet
             return Result.failure(UnifiedExecError.SandboxDenied(message, execOutput))
         }

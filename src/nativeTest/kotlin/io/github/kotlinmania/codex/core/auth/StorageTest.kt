@@ -4,7 +4,9 @@ import io.github.kotlinmania.codex.core.AuthDotJson
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlin.random.Random
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StorageTest {
     @Test

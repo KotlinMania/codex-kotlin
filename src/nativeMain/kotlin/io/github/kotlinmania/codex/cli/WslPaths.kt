@@ -4,9 +4,10 @@
 package io.github.kotlinmania.codex.cli
 
 import kotlinx.cinterop.refTo
+import kotlinx.cinterop.toKString
 import platform.posix.fclose
+import platform.posix.fgets
 import platform.posix.fopen
-import platform.posix.fread
 import platform.posix.getenv
 import kotlin.native.OsFamily
 import kotlin.native.Platform
@@ -27,9 +28,9 @@ fun isWsl(): Boolean {
     val file = fopen("/proc/version", "r") ?: return false
     return try {
         val buffer = ByteArray(1024)
-        val read = fread(buffer.refTo(0), 1u, 1024u, file)
-        if (read > 0u) {
-            val content = buffer.decodeToString(0, read.toInt())
+        val line = fgets(buffer.refTo(0), buffer.size, file)
+        if (line != null) {
+            val content = buffer.toKString()
             content.lowercase().contains("microsoft")
         } else {
             false

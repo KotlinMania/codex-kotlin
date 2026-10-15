@@ -18,13 +18,13 @@ data class ModelInfo(
      * Token threshold where we should automatically compact conversation history. This considers
      * input tokens + output tokens of this turn.
      */
-    val autoCompactTokenLimit: Long?
+    val autoCompactTokenLimit: Long?,
 ) {
     companion object {
         fun new(contextWindow: Long): ModelInfo =
             ModelInfo(
                 contextWindow = contextWindow,
-                autoCompactTokenLimit = defaultAutoCompactLimit(contextWindow)
+                autoCompactTokenLimit = defaultAutoCompactLimit(contextWindow),
             )
 
         private fun defaultAutoCompactLimit(contextWindow: Long): Long =
@@ -66,16 +66,17 @@ fun getModelInfo(modelFamily: ModelFamily): ModelInfo? {
         // https://platform.openai.com/docs/models/gpt-3.5-turbo
         "gpt-3.5-turbo" -> ModelInfo.new(16_385)
 
-        else -> when {
-            slug.startsWith("gpt-5-codex")
-                    || slug.startsWith("gpt-5.1-codex")
-                    || slug.startsWith("gpt-5.1-codex-max") -> ModelInfo.new(CONTEXT_WINDOW_272K)
+        else ->
+            when {
+                slug.startsWith("gpt-5-codex") ||
+                    slug.startsWith("gpt-5.1-codex") ||
+                    slug.startsWith("gpt-5.1-codex-max") -> ModelInfo.new(CONTEXT_WINDOW_272K)
 
-            slug.startsWith("gpt-5") -> ModelInfo.new(CONTEXT_WINDOW_272K)
+                slug.startsWith("gpt-5") -> ModelInfo.new(CONTEXT_WINDOW_272K)
 
-            slug.startsWith("codex-") -> ModelInfo.new(CONTEXT_WINDOW_272K)
+                slug.startsWith("codex-") -> ModelInfo.new(CONTEXT_WINDOW_272K)
 
-            else -> null
-        }
+                else -> null
+            }
     }
 }
