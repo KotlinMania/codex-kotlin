@@ -15,16 +15,8 @@ let package = Package(
             dependencies: [
                 .product(name: "CodexLibrary", package: "Codex")
             ],
-            swiftSettings: [
-                .unsafeFlags([
-                    "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                ]),
-            ],
             linkerSettings: [
                 .unsafeFlags([
-                    "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib",
                     "-L", "../build/SPMBuild/macosArm64/Debug/dd-a-files",
                     "-L", "../build/swift-test",
                     "-L", "../build/MergedLibraries/macos/Debug",
