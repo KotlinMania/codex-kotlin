@@ -8,9 +8,6 @@ import io.github.kotlinmania.codex.protocol.SandboxPolicy
 import io.github.kotlinmania.codex.protocol.StreamOutput
 import io.github.kotlinmania.codex.utils.git.platformExecuteCommand
 
-typealias ExecToolCallOutput = io.github.kotlinmania.codex.protocol.ExecToolCallOutput
-typealias StreamOutput = io.github.kotlinmania.codex.protocol.StreamOutput
-
 internal data class StdoutStream(
     val subId: String,
     val callId: String,

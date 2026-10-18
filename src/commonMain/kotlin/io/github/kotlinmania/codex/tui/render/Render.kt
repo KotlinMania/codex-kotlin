@@ -1,4 +1,3 @@
-// port-lint: source tui/src/render/mod.rs
 package io.github.kotlinmania.codex.tui.render
 
 import ratatui.layout.Rect

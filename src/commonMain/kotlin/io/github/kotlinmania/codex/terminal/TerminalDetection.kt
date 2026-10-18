@@ -1,4 +1,3 @@
-// port-lint: source terminal-detection/src/lib.rs
 package io.github.kotlinmania.codex.terminal
 
 /**
