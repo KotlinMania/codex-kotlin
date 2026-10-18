@@ -17,7 +17,8 @@ http = "0.1.3"
 bytes = "0.2.1"
 base64 = "0.1.0"
 eventsourceStream = "0.1.2"
-serde = "0.1.10"
+serde = "0.1.11"
+serdeJson = "0.1.1"
 ramaHttp = "0.1.0"
 ramaHttpBackend = "0.1.1"
 tinyHttp = "0.1.1"
@@ -54,6 +55,7 @@ bytes-kotlin = { module = "io.github.kotlinmania:bytes-kotlin", version.ref = "b
 base64-kotlin = { module = "io.github.kotlinmania:base64-kotlin", version.ref = "base64" }
 eventsource-stream-kotlin = { module = "io.github.kotlinmania:eventsource-stream-kotlin", version.ref = "eventsourceStream" }
 serde-kotlin = { module = "io.github.kotlinmania:serde-kotlin", version.ref = "serde" }
+serde-json-kotlin = { module = "io.github.kotlinmania:serde-json-kotlin", version.ref = "serdeJson" }
 rama-http-kotlin = { module = "io.github.kotlinmania:rama-http-kotlin", version.ref = "ramaHttp" }
 rama-http-backend-kotlin = { module = "io.github.kotlinmania:rama-http-backend-kotlin", version.ref = "ramaHttpBackend" }
 tiny-http-kotlin = { module = "io.github.kotlinmania:tiny-http-kotlin", version.ref = "tinyHttp" }
@@ -79,6 +81,7 @@ codex-commonMain = [
   "base64-kotlin",
   "eventsource-stream-kotlin",
   "serde-kotlin",
+  "serde-json-kotlin",
   "rama-http-kotlin",
   "rama-http-backend-kotlin",
   "tiny-http-kotlin",
