@@ -8,10 +8,8 @@ import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ErrorEvent
 import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
+import io.github.kotlinmania.time.OffsetDateTime
+import io.github.kotlinmania.time.UtcOffset
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -530,21 +528,29 @@ internal fun retrySuffixAfterOr(resetsAt: Instant?): String =
     }
 
 internal fun formatRetryTimestamp(resetsAt: Instant): String {
-    val localZone = TimeZone.currentSystemDefault()
-    val localReset: LocalDateTime = resetsAt.toLocalDateTime(localZone)
-    val localNow: LocalDateTime = nowForRetry().toLocalDateTime(localZone)
-    return if (localReset.date == localNow.date) {
+    val localOffset = UtcOffset.currentLocalOffset().getOrElse { UtcOffset.UTC }
+    val localReset =
+        OffsetDateTime
+            .fromUnixTimestamp(resetsAt.epochSeconds)
+            .getOrElse { OffsetDateTime.UNIX_EPOCH }
+            .toOffset(localOffset)
+    val localNow =
+        OffsetDateTime
+            .fromUnixTimestamp(nowForRetry().epochSeconds)
+            .getOrElse { OffsetDateTime.UNIX_EPOCH }
+            .toOffset(localOffset)
+    return if (localReset.date() == localNow.date()) {
         formatTimeHMSP(localReset)
     } else {
-        val day = localReset.day
+        val day = localReset.day()
         val suffix = daySuffix(day)
-        val month = monthAbbrev(localReset.month.number)
-        "$month $day$suffix, ${localReset.year} ${formatTimeHMSP(localReset)}"
+        val month = monthAbbrev(localReset.month().number)
+        "$month $day$suffix, ${localReset.year()} ${formatTimeHMSP(localReset)}"
     }
 }
 
-private fun formatTimeHMSP(dt: LocalDateTime): String {
-    val hour24 = dt.hour
+private fun formatTimeHMSP(dt: OffsetDateTime): String {
+    val hour24 = dt.hour()
     val hour12 =
         when {
             hour24 == 0 -> 12
@@ -552,7 +558,7 @@ private fun formatTimeHMSP(dt: LocalDateTime): String {
             else -> hour24
         }
     val ampm = if (hour24 < 12) "AM" else "PM"
-    val minute = dt.minute.toString().padStart(2, '0')
+    val minute = dt.minute().toString().padStart(2, '0')
     return "$hour12:$minute $ampm"
 }
 

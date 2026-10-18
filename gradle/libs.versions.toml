@@ -2,7 +2,7 @@
 kotlin = "2.4.20"
 coroutines = "1.11.0"
 serialization = "1.11.0"
-datetime = "0.8.0"
+time = "0.2.0"
 collectionsImmutable = "0.5.2"
 ratatui = "0.1.11"
 crossterm = "0.1.6"
@@ -22,6 +22,7 @@ ramaHttp = "0.1.0"
 ramaHttpBackend = "0.1.1"
 tinyHttp = "0.1.1"
 unicodeWidth = "0.1.2"
+urlencoding = "0.1.1"
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -37,7 +38,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
+time-kotlin = { module = "io.github.kotlinmania:time-kotlin", version.ref = "time" }
 collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collectionsImmutable" }
 ratatui-kotlin = { module = "io.github.kotlinmania:ratatui-kotlin", version.ref = "ratatui" }
 crossterm-kotlin = { module = "io.github.kotlinmania:crossterm-kotlin", version.ref = "crossterm" }
@@ -57,13 +58,14 @@ rama-http-kotlin = { module = "io.github.kotlinmania:rama-http-kotlin", version.
 rama-http-backend-kotlin = { module = "io.github.kotlinmania:rama-http-backend-kotlin", version.ref = "ramaHttpBackend" }
 tiny-http-kotlin = { module = "io.github.kotlinmania:tiny-http-kotlin", version.ref = "tinyHttp" }
 unicode-width-kotlin = { module = "io.github.kotlinmania:unicode-width-kotlin", version.ref = "unicodeWidth" }
+urlencoding-kotlin = { module = "io.github.kotlinmania:urlencoding-kotlin", version.ref = "urlencoding" }
 
 [bundles]
 codex-commonMain = [
   "kotlinx-coroutines-core",
   "kotlinx-serialization-core",
   "kotlinx-serialization-json",
-  "kotlinx-datetime",
+  "time-kotlin",
   "collections-immutable",
   "ratatui-kotlin",
   "crossterm-kotlin",
@@ -81,6 +83,7 @@ codex-commonMain = [
   "rama-http-backend-kotlin",
   "tiny-http-kotlin",
   "unicode-width-kotlin",
+  "urlencoding-kotlin",
 ]
 codex-commonTest = [
   "kotlinx-coroutines-test",

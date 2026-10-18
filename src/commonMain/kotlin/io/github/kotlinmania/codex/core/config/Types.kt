@@ -411,3 +411,29 @@ enum class ReasoningSummaryFormat {
     @SerialName("experimental")
     Experimental,
 }
+
+/**
+ * Determine where Codex should store and read MCP credentials.
+ */
+@Serializable
+enum class OAuthCredentialsStoreMode {
+    /**
+     * `Keyring` when available; otherwise, `File`.
+     * Credentials stored in the keyring will only be readable by Codex unless the user explicitly grants access via OS-level keyring access.
+     */
+    @SerialName("auto")
+    Auto,
+
+    /**
+     * CODEX_HOME/.credentials.json
+     * This file will be readable to Codex and other applications running as the same user.
+     */
+    @SerialName("file")
+    File,
+
+    /**
+     * Keyring when available, otherwise fail.
+     */
+    @SerialName("keyring")
+    Keyring,
+}
