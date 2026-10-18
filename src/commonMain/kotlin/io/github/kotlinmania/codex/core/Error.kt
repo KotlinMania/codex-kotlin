@@ -6,6 +6,7 @@ import io.github.kotlinmania.codex.core.context.truncateText
 import io.github.kotlinmania.codex.protocol.CodexErrorInfo
 import io.github.kotlinmania.codex.protocol.ConversationId
 import io.github.kotlinmania.codex.protocol.ErrorEvent
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.protocol.RateLimitSnapshot
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
