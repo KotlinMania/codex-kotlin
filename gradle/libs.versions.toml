@@ -21,6 +21,7 @@ serde = "0.1.10"
 ramaHttp = "0.1.0"
 ramaHttpBackend = "0.1.1"
 tinyHttp = "0.1.1"
+unicodeWidth = "0.1.2"
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -55,6 +56,7 @@ serde-kotlin = { module = "io.github.kotlinmania:serde-kotlin", version.ref = "s
 rama-http-kotlin = { module = "io.github.kotlinmania:rama-http-kotlin", version.ref = "ramaHttp" }
 rama-http-backend-kotlin = { module = "io.github.kotlinmania:rama-http-backend-kotlin", version.ref = "ramaHttpBackend" }
 tiny-http-kotlin = { module = "io.github.kotlinmania:tiny-http-kotlin", version.ref = "tinyHttp" }
+unicode-width-kotlin = { module = "io.github.kotlinmania:unicode-width-kotlin", version.ref = "unicodeWidth" }
 
 [bundles]
 codex-commonMain = [
@@ -78,6 +80,7 @@ codex-commonMain = [
   "rama-http-kotlin",
   "rama-http-backend-kotlin",
   "tiny-http-kotlin",
+  "unicode-width-kotlin",
 ]
 codex-commonTest = [
   "kotlinx-coroutines-test",

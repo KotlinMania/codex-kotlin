@@ -344,53 +344,6 @@ enum class AuthMode {
 }
 
 /**
- * Provides bearer and account identity information for API requests.
- *
- * Implementations should be cheap and non-blocking; any asynchronous
- * refresh or I/O should be handled by higher layers before requests
- * reach this interface.
- *
- * Ported from Rust codex-api/src/auth.rs AuthProvider trait.
- */
-interface AuthProvider {
-    /**
-     * Get the bearer token for API requests.
-     * Returns null if no token is available.
-     */
-    fun bearerToken(): String?
-
-    /**
-     * Get the account ID for the request, if available.
-     * Default implementation returns null.
-     */
-    fun accountId(): String? = null
-}
-
-/**
- * Add authentication headers to an HTTP request.
- *
- * Adds:
- * - Authorization: Bearer <token> (if bearer token available)
- * - ChatGPT-Account-ID: <accountId> (if account ID available)
- *
- * Ported from Rust codex-api/src/auth.rs addAuthHeaders function.
- *
- * @param auth The auth provider to get credentials from
- * @param headers Mutable map of headers to add to
- * @return The headers map with auth headers added
- */
-fun <T : AuthProvider> addAuthHeaders(auth: T, headers: Map<String, String> = emptyMap()): Map<String, String> {
-    val result = headers.toMutableMap()
-    auth.bearerToken()?.let { token ->
-        result["Authorization"] = "Bearer $token"
-    }
-    auth.accountId()?.let { accountId ->
-        result["ChatGPT-Account-ID"] = accountId
-    }
-    return result
-}
-
-/**
  * Storage mode for auth credentials.
  *
  * Ported from Rust codex-rs/core/src/auth/storage.rs AuthCredentialsStoreMode
