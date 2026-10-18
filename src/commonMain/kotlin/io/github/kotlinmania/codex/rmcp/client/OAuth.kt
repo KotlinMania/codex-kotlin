@@ -15,11 +15,15 @@ import io.github.kotlinmania.serdecore.ser.Serialize
 import io.github.kotlinmania.serdecore.ser.Serializer
 import kotlin.time.Clock
 
-private class SerdeStr(private val s: String) : Serialize {
+private class SerdeStr(
+    private val s: String,
+) : Serialize {
     override fun <Ok> serialize(serializer: Serializer<Ok>): SerdeResult<Ok> = serializer.serializeStr(s)
 }
 
-private class SerdeI64(private val v: Long) : Serialize {
+private class SerdeI64(
+    private val v: Long,
+) : Serialize {
     override fun <Ok> serialize(serializer: Serializer<Ok>): SerdeResult<Ok> = serializer.serializeI64(v)
 }
 

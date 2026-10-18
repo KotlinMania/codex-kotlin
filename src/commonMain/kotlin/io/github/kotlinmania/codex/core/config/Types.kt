@@ -454,12 +454,19 @@ enum class OAuthCredentialsStoreMode : io.github.kotlinmania.serdecore.ser.Seria
 
                     override fun visitStr(v: String): io.github.kotlinmania.serde.SerdeResult<OAuthCredentialsStoreMode> =
                         when (v.lowercase()) {
-                            "auto" -> io.github.kotlinmania.serde.SerdeResult.success(Auto)
-                            "file" -> io.github.kotlinmania.serde.SerdeResult.success(File)
-                            "keyring" -> io.github.kotlinmania.serde.SerdeResult.success(Keyring)
+                            "auto" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(Auto)
+                            "file" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(File)
+                            "keyring" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(Keyring)
                             else ->
                                 io.github.kotlinmania.serde.SerdeResult.failure(
-                                    io.github.kotlinmania.serde.SerdeError("unknown OAuthCredentialsStoreMode variant: $v"),
+                                    io.github.kotlinmania.serde
+                                        .SerdeError("unknown OAuthCredentialsStoreMode variant: $v"),
                                 )
                         }
                 },
