@@ -1,7 +1,7 @@
 // port-lint: source core/src/user_shell_command.rs
 package io.github.kotlinmania.codex.core.session
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.protocol.ContentItem
 import io.github.kotlinmania.codex.protocol.ResponseItem
 

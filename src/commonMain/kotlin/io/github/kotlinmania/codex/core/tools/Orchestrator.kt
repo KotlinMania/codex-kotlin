@@ -2,7 +2,7 @@
 package io.github.kotlinmania.codex.core.tools
 
 import io.github.kotlinmania.codex.core.CodexErr
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.getErrorMessageUi
 import io.github.kotlinmania.codex.core.session.TurnContext
 import io.github.kotlinmania.codex.exec.process.SandboxType

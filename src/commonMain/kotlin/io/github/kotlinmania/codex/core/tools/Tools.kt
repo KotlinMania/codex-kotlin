@@ -2,7 +2,7 @@
 // transliterated from upstream module root
 package io.github.kotlinmania.codex.core.tools
 
-import io.github.kotlinmania.codex.core.ExecToolCallOutput
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.formattedTruncateText
 import io.github.kotlinmania.codex.core.context.truncateText

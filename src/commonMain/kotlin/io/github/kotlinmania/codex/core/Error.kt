@@ -1,6 +1,8 @@
 // port-lint: source error.rs
 package io.github.kotlinmania.codex.core
 
+import io.github.kotlinmania.codex.protocol.ExecToolCallOutput
+
 import io.github.kotlinmania.codex.core.context.TruncationPolicy
 import io.github.kotlinmania.codex.core.context.truncateText
 import io.github.kotlinmania.codex.protocol.CodexErrorInfo
