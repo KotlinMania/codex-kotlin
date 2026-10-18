@@ -25,6 +25,8 @@ tinyHttp = "0.1.1"
 unicodeWidth = "0.1.2"
 urlencoding = "0.1.1"
 
+zeroize = "0.1.1"
+
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -62,8 +64,11 @@ tiny-http-kotlin = { module = "io.github.kotlinmania:tiny-http-kotlin", version.
 unicode-width-kotlin = { module = "io.github.kotlinmania:unicode-width-kotlin", version.ref = "unicodeWidth" }
 urlencoding-kotlin = { module = "io.github.kotlinmania:urlencoding-kotlin", version.ref = "urlencoding" }
 
+zeroize-kotlin = { module = "io.github.kotlinmania:zeroize-kotlin", version.ref = "zeroize" }
+
 [bundles]
 codex-commonMain = [
+  "zeroize-kotlin",
   "kotlinx-coroutines-core",
   "kotlinx-serialization-core",
   "kotlinx-serialization-json",
