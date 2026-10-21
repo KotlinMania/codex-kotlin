@@ -415,25 +415,69 @@ enum class ReasoningSummaryFormat {
 /**
  * Determine where Codex should store and read MCP credentials.
  */
-@Serializable
-enum class OAuthCredentialsStoreMode {
+enum class OAuthCredentialsStoreMode : io.github.kotlinmania.serdecore.ser.Serialize {
     /**
      * `Keyring` when available; otherwise, `File`.
      * Credentials stored in the keyring will only be readable by Codex unless the user explicitly grants access via OS-level keyring access.
      */
-    @SerialName("auto")
     Auto,
 
     /**
      * CODEX_HOME/.credentials.json
      * This file will be readable to Codex and other applications running as the same user.
      */
-    @SerialName("file")
     File,
 
     /**
      * Keyring when available, otherwise fail.
      */
-    @SerialName("keyring")
     Keyring,
+    ;
+
+    fun asStr(): String =
+        when (this) {
+            Auto -> "auto"
+            File -> "file"
+            Keyring -> "keyring"
+        }
+
+    override fun <Ok> serialize(serializer: io.github.kotlinmania.serdecore.ser.Serializer<Ok>): io.github.kotlinmania.serde.SerdeResult<Ok> =
+        serializer.serializeStr(asStr())
+
+    companion object : io.github.kotlinmania.serdecore.de.Deserialize<OAuthCredentialsStoreMode> {
+        val DEFAULT: OAuthCredentialsStoreMode = Auto
+
+        override fun <D : io.github.kotlinmania.serdecore.de.Deserializer> deserialize(deserializer: D): io.github.kotlinmania.serde.SerdeResult<OAuthCredentialsStoreMode> =
+            deserializer.deserializeStr(
+                object : io.github.kotlinmania.serdecore.de.Visitor<OAuthCredentialsStoreMode> {
+                    override fun expecting(): String = "one of 'auto', 'file', or 'keyring'"
+
+                    override fun visitStr(v: String): io.github.kotlinmania.serde.SerdeResult<OAuthCredentialsStoreMode> =
+                        when (v.lowercase()) {
+                            "auto" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(Auto)
+                            "file" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(File)
+                            "keyring" ->
+                                io.github.kotlinmania.serde.SerdeResult
+                                    .success(Keyring)
+                            else ->
+                                io.github.kotlinmania.serde.SerdeResult.failure(
+                                    io.github.kotlinmania.serde
+                                        .SerdeError("unknown OAuthCredentialsStoreMode variant: $v"),
+                                )
+                        }
+                },
+            )
+
+        fun fromStr(s: String): OAuthCredentialsStoreMode? =
+            when (s.lowercase()) {
+                "auto" -> Auto
+                "file" -> File
+                "keyring" -> Keyring
+                else -> null
+            }
+    }
 }
